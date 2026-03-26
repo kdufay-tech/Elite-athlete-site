@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Report a Bug — Elite Athlete</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Cormorant+SC:wght@600&display=swap" rel="stylesheet"/>
+<style>
+  :root{--gold:#BFA16A;--gold-lt:#D4B97A;--ink:#080807;--charcoal:#111110;--slate:#1A1917;--ivory:#F0EBE1;--ivory2:#C8C0B0;--muted:#6B6560;--r:6px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--ink);color:var(--ivory);font-family:'Cormorant Garamond',serif;min-height:100vh;display:flex;flex-direction:column;}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 2.5rem;border-bottom:1px solid rgba(191,161,106,0.12);background:rgba(8,8,7,0.95);position:sticky;top:0;z-index:10;}
+  .nav-brand{font-family:'Cormorant SC',serif;font-size:1.25rem;letter-spacing:3px;color:var(--ivory);}
+  .nav-back{font-size:0.7rem;letter-spacing:2px;color:var(--gold);text-decoration:none;border:1px solid rgba(191,161,106,0.3);padding:0.4rem 0.9rem;border-radius:var(--r);transition:all 0.2s;}
+  .nav-back:hover{background:rgba(191,161,106,0.08);}
+  .hero{text-align:center;padding:4rem 1.5rem 2.5rem;max-width:640px;margin:0 auto;}
+  .eyebrow{font-size:0.65rem;letter-spacing:4px;color:var(--gold);text-transform:uppercase;margin-bottom:1rem;}
+  h1{font-family:'Cormorant SC',serif;font-size:2.8rem;font-weight:600;letter-spacing:3px;line-height:1.1;margin-bottom:1rem;}
+  h1 em{font-style:italic;color:var(--gold-lt);}
+  .sub{font-size:0.95rem;color:var(--ivory2);font-weight:300;line-height:1.7;}
+  .form-wrap{max-width:640px;margin:0 auto;padding:0 1.5rem 5rem;flex:1;}
+  .card{background:var(--charcoal);border:1px solid rgba(191,161,106,0.12);border-radius:12px;padding:2.5rem;margin-bottom:1.5rem;}
+  .field{margin-bottom:1.5rem;}
+  label{display:block;font-size:0.68rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:0.5rem;}
+  input,select,textarea{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(191,161,106,0.18);border-radius:var(--r);color:var(--ivory);font-family:'Cormorant Garamond',serif;font-size:0.95rem;padding:0.75rem 1rem;transition:border-color 0.2s;outline:none;}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold);}
+  select option{background:#1a1a1a;color:var(--ivory);}
+  textarea{resize:vertical;min-height:120px;line-height:1.6;}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+  .severity-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;}
+  .sev-btn{background:rgba(255,255,255,0.03);border:1px solid rgba(191,161,106,0.15);border-radius:var(--r);padding:0.65rem 0.5rem;text-align:center;cursor:pointer;transition:all 0.2s;font-family:'Cormorant Garamond',serif;}
+  .sev-btn .icon{font-size:1.4rem;display:block;margin-bottom:0.3rem;}
+  .sev-btn .label{font-size:0.68rem;letter-spacing:1px;color:var(--muted);}
+  .sev-btn input{display:none;}
+  .sev-btn:has(input:checked){border-color:var(--gold);background:rgba(191,161,106,0.08);}
+  .sev-btn:has(input:checked) .label{color:var(--gold);}
+  .honeypot{display:none;}
+  .submit-btn{width:100%;padding:1rem;background:linear-gradient(135deg,#BFA16A,#8B6914);border:none;border-radius:var(--r);color:#0a0908;font-family:'Cormorant SC',serif;font-size:0.82rem;font-weight:600;letter-spacing:3px;cursor:pointer;transition:opacity 0.2s;}
+  .submit-btn:hover{opacity:0.88;}
+  .submit-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .success{display:none;text-align:center;padding:3rem 1.5rem;}
+  .success.show{display:block;}
+  .form-wrap.submitted .card,.form-wrap.submitted .submit-btn{display:none;}
+  .form-wrap.submitted .success{display:block;}
+  .success-icon{font-size:3rem;margin-bottom:1rem;}
+  .success h2{font-family:'Cormorant SC',serif;font-size:1.8rem;color:var(--gold);margin-bottom:0.75rem;}
+  .success p{color:var(--ivory2);font-weight:300;line-height:1.7;}
+  @media(max-width:600px){.two{grid-template-columns:1fr;}.severity-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">Elite Athlete</div>
+  <a href="/" class="nav-back">← Back to App</a>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow">Support</div>
+  <h1>Report a <em>Bug</em></h1>
+  <p class="sub">Found something that's not working right? Tell us exactly what happened — we take every report seriously and patch quickly.</p>
+</div>
+
+<div class="form-wrap" id="formWrap">
+  <form name="bug-report" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="bugForm">
+    <input type="hidden" name="form-name" value="bug-report"/>
+
+    <div class="card">
+      <div class="field honeypot">
+        <label for="bot-field">Don't fill this out</label>
+        <input type="text" name="bot-field" id="bot-field" tabindex="-1" autocomplete="off"/>
+      </div>
+
+      <div class="field">
+        <label for="name">Your Name</label>
+        <input type="text" id="name" name="name" placeholder="Emeka Ugokwe" required maxlength="100"/>
+      </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" placeholder="you@email.com" required maxlength="254"/>
+        </div>
+        <div class="field">
+          <label for="module">App Module</label>
+          <select id="module" name="module" required>
+            <option value="">Select module…</option>
+            <option>Nutrition</option>
+            <option>Workout</option>
+            <option>Recovery</option>
+            <option>Progress Tracking</option>
+            <option>Journal</option>
+            <option>Calendar</option>
+            <option>AI Coach</option>
+            <option>Profile / Settings</option>
+            <option>Pricing / Checkout</option>
+            <option>Login / Sign Up</option>
+            <option>PDF / Download</option>
+            <option>Email Reports</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Severity</label>
+        <div class="severity-grid">
+          <label class="sev-btn">
+            <span class="icon">💬</span>
+            <span class="label">Minor</span>
+            <input type="radio" name="severity" value="Minor" required/>
+          </label>
+          <label class="sev-btn">
+            <span class="icon">⚠️</span>
+            <span class="label">Moderate</span>
+            <input type="radio" name="severity" value="Moderate"/>
+          </label>
+          <label class="sev-btn">
+            <span class="icon">🚨</span>
+            <span class="label">Major</span>
+            <input type="radio" name="severity" value="Major"/>
+          </label>
+          <label class="sev-btn">
+            <span class="icon">🔴</span>
+            <span class="label">Critical</span>
+            <input type="radio" name="severity" value="Critical"/>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label for="summary">Bug Summary</label>
+        <input type="text" id="summary" name="summary" placeholder="One sentence describing the issue" required maxlength="200"/>
+      </div>
+
+      <div class="field">
+        <label for="steps">Steps to Reproduce</label>
+        <textarea id="steps" name="steps" placeholder="1. Go to Progress → History&#10;2. Click any sub-tab&#10;3. Click Journal in the nav&#10;4. Page doesn't scroll to Journal" required maxlength="2000"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="expected">What Should Happen</label>
+        <textarea id="expected" name="expected" placeholder="Journal section should appear at the top of the screen" maxlength="1000" style="min-height:80px;"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="actual">What Actually Happens</label>
+        <textarea id="actual" name="actual" placeholder="Page stays on the History sub-tab content, I have to scroll down to find Journal" maxlength="1000" style="min-height:80px;"></textarea>
+      </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="browser">Browser</label>
+          <select id="browser" name="browser">
+            <option value="">Select…</option>
+            <option>Chrome</option>
+            <option>Safari</option>
+            <option>Firefox</option>
+            <option>Edge</option>
+            <option>Mobile Safari (iPhone)</option>
+            <option>Chrome (Android)</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="device">Device</label>
+          <select id="device" name="device">
+            <option value="">Select…</option>
+            <option>Desktop / Laptop</option>
+            <option>iPhone</option>
+            <option>iPad</option>
+            <option>Android Phone</option>
+            <option>Android Tablet</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">SUBMIT BUG REPORT</button>
+  </form>
+
+  <div class="success" id="successMsg">
+    <div class="success-icon">✅</div>
+    <h2>Report Received</h2>
+    <p>Thank you — your bug report has been logged. We review every submission and patch high-severity issues within 24 hours.<br/><br/>
+    <a href="/" style="color:var(--gold);text-decoration:none;letter-spacing:1px;">← Return to Elite Athlete</a></p>
+  </div>
+</div>
+
+<script>
+  document.getElementById('bugForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = 'SUBMITTING…';
+    try {
+      const formData = new FormData(this);
+      await fetch('/', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams(formData).toString() });
+      document.getElementById('formWrap').classList.add('submitted');
+    } catch(err) {
+      btn.disabled = false; btn.textContent = 'SUBMIT BUG REPORT';
+      alert('Submission failed. Please try again.');
+    }
+  });
+</script>
+</body>
+</html>

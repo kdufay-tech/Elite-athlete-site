@@ -1,0 +1,183 @@
+╔══════════════════════════════════════════════════════════════════╗
+║       ELITE ATHLETE APP v3 — FULL INTEGRATION SETUP GUIDE       ║
+╚══════════════════════════════════════════════════════════════════╝
+
+All your API keys go in the file:  .env.local
+(Open it in Notepad — fill in each value below)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 1 — SUPABASE (Database + Auth)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1. Go to https://supabase.com → Open your project
+ 2. Click "Settings" (gear icon) → "API"
+ 3. Copy:
+    • "Project URL"       → paste as VITE_SUPABASE_URL
+    • "anon / public" key → paste as VITE_SUPABASE_ANON_KEY
+
+ 4. Create the database tables:
+    Go to: Table Editor → New Table (or SQL Editor → paste below)
+
+ ┌─────────────────────────────────────────────────────────────┐
+ │  SQL TO RUN IN SUPABASE SQL EDITOR                          │
+ │  (Dashboard → SQL Editor → New Query → paste → Run)        │
+ └─────────────────────────────────────────────────────────────┘
+
+-- Athlete profiles
+CREATE TABLE IF NOT EXISTS profiles (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  name        TEXT,
+  weight      TEXT,
+  height      TEXT,
+  age         TEXT,
+  sport       TEXT DEFAULT 'football',
+  position    TEXT,
+  goal        TEXT DEFAULT 'Weight Maintenance',
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Journal entries (3-month retention)
+CREATE TABLE IF NOT EXISTS journal_entries (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title       TEXT,
+  text        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Progress notes
+CREATE TABLE IF NOT EXISTS progress_notes (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  text        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Calendar events
+CREATE TABLE IF NOT EXISTS calendar_events (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  event_date  DATE NOT NULL,
+  title       TEXT NOT NULL,
+  event_type  TEXT DEFAULT 'training',
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Subscriptions (synced from Stripe webhooks)
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id                    UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id               UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  stripe_customer_id    TEXT,
+  stripe_subscription_id TEXT,
+  plan_name             TEXT,
+  status                TEXT DEFAULT 'inactive',
+  current_period_end    TIMESTAMPTZ,
+  updated_at            TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Row Level Security (keeps each user's data private)
+ALTER TABLE profiles        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE progress_notes  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE calendar_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions   ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users own their profile"   ON profiles        FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own their journals"  ON journal_entries FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own their notes"     ON progress_notes  FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own their events"    ON calendar_events FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own their sub"       ON subscriptions   FOR ALL USING (auth.uid() = user_id);
+
+ 5. Enable Email Auth:
+    Dashboard → Authentication → Providers → Email → Enable ✓
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 2 — STRIPE (Payments & Subscriptions)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1. Go to https://dashboard.stripe.com
+ 2. Developers → API Keys
+    Copy "Publishable key" (pk_test_... or pk_live_...)
+    → paste as VITE_STRIPE_PUBLISHABLE_KEY
+
+ 3. Create 3 products with recurring prices:
+    Products → Add Product
+    ┌──────────────┬───────────────┬─────────────────────────────┐
+    │ Product Name │ Price         │ Copy Price ID (price_xxx)   │
+    ├──────────────┼───────────────┼─────────────────────────────┤
+    │ Starter      │ $29/month     │ → VITE_STRIPE_PRICE_STARTER │
+    │ Elite        │ $79/month     │ → VITE_STRIPE_PRICE_ELITE   │
+    │ Champion     │ $149/month    │ → VITE_STRIPE_PRICE_CHAMPION│
+    └──────────────┴───────────────┴─────────────────────────────┘
+
+ 4. Create Payment Links (easiest — no backend needed):
+    Dashboard → Payment Links → Create Link
+    • Select your product → Create link
+    • Copy the URL (https://buy.stripe.com/xxx)
+    • Paste each into src/lib/stripe.js in the PAYMENT_LINKS object
+
+ ✅ That's it for Stripe — no server needed with Payment Links!
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 3 — EMAILJS (Send real emails from the browser)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1. Go to https://www.emailjs.com → Sign Up free
+ 2. Email Services → Add Service → Connect Gmail/Outlook/SMTP
+    Copy Service ID → VITE_EMAILJS_SERVICE_ID
+
+ 3. Email Templates → Create New Template
+    Set Subject: {{subject}}
+    Set Body:    {{message}}
+    Set To:      {{to_email}}
+    Copy Template ID → VITE_EMAILJS_TEMPLATE_ID
+
+ 4. Account → API Keys
+    Copy Public Key → VITE_EMAILJS_PUBLIC_KEY
+
+ Free tier: 200 emails/month
+ Paid: $15/month unlimited
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 4 — START THE APP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1. Fill in all values in .env.local
+ 2. Double-click "START APP.bat"
+ 3. Browser opens at http://localhost:3000
+
+ To deploy to the web (Netlify recommended — free tier):
+ 1. Go to https://netlify.com → New Site → Deploy manually
+ 2. Run: npm run build  (creates a "dist" folder)
+ 3. Drag the "dist" folder to Netlify
+ 4. Set your env vars in Netlify → Site Settings → Env Variables
+ ✅ Live URL instantly — free SSL included
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ WHAT'S LIVE vs WHAT'S STILL SIMULATED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ ✅ REAL (with keys configured):
+    • User sign-up, sign-in, sign-out (Supabase Auth)
+    • Profile saved & reloaded across sessions (Supabase DB)
+    • Journal entries saved to database (3-month history)
+    • Progress notes saved to database
+    • Profile autosaved as you type
+    • Stripe checkout redirect for subscriptions
+    • Real PDF downloads for all plans (jsPDF)
+    • Real email sending for meal plans & reports (EmailJS)
+
+ 🔲 Future enhancements (Phase 2):
+    • Stripe webhooks to auto-update subscription status
+    • Calendar events saved to database
+    • Push notifications for training reminders
+    • Coach portal to view athlete data
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Elite Athlete App v3.0 — Engineered for Champions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
