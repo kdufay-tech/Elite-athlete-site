@@ -3820,28 +3820,24 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
   text-transform:uppercase;color:rgba(154,148,140,0.5);margin-top:0.2rem;}
 .dh-acts{position:absolute;top:1.25rem;right:2rem;z-index:3;display:flex;gap:0.45rem;}
 
-/* MODULE TILES */
-.mod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:2.5rem;}
-.mtile{background:var(--charcoal);border:1px solid rgba(255,255,255,0.05);border-radius:var(--r-lg);
-  overflow:hidden;cursor:pointer;transition:border-color 0.25s,transform 0.25s;position:relative;min-height:155px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);}
-.mtile:hover{border-color:rgba(255,255,255,0.12);transform:translateY(-2px);}
-.mtile.on{border-color:rgba(168,130,42,0.5);}
+/* MODULE TILES — Cinematic Standard */
+.mod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:2.5rem;}
+.mtile{background:#0D0D0D;border:none;border-radius:14px;
+  overflow:hidden;cursor:pointer;transition:transform 0.3s,box-shadow 0.3s;position:relative;min-height:180px;
+  box-shadow:0 2px 16px rgba(0,0,0,0.6);}
+.mtile:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,0.7);}
+.mtile.on{box-shadow:0 0 0 2px rgba(191,161,106,0.6),0 12px 32px rgba(0,0,0,0.6);}
 .mt-img{position:absolute;inset:0;background-size:cover;background-position:center;
-  filter:saturate(0.2) brightness(0.22);transition:all 0.4s;}
-.mtile:hover .mt-img{filter:saturate(0.45) brightness(0.32);transform:scale(1.04);}
-.mtile.on .mt-img{filter:saturate(0.55) brightness(0.28);}
-.mt-grad{position:absolute;inset:0;background:linear-gradient(135deg,rgba(6,5,4,0.65)0%,transparent 70%);}
-.mt-dot{position:absolute;top:0.9rem;right:0.9rem;width:4px;height:4px;border-radius:50%;
-  background:var(--gold);opacity:0;transition:opacity 0.2s;}
-.mtile.on .mt-dot{opacity:0.8;}
-.mt-body{position:relative;z-index:1;padding:1.25rem;height:100%;display:flex;flex-direction:column;justify-content:space-between;}
-.mt-icon{width:36px;height:36px;border-radius:2px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-  display:flex;align-items:center;justify-content:center;
-  font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1.5px;color:var(--ivory2);}
-.mt-label{font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--ivory);line-height:1;margin-top:2rem;}
-.mtile.on .mt-label,.mtile:hover .mt-label{color:#F8F5F0;}
-.mt-sub{font-family:'Inter',sans-serif;font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:0.2rem;font-weight:400;}
+  filter:saturate(0.85) brightness(0.52);transition:all 0.4s;}
+.mtile:hover .mt-img{filter:saturate(1.0) brightness(0.65);transform:scale(1.05);}
+.mtile.on .mt-img{filter:saturate(0.95) brightness(0.58);}
+.mt-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.08) 0%,rgba(0,0,0,0.72) 100%);}
+.mt-geo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.mt-dot{display:none;}
+.mt-body{position:relative;z-index:1;padding:1.1rem 1rem;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.25rem;}
+.mt-icon{display:none;}
+.mt-label{font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:800;letter-spacing:3.5px;text-transform:uppercase;color:#FFFFFF;line-height:1;text-shadow:0 1px 10px rgba(0,0,0,0.7);}
+.mt-sub{font-family:'Inter',sans-serif;font-size:0.5rem;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-top:0.2rem;font-weight:400;}
 
 /* PANEL — matte glass, inset effect */
 .panel{background:var(--charcoal);border:1px solid rgba(255,255,255,0.05);border-radius:var(--r-lg);overflow:hidden;
@@ -3868,6 +3864,7 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 .four{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
 @media(max-width:700px){.two,.three,.four{grid-template-columns:1fr;}}
 @media(max-width:900px){.four{grid-template-columns:1fr 1fr;} .mod-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:500px){.mod-grid{grid-template-columns:1fr 1fr;gap:6px;} .mtile{min-height:160px;border-radius:12px;}}
 
 /* RULE */
 .gr{height:1px;background:linear-gradient(90deg,transparent,rgba(191,161,106,0.28),transparent);margin:1.6rem 0;}
@@ -3987,17 +3984,22 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 @keyframes pulse{0%,100%{opacity:0.3;transform:scale(0.8);}50%{opacity:1;transform:scale(1.1);}}
 #coach-msgs{scroll-behavior:smooth;}
 
-/* MEAL FREQUENCY SELECTOR */
+/* MEAL FREQUENCY SELECTOR — cinematic tile standard */
 .freq-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.5rem;}
-.freq-tile{background:var(--slate);border:1px solid rgba(255,255,255,0.06);border-radius:var(--r-lg);
-  padding:1.1rem 1rem;text-align:center;cursor:pointer;transition:all 0.2s;}
-.freq-tile:hover{border-color:rgba(255,255,255,0.12);transform:translateY(-1px);}
-.freq-tile.on{border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);}
-.freq-n{font-family:'DM Sans',sans-serif;font-size:2rem;font-weight:800;color:var(--ivory);line-height:1;letter-spacing:1px;}
+.freq-tile{position:relative;height:110px;border-radius:12px;overflow:hidden;cursor:pointer;
+  box-shadow:0 2px 10px rgba(0,0,0,0.5);transition:transform 0.25s,box-shadow 0.25s;}
+.freq-tile:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,0.6);}
+.freq-tile.on{box-shadow:0 0 0 2px rgba(191,161,106,0.7),0 6px 20px rgba(0,0,0,0.6);transform:translateY(-3px);}
+.freq-bg{position:absolute;inset:0;background-size:cover;background-position:center;transition:filter 0.3s;}
+.freq-tile:not(.on) .freq-bg{filter:saturate(0.7) brightness(0.38);}
+.freq-tile.on .freq-bg{filter:saturate(0.95) brightness(0.52);}
+.freq-tile:hover:not(.on) .freq-bg{filter:saturate(0.85) brightness(0.48);}
+.freq-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.68) 100%);}
+.freq-body{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.freq-n{font-family:'DM Sans',sans-serif;font-size:1.8rem;font-weight:800;color:#FFFFFF;line-height:1;letter-spacing:1px;text-shadow:0 1px 8px rgba(0,0,0,0.7);}
 .freq-tile.on .freq-n{color:var(--gold);}
-.freq-lbl{font-size:0.74rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:0.3rem;}
-.freq-tile.on .freq-lbl{color:var(--gold);}
-.freq-sub{font-family:'Inter',sans-serif;font-size:0.68rem;color:var(--muted);margin-top:0.2rem;letter-spacing:1px;}
+.freq-lbl{font-size:0.62rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.9);text-shadow:0 1px 6px rgba(0,0,0,0.7);}
+.freq-sub{font-family:'Inter',sans-serif;font-size:0.52rem;color:rgba(255,255,255,0.55);letter-spacing:1.5px;text-transform:uppercase;}
 
 /* MEAL BLOCK */
 .meal-block{background:var(--slate);border:1px solid rgba(191,161,106,0.08);border-radius:var(--r-lg);
@@ -5219,14 +5221,14 @@ COACHING GUIDELINES:
 
   // ── DASHBOARD ────────────────────────────────────────────────
   const MODS = [
-    {id:"nutrition",label:"Nutrition",  sub:"Meal Plans",     icon:"N",img:"https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&q=80"},
-    {id:"workout",  label:"Workout",    sub:"Training",       icon:"W",img:"https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80"},
-    {id:"injury",   label:"Recovery",   sub:"Rehabilitation", icon:"R",img:"https://images.unsplash.com/photo-1552072092-7f9b8d63efcb?w=600&q=80"},
-    {id:"progress", label:"Progress",   sub:"Analytics",      icon:"P",img:"https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80"},
-    {id:"journal",  label:"Journal",    sub:"Personal Notes", icon:"J",img:"https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&q=80"},
-    {id:"calendar", label:"Calendar",   sub:"Schedule",       icon:"C",  img:"https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80"},
-    {id:"profile",  label:"Profile",    sub:"Settings",       icon:"✦",img:sport.img},
-    {id:"upgrade",  label:"Upgrade",    sub:"Premium Plans",  icon:"◆",img:"https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&q=80"},
+    {id:"nutrition", label:"Nutrition",  sub:"Meal Plans",      icon:"N", img:"https://images.unsplash.com/photo-1547592180-85f173990554?w=800&q=85"},
+    {id:"workout",   label:"Workout",    sub:"Training",        icon:"W", img:"https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=85"},
+    {id:"injury",    label:"Recovery",   sub:"Rehabilitation",  icon:"R", img:"https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=85"},
+    {id:"progress",  label:"Progress",   sub:"Analytics",       icon:"P", img:"https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&q=85"},
+    {id:"journal",   label:"Journal",    sub:"Personal Notes",  icon:"J", img:"https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=85"},
+    {id:"calendar",  label:"Calendar",   sub:"Schedule",        icon:"C", img:"https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&q=85"},
+    {id:"profile",   label:"Profile",    sub:"Settings",        icon:"✦", img:sport.img},
+    {id:"upgrade",   label:"Upgrade",    sub:"Premium Plans",   icon:"◆", img:"https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=85"},
   ];
 
   // ── PRICING SCREEN ─────────────────────────────────────────
@@ -5352,10 +5354,16 @@ COACHING GUIDELINES:
                 onClick={()=>m.id==="upgrade"?setScreen("pricing"):goTo(m.id)}>
                 <div className="mt-img" style={{backgroundImage:`url(${m.img})`}}/>
                 <div className="mt-grad"/>
-                <div className="mt-dot"/>
+                {/* Diamond geometric overlay — the Taradome tile standard */}
+                <div className="mt-geo">
+                  <svg viewBox="0 0 160 160" width="130" height="130" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="80,8 152,80 80,152 8,80" stroke="white" strokeWidth="1" opacity="0.18" fill="none"/>
+                    <polygon points="80,28 132,80 80,132 28,80" stroke="white" strokeWidth="0.6" opacity="0.1" fill="none"/>
+                  </svg>
+                </div>
                 <div className="mt-body">
-                  <div className="mt-icon">{m.icon}</div>
-                  <div><div className="mt-label">{m.label}</div><div className="mt-sub">{m.sub}</div></div>
+                  <div className="mt-label">{m.label}</div>
+                  <div className="mt-sub">{m.sub}</div>
                 </div>
               </div>
             ))}
@@ -5451,14 +5459,23 @@ COACHING GUIDELINES:
                 <div className="pb">
                   <div className="freq-grid">
                     {[
-                      {n:3,lbl:"3 Meals",sub:"Classic · Busy schedule"},
-                      {n:5,lbl:"5 Meals",sub:"Optimal · Performance focus"},
-                      {n:7,lbl:"7 Meals",sub:"Elite · Maximum fuel protocol"},
+                      {n:3,lbl:"3 Meals",sub:"Classic · Busy schedule",   img:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80"},
+                      {n:5,lbl:"5 Meals",sub:"Optimal · Performance",      img:"https://images.unsplash.com/photo-1547592180-85f173990554?w=400&q=80"},
+                      {n:7,lbl:"7 Meals",sub:"Elite · Maximum fuel",       img:"https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400&q=80"},
                     ].map(f=>(
                       <div key={f.n} className={`freq-tile${mealFreq===f.n?" on":""}`} onClick={()=>setMealFreq(f.n)}>
-                        <div className="freq-n">{f.n}</div>
-                        <div className="freq-lbl">{f.lbl}</div>
-                        <div className="freq-sub">{f.sub}</div>
+                        <div className="freq-bg" style={{backgroundImage:`url(${f.img})`}}/>
+                        <div className="freq-overlay"/>
+                        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+                          <svg viewBox="0 0 80 80" width="60" height="60" fill="none">
+                            <polygon points="40,4 76,40 40,76 4,40" stroke="white" strokeWidth="0.8" opacity={mealFreq===f.n?"0.22":"0.10"} fill="none"/>
+                          </svg>
+                        </div>
+                        <div className="freq-body">
+                          <div className="freq-n">{f.n}</div>
+                          <div className="freq-lbl">{f.lbl}</div>
+                          <div className="freq-sub">{f.sub}</div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -6813,34 +6830,59 @@ COACHING GUIDELINES:
                 </div>
               </div>
 
-              {/* Sub-nav tabs */}
-              <div style={{display:"flex",gap:"0.35rem",marginBottom:"1.75rem",flexWrap:"wrap"}}>
+              {/* Progress Sub-Nav — cinematic tile standard */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"6px",marginBottom:"1.75rem"}}>
                 {[
-                  ["coach","AI Coach"],
-                  ["overview","Overview"],
-                  ["checkin","Daily Check-In"],
-                  ["body","Body Tracking"],
-                  ["nutrition","Nutrition Log"],
-                  ["performance","Performance"],
-                  ["photos","Photos"],
-                  ["recruiting","Recruiting"],
-                  ["coachconnect","Coach Connect"],
-                  ["notifications","Notifications"],
-                  ["supplements","Supplements"],
-                  ["history","History"],
-                ].map(([id,label])=>(
-                  <button key={id} className={`bsm${progressTab===id?" on":""}`}
-                    style={progressTab===id&&id==="coach"?{background:"rgba(255,255,255,0.1)",color:"var(--ivory)",borderColor:"rgba(255,255,255,0.18)",fontWeight:600}:
-                           progressTab===id?{background:"rgba(255,255,255,0.08)",color:"var(--ivory)",borderColor:"rgba(255,255,255,0.15)"}:{}}
-                    onClick={()=>{
+                  ["coach",         "AI Coach",       "Your personal coach",   "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400&q=80"],
+                  ["overview",      "Overview",       "Dashboard summary",     "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80"],
+                  ["checkin",       "Daily Check-In", "Wellness tracking",     "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&q=80"],
+                  ["body",          "Body Tracking",  "Weight & composition",  "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80"],
+                  ["nutrition",     "Nutrition Log",  "Macros & calories",     "https://images.unsplash.com/photo-1547592180-85f173990554?w=400&q=80"],
+                  ["performance",   "Performance",    "Benchmarks & tests",    "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=400&q=80"],
+                  ["photos",        "Photos",         "Visual progress",       "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80"],
+                  ["recruiting",    "Recruiting",     "Scout outreach",        "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&q=80"],
+                  ["coachconnect",  "Coach Connect",  "Send to your coach",    "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&q=80"],
+                  ["notifications", "Notifications",  "Alerts & reminders",    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80"],
+                  ["supplements",   "Supplements",    "Stack guidance",        "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&q=80"],
+                  ["history",       "History",        "Training archive",      "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400&q=80"],
+                ].map(([id,label,sub,img])=>{
+                  const isOn = progressTab===id;
+                  return (
+                    <div key={id} onClick={()=>{
                       setProgressTab(id);
                       if(id==="coach"&&coachMessages.length===0){setTimeout(()=>triggerCoachGreeting(),100);}
                       setTimeout(()=>{
                         const el=document.getElementById('progress-tab-content');
                         if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
                       },80);
-                    }}>{label}</button>
-                ))}
+                    }} style={{
+                      position:"relative",height:"72px",borderRadius:"10px",overflow:"hidden",
+                      cursor:"pointer",flexShrink:0,
+                      boxShadow:isOn?"0 0 0 2px rgba(191,161,106,0.7),0 4px 16px rgba(0,0,0,0.5)":"0 2px 8px rgba(0,0,0,0.4)",
+                      transition:"transform 0.25s,box-shadow 0.25s",
+                      transform:isOn?"translateY(-2px)":"none",
+                    }}
+                    onMouseEnter={e=>{if(!isOn){e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 18px rgba(0,0,0,0.5)";}}}
+                    onMouseLeave={e=>{if(!isOn){e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,0.4)";}}}>
+                      {/* Photo background */}
+                      <div style={{position:"absolute",inset:0,backgroundImage:`url(${img})`,backgroundSize:"cover",backgroundPosition:"center",
+                        filter:`saturate(${isOn?0.9:0.75}) brightness(${isOn?0.55:0.38})`,transition:"filter 0.3s"}}/>
+                      {/* Gradient */}
+                      <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.65) 100%)"}}/>
+                      {/* Diamond overlay */}
+                      <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+                        <svg viewBox="0 0 80 80" width="54" height="54" fill="none">
+                          <polygon points="40,4 76,40 40,76 4,40" stroke="white" strokeWidth="0.8" opacity={isOn?"0.25":"0.12"} fill="none"/>
+                        </svg>
+                      </div>
+                      {/* Text */}
+                      <div style={{position:"relative",zIndex:1,height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 6px",gap:"2px"}}>
+                        <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"0.58rem",fontWeight:800,letterSpacing:"2.5px",textTransform:"uppercase",color:"#FFFFFF",lineHeight:1,textAlign:"center",textShadow:"0 1px 6px rgba(0,0,0,0.8)"}}>{label}</div>
+                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:"0.44rem",letterSpacing:"1.5px",textTransform:"uppercase",color:isOn?"rgba(255,255,255,0.75)":"rgba(255,255,255,0.45)",lineHeight:1,textAlign:"center"}}>{sub}</div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <div id="progress-tab-content" style={{scrollMarginTop:"80px"}}/>
 
