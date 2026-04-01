@@ -4395,7 +4395,7 @@ export default function App() {
       if (progNotes?.length) setNotes(progNotes.map(n => ({ date: new Date(n.created_at).toLocaleDateString(), text: n.text })));
       if (sub) setSubscription(sub);
       if (checkInsData?.length) setCheckIns(checkInsData.map(c=>({date:c.date,recovery:c.recovery||7,energy:c.energy||7,sleep:parseFloat(c.sleep)||8,soreness:c.soreness||3,mood:c.mood||7,notes:c.notes||""})));
-      if (workoutData?.length) setWkLog(workoutData.map(w=>({date:w.date,week:w.week,exercise:w.exercise,load:w.load,notes:w.notes,wkType:w.wk_type,wkFocus:w.wk_focus})));
+      if (workoutData?.length) setWkLog(workoutData.map(w=>({date:w.date,week:w.week,exercise:w.exercise,load:w.load,notes:w.notes,wkType:w.wk_type,wkFocus:w.wk_focus,sets:w.sets||0,totalVol:w.total_vol||0})));
       if (weightData?.length) setWeightLog(weightData.map(w=>({date:w.date,weight:parseFloat(w.weight),bodyFat:w.body_fat?parseFloat(w.body_fat):null})));
       if (nutritionData?.length) setNutritionLog(nutritionData.map(n=>({date:n.date,calories:n.calories,protein:n.protein,carbs:n.carbs,fat:n.fat,water:n.water})));
       if (benchmarkData?.length) setBenchmarks(benchmarkData.map(b=>({date:b.date,test:b.test,value:b.value,unit:b.unit,notes:b.notes})));
@@ -4424,7 +4424,7 @@ export default function App() {
     const timer = setTimeout(() => {
       const latest = wkLog.slice(-5); // only push most recent batch
       saveWorkoutLog(authUser.id, latest.map(e => ({
-        ...e, wk_type: e.wkType||e.wk_type||'', wk_focus: e.wkFocus||e.wk_focus||''
+        ...e, wk_type: e.wkType||e.wk_type||'', wk_focus: e.wkFocus||e.wk_focus||'', total_vol: e.totalVol||0
       }))).catch(err => console.error('wkLog autosave:', err));
     }, 2000);
     return () => clearTimeout(timer);
@@ -6134,12 +6134,11 @@ COACHING GUIDELINES:
                 </div>
               </div>
 
-              {/* Progress Log */}
-              {showLog && (
-                <div className="panel" style={{marginBottom:"1.25rem"}}>
-                  <div className="ph"><div className="pt">Progress <em>Log</em></div>
-                    <button className="bsm" onClick={()=>setWkLog([])} style={{color:"var(--muted)"}}>Clear Log</button>
-                  </div>
+              {/* Progress Log — always visible */}
+              <div className="panel" style={{marginBottom:"1.25rem"}}>
+                <div className="ph"><div className="pt">Progress <em>Log</em></div>
+                  {wkLog.length>0 && <button className="bsm" onClick={()=>setWkLog([])} style={{color:"var(--muted)"}}>Clear Log</button>}
+                </div>
                   <div className="pb">
                     {wkLog.length === 0 ? (
                       <div style={{color:"var(--muted)",fontSize:"0.82rem",fontStyle:"italic"}}>No entries yet. Log your actual loads after each session below.</div>
@@ -6154,7 +6153,8 @@ COACHING GUIDELINES:
                             const ek = `${l.exercise}|${l.date}|${l.week}`;
                             if(!exerciseMap[ek]) exerciseMap[ek] = {exercise:l.exercise, date:l.date, week:l.week, sets:[], totalVol:0};
                             exerciseMap[ek].sets.push(l.load);
-                            exerciseMap[ek].totalVol += l.totalVol||0;
+                            // totalVol is the same value on every set-entry — use last seen, not sum
+                            exerciseMap[ek].totalVol = l.totalVol||exerciseMap[ek].totalVol;
                           });
                           const rows = Object.values(exerciseMap);
                           return (
@@ -6325,7 +6325,7 @@ COACHING GUIDELINES:
                         wkType, wkFocus, sets:doneSets.length, totalVol:vol
                       }));
                       setWkLog(prev=>[...prev,...entries]);
-                      if(authUser?.id) saveWorkoutLog(authUser.id, entries.map(e=>({...e,wk_type:e.wkType,wk_focus:e.wkFocus}))).catch(()=>{});
+                      if(authUser?.id) saveWorkoutLog(authUser.id, entries.map(e=>({...e,wk_type:e.wkType,wk_focus:e.wkFocus,total_vol:e.totalVol||0}))).catch(()=>{});
                       setActiveSession(null);
                       setRestTimer(null);
                       if (isPR) shout(`◆ NEW PR — ${maxLoad}lbs on ${activeSession.exercise.name}!`,"◆");
