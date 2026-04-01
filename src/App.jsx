@@ -3902,11 +3902,50 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 .bg-green{background:rgba(46,160,100,0.1);color:#4BAE71;border:1px solid rgba(46,160,100,0.22);}
 .bg-red{background:rgba(155,58,47,0.1);color:#C0695E;border:1px solid rgba(155,58,47,0.22);}
 
-/* INJURY */
-.inj-tag{display:inline-block;margin:0.22rem;background:rgba(155,58,47,0.09);border:1px solid rgba(155,58,47,0.22);
-  color:#B86058;font-size:0.82rem;font-weight:300;padding:0.38rem 0.85rem;border-radius:20px;cursor:pointer;transition:all 0.22s;}
-.inj-tag:hover{background:rgba(155,58,47,0.18);border-color:rgba(155,58,47,0.45);}
-.inj-tag.s{background:rgba(155,58,47,0.22);border-color:#B86058;color:#D4877E;}
+/* INJURY — Rich Burgundy Cinematic Tiles */
+.inj-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:0.5rem;}
+@media(max-width:700px){.inj-grid{grid-template-columns:repeat(2,1fr);}}
+.inj-tag{
+  position:relative;height:68px;border-radius:10px;overflow:hidden;cursor:pointer;
+  box-shadow:0 2px 10px rgba(80,0,20,0.45);
+  transition:transform 0.25s,box-shadow 0.25s;
+  display:flex;align-items:center;justify-content:center;
+}
+.inj-tag:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(100,0,30,0.55);}
+.inj-tag.s{
+  box-shadow:0 0 0 2px rgba(210,60,80,0.75),0 6px 20px rgba(100,0,30,0.6);
+  transform:translateY(-2px);
+}
+.inj-tag-bg{
+  position:absolute;inset:0;background-size:cover;background-position:center;
+  transition:filter 0.3s;
+}
+.inj-tag:not(.s) .inj-tag-bg{filter:saturate(0.6) brightness(0.28);}
+.inj-tag.s .inj-tag-bg{filter:saturate(0.9) brightness(0.38);}
+.inj-tag:hover:not(.s) .inj-tag-bg{filter:saturate(0.75) brightness(0.35);}
+.inj-tag-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(100,5,20,0.75) 0%,rgba(60,5,15,0.82) 100%);
+}
+.inj-tag.s .inj-tag-overlay{
+  background:linear-gradient(135deg,rgba(140,10,30,0.70) 0%,rgba(90,5,20,0.78) 100%);
+}
+.inj-tag-body{
+  position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;padding:0 8px;text-align:center;
+}
+.inj-tag-label{
+  font-family:'DM Sans',sans-serif;font-size:0.6rem;font-weight:700;
+  letter-spacing:1.8px;text-transform:uppercase;color:#FFFFFF;
+  line-height:1.2;text-shadow:0 1px 6px rgba(0,0,0,0.8);
+}
+.inj-tag.s .inj-tag-label{color:#FFB0B8;}
+.inj-hr-dot{
+  width:5px;height:5px;border-radius:50%;background:#FF6070;
+  box-shadow:0 0 6px rgba(255,80,100,0.8);flex-shrink:0;
+  display:none;
+}
+.inj-tag.hr .inj-hr-dot{display:block;}
 
 /* JOURNAL */
 .je{background:var(--slate);border:1px solid rgba(255,255,255,0.05);border-radius:var(--r-lg);padding:1.4rem;margin-bottom:0.7rem;transition:border-color 0.2s;}
@@ -6632,15 +6671,21 @@ COACHING GUIDELINES:
                     <div className="ph">
                       <div className="pt">{sport.label} <em>Injuries</em></div>
                       {profile.position && POSITION_INJURY_RISK[profile.sport]?.[profile.position] && (
-                        <span style={{fontSize:"0.72rem",color:"#C0695E",letterSpacing:"1px"}}>
-                          ! {POSITION_INJURY_RISK[profile.sport]?.[profile.position]?.high?.length} high-risk for {profile.position}
+                        <span style={{fontSize:"0.68rem",color:"#E06070",letterSpacing:"1px",
+                          background:"rgba(120,5,20,0.25)",border:"1px solid rgba(200,40,60,0.3)",
+                          borderRadius:"20px",padding:"3px 10px",fontWeight:600}}>
+                          ● {POSITION_INJURY_RISK[profile.sport]?.[profile.position]?.high?.length} high-risk for {profile.position}
                         </span>
                       )}
                     </div>
                     <div className="pb">
                       {profile.position && POSITION_INJURY_RISK[profile.sport]?.[profile.position] && (
-                        <div style={{fontSize:"0.78rem",color:"var(--muted)",marginBottom:"0.6rem"}}>
-                          <span style={{color:"#C0695E",fontWeight:600}}>!</span> Injuries common at your position have a red border warning. <em>Tap any injury to view its full protocol.</em>
+                        <div style={{fontSize:"0.76rem",color:"var(--muted)",marginBottom:"0.85rem",
+                          background:"rgba(100,5,20,0.18)",border:"1px solid rgba(180,30,50,0.25)",
+                          borderRadius:"8px",padding:"0.6rem 0.9rem",lineHeight:1.6}}>
+                          <span style={{color:"#E06070",fontWeight:700,marginRight:"4px"}}>!</span>
+                          Injuries common at your position have a glowing red dot.
+                          <em style={{color:"rgba(255,255,255,0.5)"}}> Tap any tile to view its full protocol.</em>
                         </div>
                       )}
                       {(() => {
@@ -6648,14 +6693,44 @@ COACHING GUIDELINES:
                         const highRisk = riskData?.high || [];
                         const allInjuries = sport.injuries;
                         const sorted = [...new Set([...highRisk.filter(h=>allInjuries.includes(h)), ...allInjuries])];
-                        return sorted.map(inj=>(
-                          <span key={inj} className={`inj-tag${selInj.includes(inj)?" s":""}`}
-                            onClick={()=>setSelInj(s=>s.includes(inj)?s.filter(i=>i!==inj):[...s,inj])}
-                            style={highRisk.includes(inj)?{borderColor:"rgba(192,105,94,0.35)"}:{}} >
-                            {highRisk.includes(inj)&&<span style={{color:"#C0695E",marginRight:"3px",fontSize:"0.68rem"}}>!</span>}
-                            {inj}
-                          </span>
-                        ));
+                        // Cinematic burgundy photo pool — sports injury / athletic / medical themed
+                        const injPhotos = [
+                          "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&q=70",
+                          "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=300&q=70",
+                          "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=300&q=70",
+                          "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=300&q=70",
+                          "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&q=70",
+                          "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=300&q=70",
+                          "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=300&q=70",
+                          "https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?w=300&q=70",
+                        ];
+                        return (
+                          <div className="inj-grid">
+                            {sorted.map((inj, idx)=>{
+                              const isHR = highRisk.includes(inj);
+                              const isSel = selInj.includes(inj);
+                              const photo = injPhotos[idx % injPhotos.length];
+                              return (
+                                <div key={inj}
+                                  className={`inj-tag${isSel?" s":""}${isHR?" hr":""}`}
+                                  onClick={()=>setSelInj(s=>s.includes(inj)?s.filter(i=>i!==inj):[...s,inj])}>
+                                  <div className="inj-tag-bg" style={{backgroundImage:`url(${photo})`}}/>
+                                  <div className="inj-tag-overlay"/>
+                                  {/* Diamond SVG overlay */}
+                                  <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+                                    <svg viewBox="0 0 60 60" width="44" height="44" fill="none">
+                                      <polygon points="30,3 57,30 30,57 3,30" stroke="white" strokeWidth="0.7" opacity={isSel?"0.22":"0.10"} fill="none"/>
+                                    </svg>
+                                  </div>
+                                  <div className="inj-tag-body">
+                                    {isHR && <div className="inj-hr-dot"/>}
+                                    <div className="inj-tag-label">{inj}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
                       })()}
                     </div>
                   </div>
