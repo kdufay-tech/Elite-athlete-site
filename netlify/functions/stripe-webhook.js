@@ -102,12 +102,37 @@ async function onPayFailed(invoice, supabaseUrl, supabaseKey) {
 
 async function findUser(email, supabaseUrl, supabaseKey) {
   if (!email) return null;
-  const res = await fetch(
-    `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=user_id&limit=1`,
-    { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
-  );
-  const rows = await res.json();
-  return rows?.[0]?.user_id || null;
+  // Use Supabase Auth admin API — requires service_role key
+  // This correctly maps the customer's email to their Supabase user ID
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
+      { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+    );
+    const data = await res.json();
+    // Response is { users: [...] }
+    const user = data?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    if (user?.id) return user.id;
+  } catch (e) {
+    console.warn('Auth admin lookup failed, trying profiles fallback:', e.message);
+  }
+  // Fallback: check auth.users via direct query (service key required)
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/rpc/get_user_id_by_email`,
+      {
+        method: 'POST',
+        headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_email: email }),
+      }
+    );
+    const id = await res.json();
+    if (id) return id;
+  } catch (e) {
+    console.warn('RPC fallback also failed:', e.message);
+  }
+  console.warn('Could not find Supabase user for email:', email);
+  return null;
 }
 
 async function upsertSub(supabaseUrl, supabaseKey, data) {

@@ -10002,7 +10002,7 @@ ${recruitingNote}`:null,
                       {/* Actions */}
                       <div style={{display:"flex",flexDirection:"column",gap:"0.6rem"}}>
                         <button className="bg" style={{width:"100%",padding:"0.75rem"}}
-                          onClick={()=>setPayModal({name:"Elite",price:"$69"})}>
+                          onClick={()=>setScreen("pricing")}>
                           Upgrade / Change Plan
                         </button>
                       </div>
