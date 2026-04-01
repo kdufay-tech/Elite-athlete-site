@@ -4063,13 +4063,14 @@ export default function App() {
   const [cameraFacing, setCameraFacing] = useState('environment');
   const cameraVideoRef = useRef(null);
 
-  // Attach stream to video element when modal opens
+  // Attach stream to video element when modal opens or stream changes
+  // cameraModal in deps ensures we retry after the <video> element mounts
   useEffect(() => {
     if (cameraStream && cameraVideoRef.current) {
       cameraVideoRef.current.srcObject = cameraStream;
       cameraVideoRef.current.play().catch(()=>{});
     }
-  }, [cameraStream]);
+  }, [cameraStream, cameraModal]);
 
   const openCamera = async (target) => {
     try {
@@ -4080,13 +4081,17 @@ export default function App() {
       // Stop any existing stream first
       if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: cameraFacing, width:{ideal:1280}, height:{ideal:720} },
+        // Use 'ideal' (soft constraint) — never throws OverconstrainedError on laptops
+        video: { facingMode: { ideal: cameraFacing }, width:{ideal:1280}, height:{ideal:720} },
         audio: false,
       });
-      setCameraStream(stream);
+      // Set modal FIRST so React renders the <video> element,
+      // then set stream — useEffect finds cameraVideoRef.current populated
       setCameraModal(target);
+      await new Promise(r => setTimeout(r, 80)); // one React render cycle
+      setCameraStream(stream);
     } catch(e) {
-      console.error('Camera error:', e.message);
+      console.error('Camera error:', e.name, e.message);
       if (e.name === 'NotAllowedError') shout("Camera permission denied — please allow camera access","!");
       else if (e.name === 'NotFoundError') shout("No camera found — use Upload instead","!");
       else shout("Camera unavailable — use Upload instead","!");
@@ -4105,7 +4110,7 @@ export default function App() {
     if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: newFacing },
+        video: { facingMode: { ideal: newFacing } },
         audio: false,
       });
       setCameraStream(stream);
