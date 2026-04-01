@@ -10001,29 +10001,10 @@ ${recruitingNote}`:null,
 
                       {/* Actions */}
                       <div style={{display:"flex",flexDirection:"column",gap:"0.6rem"}}>
-                        {/* Upgrade */}
                         <button className="bg" style={{width:"100%",padding:"0.75rem"}}
                           onClick={()=>setPayModal({name:"Elite",price:"$69"})}>
                           Upgrade / Change Plan
                         </button>
-                        {/* Downgrade to Athlete */}
-                        <button className="bgh" style={{width:"100%",padding:"0.72rem"}}
-                          onClick={()=>setPayModal({name:"Athlete",price:"$29"})}>
-                          Downgrade to Athlete — $29/mo
-                        </button>
-                        {/* Cancel */}
-                        <button className="bsm" style={{width:"100%",padding:"0.65rem",color:"rgba(192,105,94,0.7)",borderColor:"rgba(192,105,94,0.18)",marginTop:"0.25rem"}}
-                          onClick={()=>{
-                            if(window.confirm("Cancel your subscription? You'll keep full access until the end of your billing period.")){
-                              shout("To cancel, email support@elite-athlete.com or manage via Stripe.","!");
-                            }
-                          }}>
-                          Cancel Subscription
-                        </button>
-                      </div>
-
-                      <div style={{marginTop:"1rem",fontSize:"0.65rem",color:"var(--muted)",textAlign:"center",letterSpacing:"0.5px"}}>
-                        For billing questions: support@elite-athlete.com
                       </div>
                     </div>
                   </div>
