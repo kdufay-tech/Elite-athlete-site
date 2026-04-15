@@ -9,6 +9,7 @@ import { emailMealPlan, emailProgressReport, emailInjuryProtocol, emailWorkoutPl
 import AuthModal from "./components/AuthModal";
 import PayModal from "./components/PayModal";
 import { getUserTier, canAccess as tierCanAccess, TIER_INFO } from "./lib/stripe";
+import { uploadProgressPhoto, loadProgressPhotos, deleteProgressPhoto } from "./lib/supabase";
 
 // ── SECURITY: sanitize user-supplied strings before injecting into document.write() popups
 const sanitizeHtml = (str) => String(str || '')
@@ -4422,7 +4423,7 @@ export default function App() {
   const loadUserData = async (userId) => {
     setDbLoading(true);
     try {
-      const [prof, journals, progNotes, sub, checkInsData, workoutData, weightData, nutritionData, benchmarkData] = await Promise.all([
+      const [prof, journals, progNotes, sub, checkInsData, workoutData, weightData, nutritionData, benchmarkData, photoData] = await Promise.all([
         loadProfile(userId),
         loadJournalEntries(userId),
         loadProgressNotes(userId),
@@ -4432,6 +4433,7 @@ export default function App() {
         loadWeightLogs(userId).catch(()=>[]),
         loadNutritionLogs(userId).catch(()=>[]),
         loadBenchmarks(userId).catch(()=>[]),
+        loadProgressPhotos(userId).catch(()=>[]),
       ]);
       if (prof) {
         setProfile(p => ({ ...p, ...prof }));
@@ -4448,6 +4450,7 @@ export default function App() {
       if (weightData?.length) setWeightLog(weightData.map(w=>({date:w.date,weight:parseFloat(w.weight),bodyFat:w.body_fat?parseFloat(w.body_fat):null})));
       if (nutritionData?.length) setNutritionLog(nutritionData.map(n=>({date:n.date,calories:n.calories,protein:n.protein,carbs:n.carbs,fat:n.fat,water:n.water})));
       if (benchmarkData?.length) setBenchmarks(benchmarkData.map(b=>({date:b.date,test:b.test,value:b.value,unit:b.unit,notes:b.notes})));
+      if (photoData?.length) setProgressPhotos(photoData.map(p=>({id:p.id,storage_path:p.storage_path,label:p.label,date:p.date,weight:p.weight,note:p.note,dataUrl:p.dataUrl})));
     } catch (err) {
       console.error('Failed to load user data:', err);
     } finally {
@@ -5124,9 +5127,12 @@ COACHING GUIDELINES:
               const dataUrl = capturePhoto();
               if (!dataUrl) { shout("Capture failed — try again","!"); return; }
               if (cameraModal === 'progress') {
-                const id = Date.now().toString();
                 const date = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-                setProgressPhotos(prev=>[{id,date,dataUrl,label:"Progress",weight:"",note:""},...prev]);
+                const meta = {label:"Progress",date,weight:"",note:""};
+                setProgressPhotos(prev=>[{id:Date.now().toString(),date,dataUrl,...meta},...prev]);
+                if (authUser?.id) uploadProgressPhoto(authUser.id, dataUrl, meta).then(saved=>{
+                  if (saved?.id) setProgressPhotos(prev=>prev.map((p,i)=>i===0?{...p,id:saved.id,storage_path:saved.storage_path}:p));
+                }).catch(err=>console.error('Photo upload failed:',err));
                 shout("Progress photo captured","◆");
               } else if (cameraModal === 'profile-before') {
                 setProfilePhotoBefore(dataUrl);
@@ -8520,9 +8526,12 @@ COACHING GUIDELINES:
                               const file=e.target.files?.[0]; if(!file) return;
                               const reader=new FileReader();
                               reader.onload=ev=>{
-                                const id=Date.now().toString();
                                 const date=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-                                setProgressPhotos(prev=>[{id,date,dataUrl:ev.target.result,label:photoLabel||"Progress",weight:photoWeight,note:photoNote},...prev]);
+                                const meta={label:photoLabel||"Progress",weight:photoWeight,note:photoNote,date};
+                                setProgressPhotos(prev=>[{id:Date.now().toString(),date,dataUrl:ev.target.result,...meta},...prev]);
+                                if (authUser?.id) uploadProgressPhoto(authUser.id, ev.target.result, meta).then(saved=>{
+                                  if (saved?.id) setProgressPhotos(prev=>prev.map((p,i)=>i===0?{...p,id:saved.id,storage_path:saved.storage_path}:p));
+                                }).catch(err=>console.error('Photo upload:',err));
                                 setPhotoNote(""); setPhotoWeight("");
                                 shout("Progress photo saved","");
                                 document.getElementById("prog-file-inp").value="";
@@ -8534,9 +8543,12 @@ COACHING GUIDELINES:
                               const file=e.target.files?.[0]; if(!file) return;
                               const reader=new FileReader();
                               reader.onload=ev=>{
-                                const id=Date.now().toString();
                                 const date=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-                                setProgressPhotos(prev=>[{id,date,dataUrl:ev.target.result,label:photoLabel||"Progress",weight:photoWeight,note:photoNote},...prev]);
+                                const meta={label:photoLabel||"Progress",weight:photoWeight,note:photoNote,date};
+                                setProgressPhotos(prev=>[{id:Date.now().toString(),date,dataUrl:ev.target.result,...meta},...prev]);
+                                if (authUser?.id) uploadProgressPhoto(authUser.id, ev.target.result, meta).then(saved=>{
+                                  if (saved?.id) setProgressPhotos(prev=>prev.map((p,i)=>i===0?{...p,id:saved.id,storage_path:saved.storage_path}:p));
+                                }).catch(err=>console.error('Photo upload:',err));
                                 setPhotoNote(""); setPhotoWeight("");
                                 shout("Photo captured and saved","");
                                 document.getElementById("prog-cam-inp").value="";
@@ -8643,7 +8655,10 @@ COACHING GUIDELINES:
                                     <div style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.7)"}}>{ph.date}</div>
                                     {ph.weight&&<div style={{fontSize:"0.72rem",color:"#4BAE71",fontWeight:600}}>{ph.weight} lbs</div>}
                                   </div>
-                                  <button onClick={()=>setProgressPhotos(prev=>prev.filter(p=>p.id!==ph.id))}
+                                  <button onClick={()=>{
+                                    setProgressPhotos(prev=>prev.filter(p=>p.id!==ph.id));
+                                    if (authUser?.id && ph.storage_path) deleteProgressPhoto(authUser.id, ph.id, ph.storage_path).catch(()=>{});
+                                  }}
                                     style={{position:"absolute",top:"0.35rem",right:"0.35rem",width:"22px",height:"22px",borderRadius:"50%",background:"rgba(0,0,0,0.6)",border:"none",color:"rgba(255,255,255,0.7)",fontSize:"0.7rem",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                                 </div>
                                 {ph.note&&<div style={{padding:"0.4rem 0.5rem",fontSize:"0.74rem",color:"var(--muted)",fontStyle:"italic",lineHeight:1.4}}>{ph.note}</div>}
@@ -9997,10 +10012,10 @@ ${recruitingNote}`:null,
                     <div className="pb">
                       <div className="f"><label className="fl">Name</label><input className="fi" value={profile.name} onChange={e=>setProfile(p=>({...p,name:e.target.value}))}/></div>
                       <div className="two">
-                        <div className="f"><label className="fl">Weight (lbs)</label><input type="number" className="fi" value={profile.weight} onChange={e=>setProfile(p=>({...p,weight:e.target.value}))}/></div>
-                        <div className="f"><label className="fl">Height (in)</label><input type="number" className="fi" value={profile.height} onChange={e=>setProfile(p=>({...p,height:e.target.value}))}/></div>
+                        <div className="f"><label className="fl">Weight (lbs)</label><input type="number" className="fi" min="50" max="500" value={profile.weight} onChange={e=>{const v=parseFloat(e.target.value);if(e.target.value===''||(!isNaN(v)&&v>=50&&v<=500))setProfile(p=>({...p,weight:e.target.value}))}}/></div>
+                        <div className="f"><label className="fl">Height (in)</label><input type="number" className="fi" min="36" max="96" value={profile.height} onChange={e=>{const v=parseFloat(e.target.value);if(e.target.value===''||(!isNaN(v)&&v>=36&&v<=96))setProfile(p=>({...p,height:e.target.value}))}}/></div>
                       </div>
-                      <div className="f"><label className="fl">Age (years)</label><input type="number" className="fi" placeholder="e.g. 24" value={profile.age} onChange={e=>setProfile(p=>({...p,age:e.target.value}))}/></div>
+                      <div className="f"><label className="fl">Age (years)</label><input type="number" className="fi" placeholder="e.g. 24" min="10" max="100" value={profile.age} onChange={e=>{const v=parseFloat(e.target.value);if(e.target.value===''||(!isNaN(v)&&v>=10&&v<=100))setProfile(p=>({...p,age:e.target.value}))}}/></div>
                       <div className="f"><label className="fl">Sport</label>
                         <select className="fi" value={profile.sport} onChange={e=>setProfile(p=>({...p,sport:e.target.value,position:""}))}>
                           {Object.entries(SPORTS).map(([k,s])=><option key={k} value={k}> {s.label}</option>)}

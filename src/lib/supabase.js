@@ -243,9 +243,14 @@ export async function loadWorkoutLogs(userId) {
 // ── WEIGHT LOGS ───────────────────────────────────────────────
 
 export async function saveWeightEntry(userId, entry) {
+  // Use date-based upsert to prevent duplicate entries for the same day
+  const today = new Date().toISOString().split('T')[0];
   const { data, error } = await supabase
     .from('weight_logs')
-    .insert({ user_id: userId, ...entry, created_at: new Date().toISOString() });
+    .upsert(
+      { user_id: userId, ...entry, date: entry.date || today, created_at: new Date().toISOString() },
+      { onConflict: 'user_id,date', ignoreDuplicates: false }
+    );
   if (error) throw error;
   return data;
 }
@@ -310,4 +315,45 @@ export async function loadBenchmarks(userId) {
     .order('created_at', { ascending: true });
   if (error) throw error;
   return data || [];
+}
+
+// ── PROGRESS PHOTOS ───────────────────────────────────────────
+
+export async function uploadProgressPhoto(userId, dataUrl, meta) {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  const ext = blob.type === 'image/png' ? 'png' : 'jpg';
+  const storagePath = userId + '/' + Date.now() + '.' + ext;
+  const { error: uploadErr } = await supabase.storage
+    .from('progress-photos')
+    .upload(storagePath, blob, { contentType: blob.type });
+  if (uploadErr) throw uploadErr;
+  const { data, error } = await supabase
+    .from('progress_photos')
+    .insert({ user_id: userId, storage_path: storagePath,
+      label: meta.label||'', date: meta.date||'',
+      weight: meta.weight||'', note: meta.note||'' })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function loadProgressPhotos(userId) {
+  const { data, error } = await supabase
+    .from('progress_photos').select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return await Promise.all((data || []).map(async (row) => {
+    const { data: urlData } = await supabase.storage
+      .from('progress-photos').createSignedUrl(row.storage_path, 3600);
+    return { ...row, dataUrl: urlData?.signedUrl || '' };
+  }));
+}
+
+export async function deleteProgressPhoto(userId, photoId, storagePath) {
+  await supabase.storage.from('progress-photos').remove([storagePath]);
+  const { error } = await supabase.from('progress_photos')
+    .delete().eq('id', photoId).eq('user_id', userId);
+  if (error) throw error;
 }
