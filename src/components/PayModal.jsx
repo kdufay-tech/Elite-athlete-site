@@ -47,6 +47,7 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
       onSuccess();
     } catch (err) {
       setApiError(err.message || 'Payment failed. Please try again.');
+      console.error('Checkout error:', err.message);
     } finally {
       setLoading(false);
     }
