@@ -1,20 +1,9 @@
 // netlify/functions/stripe-webhook.js
-// Handles Stripe events → keeps Supabase subscriptions table in sync.
-//
-// Stripe Dashboard → Developers → Webhooks → Add endpoint:
-//   URL: https://the-elite-athlete.netlify.app/.netlify/functions/stripe-webhook
-//   Events: checkout.session.completed, customer.subscription.updated,
-//           customer.subscription.deleted, invoice.payment_failed
-//
-// Required Netlify env vars:
-//   STRIPE_SECRET_KEY       sk_live_...
-//   STRIPE_WEBHOOK_SECRET   whsec_... (from Stripe webhook page)
-//   SUPABASE_URL            https://xxxxx.supabase.co
-//   SUPABASE_SERVICE_KEY    service_role key (not anon key)
+// ESM format — required for this project (node_bundler = esbuild)
 
-const handler = async (event) => {
-  if (event.httpMethod !== 'POST')
-    return { statusCode: 405, body: 'Method not allowed' };
+export default async (req) => {
+  if (req.method !== 'POST')
+    return new Response('Method not allowed', { status: 405 });
 
   const stripeSecret  = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -22,21 +11,20 @@ const handler = async (event) => {
   const supabaseKey   = process.env.SUPABASE_SERVICE_KEY;
 
   if (!stripeSecret || !webhookSecret)
-    return { statusCode: 500, body: JSON.stringify({ error: 'Stripe keys not configured' }) };
+    return new Response(JSON.stringify({ error: 'Stripe keys not configured' }), { status: 500 });
   if (!supabaseUrl || !supabaseKey)
-    return { statusCode: 500, body: JSON.stringify({ error: 'Supabase keys not configured' }) };
+    return new Response(JSON.stringify({ error: 'Supabase keys not configured' }), { status: 500 });
 
-  const sig = event.headers['stripe-signature'];
-  if (!sig) {
-    console.error('Missing stripe-signature header');
-    return { statusCode: 400, body: 'Webhook Error: Missing signature' };
-  }
+  const sig = req.headers.get('stripe-signature');
+  if (!sig) return new Response('Missing signature', { status: 400 });
+
+  const payload = await req.text();
   let stripeEvent;
   try {
-    stripeEvent = await verifyWebhook(event.body, sig, webhookSecret);
+    stripeEvent = await verifyWebhook(payload, sig, webhookSecret);
   } catch (err) {
     console.error('Webhook signature failed:', err.message);
-    return { statusCode: 400, body: `Webhook Error: ${err.message}` };
+    return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
   const { type, data } = stripeEvent;
@@ -47,10 +35,10 @@ const handler = async (event) => {
     else if (type === 'customer.subscription.updated')   await onSubUpdated(data.object, supabaseUrl, supabaseKey);
     else if (type === 'customer.subscription.deleted')   await onSubDeleted(data.object, supabaseUrl, supabaseKey);
     else if (type === 'invoice.payment_failed')          await onPayFailed(data.object, supabaseUrl, supabaseKey);
-    return { statusCode: 200, body: JSON.stringify({ received: true }) };
+    return new Response(JSON.stringify({ received: true }), { status: 200 });
   } catch (err) {
     console.error('Webhook handler error:', err.message);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 };
 
@@ -174,5 +162,3 @@ async function verifyWebhook(payload, sigHeader, secret) {
   if (computed !== signature) throw new Error('Signature mismatch');
   return JSON.parse(payload);
 }
-
-module.exports = { handler };
