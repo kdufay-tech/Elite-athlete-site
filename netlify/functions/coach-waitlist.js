@@ -72,6 +72,7 @@ export default async (req) => {
   }
 
   // 2. Send confirmation email via EmailJS REST API
+  let emailStatus = 'not_sent';
   try {
     const ejRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST',
@@ -91,12 +92,14 @@ export default async (req) => {
       }),
     });
     const ejText = await ejRes.text();
-    console.log('EmailJS response:', ejRes.status, ejText);
+    emailStatus = `${ejRes.status}: ${ejText}`;
+    console.log('EmailJS response:', emailStatus);
   } catch (err) {
+    emailStatus = `error: ${err.message}`;
     console.error('EmailJS send failed:', err.message);
   }
 
-  return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+  return new Response(JSON.stringify({ ok: true, emailStatus }), { status: 200, headers });
 };
 
 function buildConfirmationEmail(email) {
