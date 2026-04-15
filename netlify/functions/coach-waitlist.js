@@ -8,10 +8,10 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8888',
 ];
 
-// EmailJS credentials (public — same values baked into the frontend bundle)
+// EmailJS credentials
 const EJ_SERVICE  = 'service_y9mu20h';
 const EJ_PUBLIC   = 'k01H630sJxtDTafHK';
-const EJ_PRIVATE  = 'OetY1iJwmiKfURaoYH_kA';
+const EJ_PRIVATE  = process.env.EMAILJS_PRIVATE_KEY;  // set in Netlify env vars
 const EJ_TEMPLATE = 'template_waitlist'; // Auto-Reply template
 
 export default async (req) => {

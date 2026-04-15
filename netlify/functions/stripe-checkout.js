@@ -33,16 +33,6 @@ export default async (req) => {
     'Content-Type': 'application/json',
   };
 
-  // GET ping — lets us test the function is reachable and env vars are loaded
-  if (req.method === 'GET') {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    return new Response(JSON.stringify({
-      ok: true,
-      keyPresent: !!secretKey,
-      keyPrefix: secretKey ? secretKey.slice(0,14) + '...' : 'missing',
-    }), { status: 200, headers });
-  }
-
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers });
   if (req.method !== 'POST')
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });

@@ -4400,13 +4400,6 @@ export default function App() {
         setAuthLoading(false);
       }
     });
-    // Check for successful Stripe payment return
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('payment') === 'success') {
-      const planName = params.get('plan') || 'Elite';
-      shout(`${planName} plan activated! Welcome to Elite.`, '◆');
-      window.history.replaceState({}, '', window.location.pathname);
-    }
     return () => authSub?.unsubscribe();
   }, []);
 
@@ -4513,7 +4506,12 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [notes[0]?.text, authUser]);
 
-  const shout = (msg, icon="✦") => { setToast({msg,icon}); setTimeout(()=>setToast(null),3200); };
+  const shout = (msg, icon="✦") => {
+    const isError = icon === "!" || msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("denied");
+    const duration = isError ? 7000 : 3200;
+    setToast({msg, icon});
+    setTimeout(()=>setToast(null), duration);
+  };
   // ── 4-TIER PERMISSION SYSTEM ─────────────────────────────────
   // Tiers: 'free' → 'athlete' → 'elite' → 'coach'
   const userTier = getUserTier(subscription);
@@ -6963,7 +6961,20 @@ COACHING GUIDELINES:
 
               {/* ══ AI COACH ══════════════════════════════════════ */}
               {progressTab==="coach" && (
-                <div>
+                !canAccess('elite') ? (
+                  <div style={{background:"rgba(191,161,106,0.06)",border:"1px solid rgba(191,161,106,0.2)",borderRadius:"var(--r-lg)",padding:"2.5rem 2rem",textAlign:"center"}}>
+                    <div style={{fontSize:"2rem",marginBottom:"0.75rem"}}>🤖</div>
+                    <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.3rem",fontWeight:700,color:"var(--ivory)",marginBottom:"0.5rem"}}>Elite AI Coach</div>
+                    <div style={{fontSize:"0.85rem",color:"var(--muted)",marginBottom:"1.5rem",maxWidth:"400px",margin:"0 auto 1.5rem"}}>
+                      The AI Coach reads your actual recovery, training loads, nutrition, and benchmarks to coach you in real time. Available on Elite and Coach Pro plans.
+                    </div>
+                    <button className="bg" style={{padding:"0.85rem 2.5rem",fontSize:"0.72rem",letterSpacing:"2px"}}
+                      onClick={()=>setScreen("pricing")}>
+                      Upgrade to Elite — $69/mo
+                    </button>
+                    <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/year · Save 35%</div>
+                  </div>
+                ) : (<>
                   {/* Coach header */}
                   <div style={{
                     background:"linear-gradient(135deg,rgba(191,161,106,0.08) 0%,rgba(139,105,20,0.04) 100%)",
@@ -7197,7 +7208,7 @@ COACHING GUIDELINES:
                   }}>
                     <span style={{color:"var(--gold)",fontWeight:600}}>Better data = better coaching.</span> The more you log — daily check-ins, workout loads, nutrition, and weight — the more precise and actionable your coach's recommendations become. Aim for 7+ consecutive days of check-ins for pattern analysis.
                   </div>
-                </div>
+                </>)
               )}
 
               {/* ══ OVERVIEW ══════════════════════════════════════ */}
