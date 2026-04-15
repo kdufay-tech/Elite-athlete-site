@@ -1,12 +1,17 @@
 // netlify/functions/coach-waitlist.js
-// Saves Coach Pro waitlist emails to Supabase
-// Required env vars: SUPABASE_URL, SUPABASE_SERVICE_KEY
+// Saves Coach Pro waitlist emails to Supabase + sends confirmation via EmailJS
+// EmailJS public key is intentionally embedded — it is a public-facing credential
 
 const ALLOWED_ORIGINS = [
   'https://the-elite-athlete.netlify.app',
   'http://localhost:5173',
   'http://localhost:8888',
 ];
+
+// EmailJS credentials (public — same values baked into the frontend bundle)
+const EJ_SERVICE  = 'service_y9mu20h';
+const EJ_PUBLIC   = 'k01H630sJxtDTafHK';
+const EJ_TEMPLATE = 'template_waitlist'; // create this template in EmailJS dashboard
 
 export default async (req) => {
   const origin = req.headers.get('origin') || '';
@@ -41,6 +46,7 @@ export default async (req) => {
 
   const safeEmail = email.trim().toLowerCase().slice(0, 254);
 
+  // 1. Save to Supabase
   try {
     const res = await fetch(`${supabaseUrl}/rest/v1/coach_waitlist`, {
       method: 'POST',
@@ -58,13 +64,69 @@ export default async (req) => {
       console.error('Supabase insert error:', err);
       return new Response(JSON.stringify({ error: 'Failed to save — please try again' }), { status: 500, headers });
     }
-
-    // 409 = already on waitlist — still return success (no need to tell them)
     console.log('Waitlist signup:', safeEmail);
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
-
   } catch (err) {
-    console.error('coach-waitlist error:', err.message);
+    console.error('Supabase error:', err.message);
     return new Response(JSON.stringify({ error: 'Server error' }), { status: 500, headers });
   }
+
+  // 2. Send confirmation email via EmailJS REST API
+  try {
+    await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id:  EJ_SERVICE,
+        template_id: EJ_TEMPLATE,
+        user_id:     EJ_PUBLIC,
+        template_params: {
+          to_email:   safeEmail,
+          reply_to:   'support@elite-athlete.com',
+          from_name:  'Elite Athlete — Coach Pro',
+          subject:    "You're on the Coach Pro Waitlist ◆",
+          message:    buildConfirmationEmail(safeEmail),
+        },
+      }),
+    });
+  } catch (err) {
+    // Email failure is non-fatal — the signup is already saved
+    console.error('EmailJS send failed:', err.message);
+  }
+
+  return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
 };
+
+function buildConfirmationEmail(email) {
+  return `
+Hi Coach,
+
+You're officially on the Elite Athlete Coach Pro waitlist. ◆
+
+We'll reach out to you directly at ${email} when Coach Pro launches in Q3 2026 — 
+you'll get early access and founding member pricing before it opens to the public.
+
+WHAT'S COMING IN COACH PRO:
+───────────────────────────
+◆ Coach Dashboard — full roster readiness at a glance
+◆ Athlete Invite & Roster Management
+◆ Program Delivery — push workouts to your entire team
+◆ Team Wellness Feed — aggregated check-in data across the roster
+◆ Per-Athlete Billing — $4.99/athlete/month
+
+PRICING (Founding Member):
+◆ $99/month base + $4.99/athlete/month
+◆ or $899/year base + $39.99/athlete/year
+
+You're among the first coaches to sign up. We'll be in touch.
+
+— The Elite Athlete Team
+Taradome Entertainment Group, LLC
+
+elite-athlete.netlify.app
+support@elite-athlete.com
+
+──────────────────────────────────────────
+You received this because you joined the Coach Pro waitlist.
+To be removed, reply with "unsubscribe".
+`.trim();
+}
