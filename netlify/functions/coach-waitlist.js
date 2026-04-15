@@ -11,6 +11,7 @@ const ALLOWED_ORIGINS = [
 // EmailJS credentials (public — same values baked into the frontend bundle)
 const EJ_SERVICE  = 'service_y9mu20h';
 const EJ_PUBLIC   = 'k01H630sJxtDTafHK';
+const EJ_PRIVATE  = 'OetY1iJwmiKfURaoYH_kA';
 const EJ_TEMPLATE = 'template_waitlist'; // Auto-Reply template
 
 export default async (req) => {
@@ -72,13 +73,14 @@ export default async (req) => {
 
   // 2. Send confirmation email via EmailJS REST API
   try {
-    await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    const ejRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        service_id:  EJ_SERVICE,
-        template_id: EJ_TEMPLATE,
-        user_id:     EJ_PUBLIC,
+        service_id:   EJ_SERVICE,
+        template_id:  EJ_TEMPLATE,
+        user_id:      EJ_PUBLIC,
+        accessToken:  EJ_PRIVATE,
         template_params: {
           to_email:   safeEmail,
           reply_to:   'support@elite-athlete.com',
@@ -88,8 +90,9 @@ export default async (req) => {
         },
       }),
     });
+    const ejText = await ejRes.text();
+    console.log('EmailJS response:', ejRes.status, ejText);
   } catch (err) {
-    // Email failure is non-fatal — the signup is already saved
     console.error('EmailJS send failed:', err.message);
   }
 
