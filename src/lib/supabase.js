@@ -75,9 +75,21 @@ export async function loadProfile(userId) {
 // ── JOURNAL ENTRIES ───────────────────────────────────────────
 
 export async function saveJournalEntry(userId, entry) {
+  // Upsert by id to prevent duplicates on autosave
+  if (entry.id) {
+    const { data, error } = await supabase
+      .from('journal_entries')
+      .update({ text: entry.text, title: entry.title || '' })
+      .eq('id', entry.id)
+      .eq('user_id', userId);
+    if (error) throw error;
+    return data;
+  }
   const { data, error } = await supabase
     .from('journal_entries')
-    .insert({ user_id: userId, ...entry, created_at: new Date().toISOString() });
+    .insert({ user_id: userId, text: entry.text, title: entry.title || '', created_at: new Date().toISOString() })
+    .select()
+    .single();
   if (error) throw error;
   return data;
 }

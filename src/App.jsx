@@ -4079,6 +4079,21 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 `;
 
 // ─────────────────────────────────────────────────────────────
+// UPGRADE PROMPT — reusable elite gate component
+// ─────────────────────────────────────────────────────────────
+function UpgradePrompt({ feature, desc, onUpgrade }) {
+  return (
+    <div style={{background:"rgba(191,161,106,0.06)",border:"1px solid rgba(191,161,106,0.2)",borderRadius:"16px",padding:"2.5rem 2rem",textAlign:"center",margin:"0.5rem 0"}}>
+      <div style={{fontSize:"1.8rem",marginBottom:"0.75rem"}}>◆</div>
+      <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.15rem",fontWeight:700,color:"var(--ivory)",marginBottom:"0.5rem",letterSpacing:"1px"}}>{feature}</div>
+      <div style={{fontSize:"0.84rem",color:"var(--muted)",maxWidth:"380px",margin:"0 auto 1.5rem",lineHeight:1.6}}>{desc}</div>
+      <button className="bg" style={{padding:"0.85rem 2.5rem",fontSize:"0.72rem",letterSpacing:"2px"}} onClick={onUpgrade}>Upgrade to Elite — $69/mo</button>
+      <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/year · Save 35%</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // ROOT COMPONENT
 // ─────────────────────────────────────────────────────────────
 export default function App() {
@@ -4487,10 +4502,16 @@ export default function App() {
   // ── AUTOSAVE — JOURNAL (debounced 3s — heavier writes) ────────
   useEffect(() => {
     if (!authUser?.id || jEntries.length === 0) return;
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       const latest = jEntries[0];
-      if (latest?.text) saveJournalEntry(authUser.id, { text: latest.text, title: latest.title||'' })
-        .catch(err => console.error('journal autosave:', err));
+      if (!latest?.text) return;
+      try {
+        const saved = await saveJournalEntry(authUser.id, { id: latest.id, text: latest.text, title: latest.title || '' });
+        // If this was a new insert, store the returned id to prevent duplicates on next save
+        if (saved?.id && !latest.id) {
+          setJEntries(prev => prev.map((e, i) => i === 0 ? { ...e, id: saved.id } : e));
+        }
+      } catch(err) { console.error('journal autosave:', err); }
     }, 3000);
     return () => clearTimeout(timer);
   }, [jEntries[0]?.text, authUser]);
@@ -5070,7 +5091,7 @@ COACHING GUIDELINES:
         </div>
       </section>
 
-      {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} onClose={()=>setPayModal(null)}
+      {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} userId={authUser?.id} onClose={()=>setPayModal(null)}
         onSuccess={()=>{setPayModal(null);setSuccess(true);setTimeout(()=>{setSuccess(false);setScreen("dashboard");},2500);}}/>}
       {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user)=>{setAuthUser(user);setScreen("dashboard");shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");}}/>}
       {success && <SuccessScreen/>}
@@ -8330,7 +8351,8 @@ COACHING GUIDELINES:
               })()}
 
               {/* ══ PERFORMANCE BENCHMARKS ════════════════════════ */}
-              {progressTab==="performance" && (
+              {progressTab==="performance" && !canAccess('elite') && <UpgradePrompt feature="Performance Benchmarks" desc="Track your 40-yard dash, vertical, agility, and strength maxes over time." onUpgrade={()=>setScreen("pricing")}/>}
+              {progressTab==="performance" && canAccess('elite') && (
                 <div>
                   <div className="two" style={{marginBottom:"1.25rem"}}>
                     <div className="panel">
@@ -8482,7 +8504,8 @@ COACHING GUIDELINES:
               )}
 
               {/* ══ PROGRESS PHOTOS ═══════════════════════════════ */}
-              {progressTab==="photos" && (
+              {progressTab==="photos" && !canAccess('elite') && <UpgradePrompt feature="Progress Photos" desc="Capture your physique transformation week by week with the in-app camera." onUpgrade={()=>setScreen("pricing")}/>}
+              {progressTab==="photos" && canAccess('elite') && (
                 <div>
                   <div className="panel" style={{marginBottom:"1.5rem"}}>
                     <div className="ph">
@@ -8643,7 +8666,8 @@ COACHING GUIDELINES:
 
 
               {/* ══ RECRUITING PROFILE ════════════════════════════ */}
-              {progressTab==="recruiting" && (()=>{
+              {progressTab==="recruiting" && !canAccess('elite') && <UpgradePrompt feature="Recruiting Profile" desc="Build your athletic profile and send it directly to college coaches and scouts." onUpgrade={()=>setScreen("pricing")}/>}
+              {progressTab==="recruiting" && canAccess('elite') && (()=>{
                 // Compute PRs from workout log
                 const prs = Object.entries(
                   wkLog.reduce((acc,l)=>{
@@ -9443,7 +9467,8 @@ ${recruitingNote}`:null,
               )}
 
               {/* ══ SUPPLEMENTS ════════════════════════════════════ */}
-              {progressTab==="supplements" && (()=>{
+              {progressTab==="supplements" && !canAccess('elite') && <UpgradePrompt feature="Supplement Stack" desc="Get your sport-specific supplement protocol with evidence grades and timing guidance." onUpgrade={()=>setScreen("pricing")}/>}
+              {progressTab==="supplements" && canAccess('elite') && (()=>{
                 const stack = getSupplementStack(profile.sport||"football", profile.position||"");
                 const catColors = {foundation:"#6B9FD4",performance:"#BFA16A",recovery:"#4BAE71",cognitive:"#C084E8",body_comp:"#F0C040"};
                 const catLabels = {foundation:"Foundation",performance:"Performance",recovery:"Recovery",cognitive:"Cognitive",body_comp:"Body Comp"};

@@ -3,10 +3,10 @@
 // Supabase email/password auth — Sign In & Sign Up
 // ─────────────────────────────────────────────────────────────
 import { useState } from 'react';
-import { signIn, signUp } from '../lib/supabase';
+import { signIn, signUp, supabase } from '../lib/supabase';
 
 export default function AuthModal({ onClose, onAuth }) {
-  const [mode, setMode]           = useState('signin');
+  const [mode, setMode]           = useState('signin'); // 'signin' | 'signup' | 'reset'
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [confirm, setConfirm]     = useState('');
@@ -18,6 +18,20 @@ export default function AuthModal({ onClose, onAuth }) {
 
   const handleSubmit = async () => {
     setError(''); setSuccess('');
+    // Password reset mode
+    if (mode === 'reset') {
+      if (!email) { setError('Enter your email address.'); return; }
+      setLoading(true);
+      try {
+        const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
+        if (e) throw e;
+        setSuccess('Password reset link sent — check your email.');
+      } catch (err) { setError(err.message || 'Failed to send reset email.'); }
+      finally { setLoading(false); }
+      return;
+    }
     if (!email || !password) { setError('Email and password required.'); return; }
     if (mode === 'signup' && password !== confirm) { setError('Passwords do not match.'); return; }
     if (mode === 'signup' && password.length < 8) { setError('Password must be at least 8 characters.'); return; }
@@ -96,21 +110,22 @@ export default function AuthModal({ onClose, onAuth }) {
         <div className="pmh">
           <div>
             <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '1.4rem', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--ivory)' }}>
-              {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
+              {mode === 'signin' ? 'Welcome Back' : mode === 'signup' ? 'Create Account' : 'Reset Password'}
             </div>
             <div style={{ color: 'var(--muted)', fontSize: '0.65rem', letterSpacing: '1.5px', marginTop: '0.25rem' }}>
-              {mode === 'signin' ? 'Sign in to your Elite Athlete account' : 'Join the Premier Athletic Platform'}
+              {mode === 'signin' ? 'Sign in to your Elite Athlete account' : mode === 'signup' ? 'Join the Premier Athletic Platform' : 'Enter your email to receive a reset link'}
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
         </div>
 
         <div className="pmb">
-          <div className="ptabs" style={{ marginBottom: '1.6rem' }}>
-            <button className={`ptab${mode === 'signin' ? ' on' : ''}`} onClick={() => { setMode('signin'); setError(''); setSuccess(''); }}>Sign In</button>
-            <button className={`ptab${mode === 'signup' ? ' on' : ''}`} onClick={() => { setMode('signup'); setError(''); setSuccess(''); }}>Create Account</button>
-          </div>
-
+          {mode !== 'reset' && (
+            <div className="ptabs" style={{ marginBottom: '1.6rem' }}>
+              <button className={`ptab${mode === 'signin' ? ' on' : ''}`} onClick={() => { setMode('signin'); setError(''); setSuccess(''); }}>Sign In</button>
+              <button className={`ptab${mode === 'signup' ? ' on' : ''}`} onClick={() => { setMode('signup'); setError(''); setSuccess(''); }}>Create Account</button>
+            </div>
+          )}
           {error && (
             <div style={{ background: 'rgba(192,105,94,0.1)', border: '1px solid rgba(192,105,94,0.3)', borderRadius: 'var(--r)', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.78rem', color: '#E08080' }}>
               ⚠ {error}
@@ -128,7 +143,7 @@ export default function AuthModal({ onClose, onAuth }) {
               onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
           </div>
 
-          {pwField('Password', password, setPassword, showPass, setShowPass,
+          {mode !== 'reset' && pwField('Password', password, setPassword, showPass, setShowPass,
             mode === 'signup' ? 'Minimum 8 characters' : '••••••••', 'pw')}
 
           {mode === 'signup' &&
@@ -140,15 +155,17 @@ export default function AuthModal({ onClose, onAuth }) {
             onClick={handleSubmit}
             disabled={loading}
           >
-            {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+            {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'}
           </button>
 
           <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.72rem', color: 'var(--muted)' }}>
-            {mode === 'signin' ? (
-              <>No account? <button onClick={() => setMode('signup')} style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'inherit' }}>Create one free</button></>
-            ) : (
-              <>Have an account? <button onClick={() => setMode('signin')} style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'inherit' }}>Sign in</button></>
-            )}
+            {mode === 'signin' && (<>
+              <button onClick={() => { setMode('reset'); setError(''); setSuccess(''); }} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'inherit', textDecoration: 'underline' }}>Forgot password?</button>
+              <span style={{ margin: '0 0.5rem' }}>·</span>
+              <button onClick={() => setMode('signup')} style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'inherit' }}>Create account</button>
+            </>)}
+            {mode === 'signup' && (<>Have an account? <button onClick={() => setMode('signin')} style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'inherit' }}>Sign in</button></>)}
+            {mode === 'reset'  && (<button onClick={() => { setMode('signin'); setError(''); setSuccess(''); }} style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'inherit' }}>← Back to Sign In</button>)}
           </div>
 
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 'var(--r)', padding: '0.65rem 1rem', marginTop: '1.25rem', display: 'flex', gap: '0.6rem', alignItems: 'center' }}>

@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { redirectToCheckout, validateCard, formatCardNumber, formatExpiry, TIER_INFO } from '../lib/stripe';
 
-export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEmail }) {
+export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEmail, userId }) {
   // plan can be { tierKey:'elite' } (new) or legacy { name:'Elite', price:'$79' }
   const tierKey = plan?.tierKey
     || (plan?.name?.toLowerCase().includes('coach') ? 'coach'
@@ -41,6 +41,7 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
         priceKey,
         planName,
         userEmail,
+        userId,
         successUrl: `${window.location.origin}?payment=success&plan=${planName}`,
         cancelUrl:  `${window.location.origin}?payment=cancelled`,
       });

@@ -74,6 +74,8 @@ export default async (req) => {
     subscription_data: { metadata: { plan_name: safePlanName } },
   };
   if (safeEmail) payload.customer_email = safeEmail;
+  // Pass user ID so webhook can match payment to account even if emails differ
+  if (body.userId) payload.client_reference_id = String(body.userId).slice(0, 200);
 
   try {
     const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
