@@ -278,9 +278,10 @@ const SUPPLEMENT_STACKS = {
       { name:"Creatine Monohydrate", dose:"5g/day", timing:"Post-training", purpose:"Improves sprint performance in the final 15 minutes when PCr stores are depleted", evidence:"A", category:"performance", icon:"" },
     ],
     "Goalkeeper": [
-      { name:"Creatine Monohydrate", dose:"5g/day", timing:"Post-training", purpose:"Explosive dive and jump reactions — GKs make 5–7 explosive explosive saves per game", evidence:"A", category:"performance", icon:"" },
+      { name:"Creatine Monohydrate", dose:"5g/day", timing:"Post-training", purpose:"Explosive dive and jump reactions — GKs make 5–7 explosive saves per game", evidence:"A", category:"performance", icon:"" },
       { name:"Caffeine", dose:"200mg", timing:"60 min pre-match", purpose:"Reaction time for shot-stopping — 50ms faster reaction can save a goal", evidence:"A", category:"cognitive", icon:"" },
       { name:"Omega-3", dose:"3g/day", timing:"With meals", purpose:"Joint protection for repeated diving and landing — shoulder and knee health", evidence:"A", category:"recovery", icon:"🐟" },
+      { name:"Collagen + Vitamin C", dose:"15g + 250mg", timing:"30 min pre-training", purpose:"Diving and landing on shoulders repeatedly — joint protection essential", evidence:"B", category:"recovery", icon:"🦴" },
     ],
     "Full Back": [
       { name:"Beet Root", dose:"400mg nitrate", timing:"2 hrs pre-match", purpose:"Full backs cover more ground than any position — nitrates reduce oxygen cost of running", evidence:"A", category:"performance", icon:"" },
@@ -301,11 +302,6 @@ const SUPPLEMENT_STACKS = {
       { name:"Creatine Monohydrate", dose:"5g/day", timing:"Post-training", purpose:"Wingers make 20+ sprints per match — PCr system must be maxed", evidence:"A", category:"performance", icon:"" },
       { name:"Caffeine", dose:"200mg", timing:"60 min pre-match", purpose:"Top-end sprint speed and reaction at the byline", evidence:"A", category:"performance", icon:"" },
       { name:"Beet Root", dose:"400mg nitrate", timing:"2 hrs pre-match", purpose:"Sprint-recovery cycling efficiency over 90 minutes", evidence:"A", category:"performance", icon:"" },
-    ],
-    "Goalkeeper": [
-      { name:"Creatine Monohydrate", dose:"5g/day", timing:"Post-training", purpose:"Explosive saves, jump reach, and distribution power", evidence:"A", category:"performance", icon:"" },
-      { name:"Caffeine", dose:"200mg", timing:"60 min pre-match", purpose:"Reaction time — 50ms faster is the difference between a save and a goal", evidence:"A", category:"performance", icon:"" },
-      { name:"Collagen + Vitamin C", dose:"15g + 250mg", timing:"30 min pre-training", purpose:"Diving and landing on shoulders repeatedly — joint protection essential", evidence:"B", category:"recovery", icon:"🦴" },
     ],
   },
 
@@ -6278,7 +6274,6 @@ COACHING GUIDELINES:
                     )}
                   </div>
                 </div>
-              )}
 
               <div style={{display:"flex",gap:"0.45rem",marginBottom:"0.75rem",flexWrap:"wrap"}}>
                 {Object.keys(WORKOUTS).map(t=><button key={t} className={`bsm${wkType===t?" on":""}`} onClick={()=>setWkType(t)}>{t}</button>)}
