@@ -10,6 +10,7 @@ import AuthModal from "./components/AuthModal";
 import PayModal from "./components/PayModal";
 import { getUserTier, canAccess as tierCanAccess, TIER_INFO } from "./lib/stripe";
 import { uploadProgressPhoto, loadProgressPhotos, deleteProgressPhoto } from "./lib/supabase";
+import AdminDashboard from "./AdminDashboard";
 
 // ── SECURITY: sanitize user-supplied strings before injecting into document.write() popups
 const sanitizeHtml = (str) => String(str || '')
@@ -4947,6 +4948,11 @@ COACHING GUIDELINES:
 
   // ── LOADING (wait for session check) ────────────────────────
   if (authLoading) return <div style={{background:"#0a0908",width:"100vw",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#D4AF37",fontFamily:"'DM Sans', sans-serif",fontSize:"1rem",letterSpacing:"8px",fontWeight:700}}>ELITE ATHLETE</div></div>;
+
+  // ── ADMIN ROUTE ──────────────────────────────────────────────
+  if (window.location.pathname === '/admin') {
+    return <AdminDashboard user={authUser} />;
+  }
 
   // ── LANDING ─────────────────────────────────────────────────
   if (screen === "landing") return (
