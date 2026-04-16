@@ -5,8 +5,9 @@ export default async (req) => {
   if (req.method !== 'POST')
     return new Response('Method not allowed', { status: 405 });
 
-  const stripeSecret  = process.env.STRIPE_SECRET_KEY;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const isBeta        = process.env.BETA_MODE === 'true';
+  const stripeSecret  = isBeta ? process.env.STRIPE_TEST_SECRET_KEY  : process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = isBeta ? process.env.STRIPE_TEST_WEBHOOK_SECRET : process.env.STRIPE_WEBHOOK_SECRET;
   const supabaseUrl   = process.env.SUPABASE_URL;
   const supabaseKey   = process.env.SUPABASE_SERVICE_KEY;
 

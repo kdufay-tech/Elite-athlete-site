@@ -57,6 +57,65 @@ export default function AdminDashboard({ user }) {
     window.location.href = '/';
   }
 
+  // ── TEST ACCESS ───────────────────────────────────────────────
+  const [testEmail, setTestEmail]   = useState('');
+  const [testMsg,   setTestMsg]     = useState(null);
+  const [testBusy,  setTestBusy]    = useState(false);
+
+  // ── BETA CODE CREATION ────────────────────────────────────────
+  const [newCode,     setNewCode]     = useState('');
+  const [newLabel,    setNewLabel]    = useState('');
+  const [newMaxUses,  setNewMaxUses]  = useState('');
+  const [codeMsg,     setCodeMsg]     = useState(null);
+  const [codeBusy,    setCodeBusy]    = useState(false);
+
+  async function callAction(action, extraBody = {}) {
+    setTestBusy(true);
+    setTestMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/.netlify/functions/admin-action', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, email: testEmail, ...extraBody }),
+      });
+      const json = await res.json();
+      setTestMsg({ text: json.message || json.error, ok: res.ok });
+      if (res.ok) fetchData();
+    } catch(err) {
+      setTestMsg({ text: err.message, ok: false });
+    } finally {
+      setTestBusy(false);
+    }
+  }
+
+  async function createBetaCode() {
+    if (!newCode.trim()) return;
+    setCodeBusy(true); setCodeMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/.netlify/functions/admin-action', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create_beta_code', code: newCode.trim().toUpperCase(), label: newLabel || newCode, max_uses: newMaxUses ? parseInt(newMaxUses) : null }),
+      });
+      const json = await res.json();
+      setCodeMsg({ text: json.message || json.error, ok: res.ok });
+      if (res.ok) { setNewCode(''); setNewLabel(''); setNewMaxUses(''); fetchData(); }
+    } catch(err) { setCodeMsg({ text: err.message, ok: false }); }
+    finally { setCodeBusy(false); }
+  }
+
+  async function toggleCode(code_id, active) {
+    const { data: { session } } = await supabase.auth.getSession();
+    await fetch('/.netlify/functions/admin-action', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggle_beta_code', code_id, active }),
+    });
+    fetchData();
+  }
+
   // ── NOT SIGNED IN → show login form ─────────────────────────
   if (!user) {
     return (
@@ -122,11 +181,119 @@ export default function AdminDashboard({ user }) {
         {loading && <div style={s.center}>Loading...</div>}
         {error   && <div style={{ ...s.center, color: '#e74c3c' }}>{error}</div>}
         {data && <>
+          {/* Paid stats */}
           <div style={s.grid}>
             <StatCard label="MRR"           value={`$${data.mrr}`}        sub="monthly recurring revenue" gold />
-            <StatCard label="Subscribers"   value={data.totalSubscribers} sub="active Elite members" />
+            <StatCard label="Subscribers"   value={data.totalSubscribers} sub="paid Elite members" />
             <StatCard label="Monthly Plans" value={data.monthlyCount}     sub="× $9.99 / mo" />
             <StatCard label="Waitlist"      value={data.waitlistCount}    sub="coach waitlist signups" />
+          </div>
+
+          {/* Beta stats */}
+          <div style={{ ...s.grid, gridTemplateColumns:'repeat(4,1fr)', marginBottom:44 }}>
+            <StatCard label="Beta Users"    value={data.betaCount}        sub="90-day free access" blue />
+            <StatCard label="Active Beta"   value={data.betaCount - data.betaExpired} sub="still in window" />
+            <StatCard label="Beta Expired"  value={data.betaExpired}      sub="conversion opportunity" />
+            <StatCard label="Beta Codes"    value={data.betaCodes?.length || 0} sub="invite codes total" />
+          </div>
+
+          {/* Test Access Panel */}
+          <div style={{ marginBottom: 40, background: '#111', border: '1px solid #C9A84C22', borderRadius: 12, padding: '24px 28px' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: '#C9A84C', marginBottom: 16 }}>
+              ◆ Test Access — Grant / Revoke Elite
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="email" placeholder="user@email.com" value={testEmail}
+                onChange={e => { setTestEmail(e.target.value); setTestMsg(null); }}
+                style={{ ...s.input, width: 280, flex: '0 0 auto' }}
+              />
+              <button onClick={() => callAction('grant')} disabled={testBusy || !testEmail} style={s.btnGold}>
+                {testBusy ? '...' : 'Grant Elite'}
+              </button>
+              <button onClick={() => callAction('revoke')} disabled={testBusy || !testEmail} style={{ ...s.btnGhost, borderColor: '#e74c3c44', color: '#e74c3c99' }}>
+                {testBusy ? '...' : 'Revoke'}
+              </button>
+            </div>
+            {testMsg && (
+              <div style={{ marginTop: 12, fontSize: 13, color: testMsg.ok ? '#C9A84C' : '#e74c3c' }}>
+                {testMsg.ok ? '✓' : '✗'} {testMsg.text}
+              </div>
+            )}
+            <div style={{ marginTop: 10, fontSize: 11, color: '#333' }}>
+              Grant writes an active subscription row directly to Supabase. User must refresh their app to see updated access.
+            </div>
+          </div>
+
+          {/* Beta Users Table */}
+          <Section title="Beta Users" count={data.betaCount}>
+            {!data.betaUsers?.length ? <Empty text="No beta users yet." /> :
+              <div style={{ overflowX:'auto' }}>
+                <table style={s.table}><thead><tr>
+                  {['Email','Sport','Code','Days Left','Expires','Status'].map(h=><th key={h} style={s.th}>{h}</th>)}
+                </tr></thead><tbody>
+                  {data.betaUsers.map((u,i)=>(
+                    <tr key={u.id} style={{background:i%2===0?'#0D0D0D':'#111'}}>
+                      <td style={{...s.td,color:'#C9A84C',fontSize:13}}>{u.email}</td>
+                      <td style={s.td}>{u.sport}</td>
+                      <td style={{...s.td,fontFamily:'monospace',fontSize:12}}>{u.stripe_customer_id?.replace('beta_','')}</td>
+                      <td style={{...s.td,color:u.expired?'#e74c3c':u.days_left<=7?'#f39c12':'#4BAE71',fontWeight:700}}>{u.expired?'—':u.days_left}</td>
+                      <td style={{...s.td,color:'#555',fontSize:12}}>
+                        {u.beta_expires_at ? new Date(u.beta_expires_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}
+                      </td>
+                      <td style={s.td}>
+                        <span style={{fontSize:10,padding:'3px 8px',borderRadius:4,letterSpacing:1,textTransform:'uppercase',background:u.expired?'rgba(231,76,60,0.15)':'rgba(75,174,113,0.15)',color:u.expired?'#e74c3c':'#4BAE71'}}>
+                          {u.expired?'Expired':'Active'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody></table>
+              </div>
+            }
+          </Section>
+
+          {/* Beta Code Management */}
+          <div style={{ marginBottom:40, background:'#111', border:'1px solid #ffffff08', borderRadius:12, padding:'24px 28px' }}>
+            <div style={{ fontSize:12, fontWeight:700, letterSpacing:3, textTransform:'uppercase', color:'#C9A84C', marginBottom:20 }}>◆ Beta Codes</div>
+            {/* Existing codes */}
+            {data.betaCodes?.length > 0 && (
+              <table style={{...s.table, marginBottom:24}}><thead><tr>
+                {['Code','Label','Uses','Max Uses','Days','Status',''].map(h=><th key={h} style={s.th}>{h}</th>)}
+              </tr></thead><tbody>
+                {data.betaCodes.map((c,i)=>(
+                  <tr key={c.id} style={{background:i%2===0?'#0D0D0D':'#111'}}>
+                    <td style={{...s.td,fontFamily:'monospace',color:'#C9A84C',letterSpacing:2}}>{c.code}</td>
+                    <td style={s.td}>{c.label}</td>
+                    <td style={{...s.td,fontWeight:700}}>{c.uses}</td>
+                    <td style={{...s.td,color:'#555'}}>{c.max_uses ?? '∞'}</td>
+                    <td style={s.td}>{c.duration_days}</td>
+                    <td style={s.td}><Badge val={c.active?'active':'inactive'} /></td>
+                    <td style={s.td}>
+                      <button onClick={()=>toggleCode(c.id,!c.active)} style={{background:'transparent',border:'1px solid #333',borderRadius:4,color:'#666',padding:'3px 10px',cursor:'pointer',fontSize:11,fontFamily:'inherit'}}>
+                        {c.active?'Deactivate':'Activate'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody></table>
+            )}
+            {/* Create new code */}
+            <div style={{ borderTop:'1px solid #ffffff08', paddingTop:20 }}>
+              <div style={{ fontSize:11, letterSpacing:2, color:'#444', textTransform:'uppercase', marginBottom:12 }}>Create New Code</div>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end' }}>
+                <div><div style={{ fontSize:10, color:'#333', marginBottom:4, letterSpacing:1 }}>CODE *</div>
+                  <input style={{...s.input,width:160,fontFamily:'monospace',letterSpacing:2}} placeholder="LAUNCH2026" value={newCode} onChange={e=>setNewCode(e.target.value.toUpperCase())} /></div>
+                <div><div style={{ fontSize:10, color:'#333', marginBottom:4, letterSpacing:1 }}>LABEL</div>
+                  <input style={{...s.input,width:200}} placeholder="Campaign label" value={newLabel} onChange={e=>setNewLabel(e.target.value)} /></div>
+                <div><div style={{ fontSize:10, color:'#333', marginBottom:4, letterSpacing:1 }}>MAX USES</div>
+                  <input style={{...s.input,width:100}} type="number" placeholder="∞" value={newMaxUses} onChange={e=>setNewMaxUses(e.target.value)} /></div>
+                <button onClick={createBetaCode} disabled={codeBusy||!newCode} style={s.btnGold}>
+                  {codeBusy?'…':'+ Create'}
+                </button>
+              </div>
+              {codeMsg && <div style={{ marginTop:10, fontSize:13, color:codeMsg.ok?'#C9A84C':'#e74c3c' }}>{codeMsg.ok?'✓':'✗'} {codeMsg.text}</div>}
+            </div>
           </div>
 
           <Section title="Active Subscribers" count={data.subscribers.length}>
@@ -174,11 +341,13 @@ export default function AdminDashboard({ user }) {
   );
 }
 
-function StatCard({ label, value, sub, gold }) {
+function StatCard({ label, value, sub, gold, blue }) {
+  const accent = gold ? '#C9A84C' : blue ? '#60a5fa' : '#fff';
+  const border = gold ? '#C9A84C44' : blue ? '#60a5fa22' : '#ffffff0f';
   return (
-    <div style={{ background:'#111', borderRadius:12, padding:'22px 24px', border:`1px solid ${gold?'#C9A84C44':'#ffffff0f'}` }}>
-      <div style={{ fontSize:10, letterSpacing:3, color:gold?'#C9A84C':'#444', textTransform:'uppercase', marginBottom:10 }}>{label}</div>
-      <div style={{ fontSize:34, fontWeight:700, color:gold?'#C9A84C':'#fff', lineHeight:1 }}>{value}</div>
+    <div style={{ background:'#111', borderRadius:12, padding:'22px 24px', border:`1px solid ${border}` }}>
+      <div style={{ fontSize:10, letterSpacing:3, color:gold?'#C9A84C':blue?'#60a5fa':'#444', textTransform:'uppercase', marginBottom:10 }}>{label}</div>
+      <div style={{ fontSize:34, fontWeight:700, color:accent, lineHeight:1 }}>{value}</div>
       <div style={{ fontSize:12, color:'#3a3a3a', marginTop:8 }}>{sub}</div>
     </div>
   );
@@ -215,7 +384,7 @@ const s = {
   table:     { width:'100%', borderCollapse:'collapse', fontSize:14 },
   th:        { padding:'12px 16px', textAlign:'left', fontSize:10, letterSpacing:2, color:'#333', textTransform:'uppercase', borderBottom:'1px solid #ffffff08', fontWeight:600 },
   td:        { padding:'14px 16px', borderBottom:'1px solid #ffffff04', color:'#bbb' },
-  input:     { width:'100%', background:'#0D0D0D', border:'1px solid #ffffff15', borderRadius:8, padding:'11px 14px', color:'#fff', fontSize:14, fontFamily:'inherit', boxSizing:'border-box', outline:'none' },
+  input:     { width:'100%', background:'#0D0D0D', border:'1px solid #ffffff15', borderRadius:8, padding:'9px 12px', color:'#fff', fontSize:13, fontFamily:'inherit', boxSizing:'border-box', outline:'none' },
   loginErr:  { color:'#e74c3c', fontSize:12, marginTop:10, textAlign:'left' },
   btnSubmit: { width:'100%', marginTop:18, background:'#C9A84C', border:'none', borderRadius:8, padding:'12px', color:'#0D0D0D', fontSize:14, fontWeight:700, letterSpacing:1, cursor:'pointer', fontFamily:'inherit' },
   btnGold:   { background:'transparent', border:'1px solid #C9A84C44', color:'#C9A84C', padding:'8px 18px', borderRadius:8, cursor:'pointer', fontSize:13, letterSpacing:1, fontFamily:'inherit' },

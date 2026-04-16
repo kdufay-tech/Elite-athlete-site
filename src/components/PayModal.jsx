@@ -4,9 +4,9 @@
 // Annual/Monthly toggle — annual is default
 // ─────────────────────────────────────────────────────────────
 import { useState } from 'react';
-import { redirectToCheckout, validateCard, formatCardNumber, formatExpiry, TIER_INFO } from '../lib/stripe';
+import { redirectToCheckout, validateCard, formatCardNumber, formatExpiry, TIER_INFO, IS_BETA_MODE } from '../lib/stripe';
 
-export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEmail, userId }) {
+export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEmail, userId, couponCode }) {
   // plan can be { tierKey:'elite' } (new) or legacy { name:'Elite', price:'$79' }
   const tierKey = plan?.tierKey
     || (plan?.name?.toLowerCase().includes('coach') ? 'coach'
@@ -42,6 +42,7 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
         planName,
         userEmail,
         userId,
+        couponCode: couponCode || plan?.couponCode,
         successUrl: `${window.location.origin}?payment=success&plan=${planName}`,
         cancelUrl:  `${window.location.origin}?payment=cancelled`,
       });
@@ -90,6 +91,17 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
             <span>🔒</span>
             <span style={{fontSize:'0.72rem',color:'var(--ivory2)',fontWeight:300}}>256-bit SSL · PCI DSS Compliant · Powered by Stripe</span>
           </div>
+
+          {/* Beta mode test card banner */}
+          {IS_BETA_MODE && !info.waitlist && (
+            <div style={{background:'rgba(59,130,246,0.08)',border:'1px solid rgba(59,130,246,0.3)',borderRadius:'var(--r)',padding:'0.85rem 1rem',marginBottom:'1.25rem'}}>
+              <div style={{fontSize:'0.62rem',letterSpacing:'2px',color:'#60a5fa',fontWeight:700,marginBottom:'6px'}}>🧪 BETA / TEST MODE</div>
+              <div style={{fontSize:'0.75rem',color:'#93c5fd',lineHeight:1.6}}>
+                Use test card: <span style={{fontFamily:'monospace',background:'rgba(255,255,255,0.08)',padding:'1px 6px',borderRadius:4,letterSpacing:'2px'}}>4242 4242 4242 4242</span>
+                <br/>Any future expiry · Any 3-digit CVV · Any name — no real charge
+              </div>
+            </div>
+          )}
 
           {/* ── COACH PRO WAITLIST ── */}
           {info.waitlist ? (

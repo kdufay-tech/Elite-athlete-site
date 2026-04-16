@@ -4113,6 +4113,36 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [emailModal,  setEmailModal]  = useState(null);
 
+  // ── BETA STATE ────────────────────────────────────────────────
+  const [betaModal,      setBetaModal]      = useState(false); // landing beta CTA modal
+  const [conversionModal,setConversionModal]= useState(false); // fires when beta expires
+  const isBeta       = subscription?.plan_name === 'beta_elite';
+  const betaExpiry   = subscription?.beta_expires_at ? new Date(subscription.beta_expires_at) : null;
+  const betaExpired  = isBeta && betaExpiry && betaExpiry < new Date();
+  const betaDaysLeft = isBeta && betaExpiry && !betaExpired
+    ? Math.max(0, Math.ceil((betaExpiry - new Date()) / (1000*60*60*24))) : null;
+
+  const redeemBetaCode = async (userId, code) => {
+    if (!code || !userId) return;
+    try {
+      const session = await getSession();
+      const tok = session?.access_token;
+      if (!tok) return;
+      const res = await fetch('/.netlify/functions/beta-signup', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        shout(`◆ Beta access activated — ${json.message}`, '◆');
+        await loadUserData(userId);
+      } else {
+        if (!json.error?.includes('already')) shout(json.error || 'Invalid beta code', '!');
+      }
+    } catch(e) { console.error('Beta redeem error:', e); }
+  };
+
   // ── IN-APP CAMERA ─────────────────────────────────────────────
   // Works on desktop + mobile via getUserMedia (unlike HTML capture attr which is mobile-only)
   const [cameraModal, setCameraModal] = useState(null); // null | 'profile-before' | 'profile-after' | 'progress'
@@ -4401,6 +4431,29 @@ export default function App() {
         setScreen("dashboard");
       }
       setAuthLoading(false);
+
+      // ── STRIPE RETURN HANDLER ────────────────────────────────
+      // Detect ?payment=success redirect back from Stripe checkout.
+      // Webhook may not have fired yet — poll loadSubscription up to
+      // 6 times (every 3s) until an active subscription appears.
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('payment') === 'success' && session?.user) {
+        window.history.replaceState({}, '', window.location.pathname); // clean URL
+        setSuccess(true);
+        setScreen("dashboard");
+        let attempts = 0;
+        const poll = setInterval(async () => {
+          attempts++;
+          try {
+            const sub = await loadSubscription(session.user.id);
+            if (sub?.status === 'active') {
+              setSubscription(sub);
+              clearInterval(poll);
+            }
+          } catch(e) { /* silent */ }
+          if (attempts >= 6) clearInterval(poll);
+        }, 3000);
+      }
     });
     // Listen for auth changes (login/logout)
     const { data: { subscription: authSub } } = onAuthChange((session, event) => {
@@ -4418,6 +4471,12 @@ export default function App() {
     });
     return () => authSub?.unsubscribe();
   }, []);
+
+  // ── BETA EXPIRY CHECK ─────────────────────────────────────────
+  // Fires conversion modal automatically when beta period ends
+  useEffect(() => {
+    if (betaExpired && !conversionModal) setConversionModal(true);
+  }, [betaExpired]);
 
   // ── LOAD USER DATA FROM SUPABASE ─────────────────────────────
   const loadUserData = async (userId) => {
@@ -5086,6 +5145,34 @@ COACHING GUIDELINES:
 
           <PricingSection setPayModal={setPayModal} />
 
+          {/* ── BETA / FREE TRIAL SECTION ──────────────────────── */}
+          <div id="landing-beta" style={{padding:"4rem 1.5rem",textAlign:"center",borderTop:"1px solid rgba(201,168,76,0.1)",background:"rgba(201,168,76,0.02)"}}>
+            <div style={{display:"inline-block",fontSize:"0.58rem",letterSpacing:"4px",color:"var(--gold)",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:"20px",padding:"4px 14px",marginBottom:"1.25rem"}}>FREE BETA ACCESS</div>
+            <div style={{fontFamily:"'Cormorant SC',serif",fontSize:"clamp(1.8rem,4vw,2.8rem)",fontWeight:600,letterSpacing:"2px",color:"var(--ivory)",marginBottom:"1rem",lineHeight:1.2}}>
+              3 Months of Full Elite Access.<br/>No Credit Card. No Catch.
+            </div>
+            <div style={{fontSize:"0.85rem",color:"var(--muted)",maxWidth:"540px",margin:"0 auto 2.5rem",lineHeight:1.75}}>
+              Elite Athlete is opening a limited beta for coaches and athletes. Get unrestricted access to every feature — AI Coach, full nutrition, workout programming, performance tracking — completely free for 90 days.
+            </div>
+            <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"1.5rem",marginBottom:"2.5rem"}}>
+              {[["🏈","Athletes","Full position-specific programming, AI coaching, supplement stacks — built for your sport.","ATHLETE2026"],
+                ["📋","Coaches","See how your athletes are training. Get early access to Coach Pro when it launches Q3 2026.","COACH2026"]].map(([icon,title,desc,code])=>(
+                <div key={code} style={{background:"#111",border:"1px solid rgba(201,168,76,0.2)",borderRadius:12,padding:"24px",maxWidth:280,textAlign:"left"}}>
+                  <div style={{fontSize:"1.8rem",marginBottom:"0.75rem"}}>{icon}</div>
+                  <div style={{fontSize:"0.7rem",letterSpacing:"2px",color:"var(--gold)",marginBottom:"6px",textTransform:"uppercase"}}>{title}</div>
+                  <div style={{fontSize:"0.8rem",color:"var(--muted)",lineHeight:1.6,marginBottom:"1rem"}}>{desc}</div>
+                  <div style={{background:"rgba(0,0,0,0.4)",border:"1px solid rgba(201,168,76,0.15)",borderRadius:6,padding:"6px 12px",display:"inline-block",fontFamily:"monospace",fontSize:"0.85rem",letterSpacing:"3px",color:"var(--gold)"}}>{code}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={()=>setBetaModal(true)} style={{background:"var(--gold)",color:"#0a0908",border:"none",borderRadius:8,padding:"14px 36px",fontSize:"0.75rem",fontWeight:800,letterSpacing:"2.5px",cursor:"pointer",marginBottom:"0.75rem",display:"block",margin:"0 auto"}}>
+              CLAIM FREE BETA ACCESS →
+            </button>
+            <div style={{fontSize:"0.65rem",color:"var(--muted)",marginTop:"12px",letterSpacing:"1px"}}>
+              Use code ATHLETE2026 or COACH2026 after signing up · 90 days · No payment required
+            </div>
+          </div>
+
           {/* LANDING FOOTER */}
           <div id="landing-about" style={{borderTop:"1px solid rgba(191,161,106,0.1)",marginTop:"4rem",paddingTop:"2rem",paddingBottom:"3rem",textAlign:"center"}}>
             <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"0.9rem",fontWeight:700,letterSpacing:"6px",color:"var(--ivory)",marginBottom:"0.75rem"}}>ELITE ATHLETE</div>
@@ -5099,10 +5186,12 @@ COACHING GUIDELINES:
         </div>
       </section>
 
-      {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} userId={authUser?.id} onClose={()=>setPayModal(null)}
+      {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} userId={authUser?.id} couponCode={payModal?.couponCode} onClose={()=>setPayModal(null)}
         onSuccess={()=>{setPayModal(null);setSuccess(true);setTimeout(()=>{setSuccess(false);setScreen("dashboard");},2500);}}/>}
-      {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user)=>{setAuthUser(user);setScreen("dashboard");shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");}}/>}
+      {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id);setScreen("dashboard");shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);}}/>}
+      {betaModal && <AuthModal onClose={()=>setBetaModal(false)} initialMode="signup" onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id);setScreen("dashboard");if(betaCode) redeemBetaCode(user.id, betaCode); else shout(`Welcome, ${user.email?.split('@')[0]}!`,"◆");}} />}
       {success && <SuccessScreen/>}
+      {conversionModal && <BetaConversionModal onClose={()=>setConversionModal(false)} onUpgrade={()=>{setConversionModal(false);setPayModal({tierKey:'elite',billing:'annual'});}} />}
 
       {/* ── IN-APP CAMERA MODAL ─────────────────────────────────────── */}
       {cameraModal && (
@@ -5374,6 +5463,38 @@ COACHING GUIDELINES:
       </nav>
 
       <div style={{paddingTop:"68px",minHeight:"100vh"}}>
+
+        {/* ── BETA COUNTDOWN BANNER ──────────────────────────── */}
+        {isBeta && !betaExpired && betaDaysLeft !== null && (
+          <div style={{
+            background: betaDaysLeft <= 7
+              ? 'linear-gradient(90deg,rgba(231,76,60,0.15),rgba(192,57,43,0.08))'
+              : betaDaysLeft <= 14
+              ? 'linear-gradient(90deg,rgba(243,156,18,0.15),rgba(230,126,34,0.08))'
+              : 'linear-gradient(90deg,rgba(201,168,76,0.12),rgba(0,0,0,0))',
+            borderBottom: `1px solid ${betaDaysLeft<=7?'rgba(231,76,60,0.3)':betaDaysLeft<=14?'rgba(243,156,18,0.3)':'rgba(201,168,76,0.2)'}`,
+            padding:'10px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8,
+          }}>
+            <div style={{display:'flex',alignItems:'center',gap:12}}>
+              <span style={{fontSize:16}}>{betaDaysLeft<=7?'🔴':betaDaysLeft<=14?'🟡':'◆'}</span>
+              <div>
+                <span style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'1px',color:betaDaysLeft<=7?'#e74c3c':betaDaysLeft<=14?'#f39c12':'var(--gold)'}}>
+                  BETA ACCESS — {betaDaysLeft} DAY{betaDaysLeft!==1?'S':''} REMAINING
+                </span>
+                <span style={{fontSize:'0.68rem',color:'var(--muted)',marginLeft:12}}>
+                  {betaDaysLeft<=14 ? 'Convert now to keep your access — 50% off as a founding member' : 'Full Elite access active · No credit card required'}
+                </span>
+              </div>
+            </div>
+            {betaDaysLeft <= 14 && (
+              <button onClick={()=>setPayModal({tierKey:'elite',billing:'annual',couponCode:'BETAFOUNDER'})}
+                style={{background:'var(--gold)',color:'#0a0908',border:'none',borderRadius:6,padding:'6px 16px',fontSize:'0.68rem',fontWeight:700,letterSpacing:'1.5px',cursor:'pointer',whiteSpace:'nowrap'}}>
+                UPGRADE — 50% OFF →
+              </button>
+            )}
+          </div>
+        )}
+
         {/* DASH HERO */}
         <div className="dash-hero">
           <div className="dh-bg" style={{backgroundImage:`url(${sport.img})`}}/>
@@ -10070,9 +10191,9 @@ ${recruitingNote}`:null,
         </div>
       </div>
 
-      {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} onClose={()=>setPayModal(null)}
-        onSuccess={()=>{setPayModal(null);shout("Subscription activated! Welcome to Elite.","◆");}}/>}
-      {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user)=>{setAuthUser(user);setScreen("dashboard");shout(`Welcome, ${user.email?.split('@')[0]}!`,"◆");}}/>}
+      {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} userId={authUser?.id} couponCode={payModal?.couponCode} onClose={()=>setPayModal(null)}
+        onSuccess={()=>{setPayModal(null);shout("Subscription activated! Welcome to Elite.","◆");loadUserData(authUser?.id);}}/>}
+      {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id);setScreen("dashboard");shout(`Welcome, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);}}/>}
       {emailModal && <EmailModal emailModal={emailModal} authUser={authUser} isPremium={isPremium} setPayModal={setPayModal} shout={shout} onClose={()=>setEmailModal(null)}
         onSend={async(toEmail)=>{
           if(emailModal.type==="meal") await _sendEmailMealPlan(toEmail);
@@ -10801,6 +10922,38 @@ function SuccessScreen() {
         <div className="succ-icon">◆</div>
         <div className="succ-h">Welcome to Elite</div>
         <div className="succ-sub">Preparing your dashboard…</div>
+      </div>
+    </div>
+  );
+}
+
+function BetaConversionModal({ onClose, onUpgrade }) {
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+      <div style={{background:'#111',border:'1px solid rgba(201,168,76,0.3)',borderRadius:16,maxWidth:480,width:'100%',padding:'40px 36px',textAlign:'center',position:'relative'}}>
+        <button onClick={onClose} style={{position:'absolute',top:16,right:16,background:'none',border:'none',color:'#555',fontSize:'1.4rem',cursor:'pointer'}}>×</button>
+        <div style={{fontSize:48,marginBottom:16}}>⏱</div>
+        <div style={{fontSize:'0.6rem',letterSpacing:4,color:'var(--gold)',textTransform:'uppercase',marginBottom:8}}>Beta Period Ended</div>
+        <div style={{fontFamily:"'Cormorant SC',serif",fontSize:'1.8rem',fontWeight:600,color:'#fff',marginBottom:12,letterSpacing:2}}>
+          Your 90 Days Are Up
+        </div>
+        <div style={{fontSize:'0.85rem',color:'#888',lineHeight:1.7,marginBottom:28}}>
+          You've had full Elite access during the beta. As a founding member, you get <span style={{color:'var(--gold)',fontWeight:700}}>50% off your first year</span> — locked in forever as long as you stay subscribed.
+        </div>
+        <div style={{background:'rgba(201,168,76,0.08)',border:'1px solid rgba(201,168,76,0.2)',borderRadius:10,padding:'16px 20px',marginBottom:24}}>
+          <div style={{display:'flex',justifyContent:'center',alignItems:'baseline',gap:8}}>
+            <span style={{fontSize:'0.8rem',color:'#555',textDecoration:'line-through'}}>$529/yr</span>
+            <span style={{fontFamily:"'Cormorant SC',serif",fontSize:'2.2rem',color:'var(--gold)',fontWeight:700}}>$264.50</span>
+            <span style={{fontSize:'0.75rem',color:'#888'}}>/first year</span>
+          </div>
+          <div style={{fontSize:'0.65rem',color:'#888',letterSpacing:1,marginTop:4}}>Code BETAFOUNDER auto-applied · Then $529/yr</div>
+        </div>
+        <button onClick={onUpgrade} style={{width:'100%',background:'var(--gold)',color:'#0a0908',border:'none',borderRadius:8,padding:'14px',fontSize:'0.75rem',fontWeight:800,letterSpacing:'2px',cursor:'pointer',marginBottom:12}}>
+          CONVERT TO ELITE — 50% OFF →
+        </button>
+        <button onClick={onClose} style={{background:'none',border:'none',color:'#444',cursor:'pointer',fontSize:'0.7rem',letterSpacing:1}}>
+          Not now — I'll lose access
+        </button>
       </div>
     </div>
   );

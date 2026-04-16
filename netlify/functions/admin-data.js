@@ -71,8 +71,8 @@ export default async (req) => {
     }
   } catch (e) { console.error('Auth users fetch failed:', e.message); }
 
-  // Enrich subscriptions
-  const enrichedSubs = subscriptions.map(s => ({
+  // Enrich subscriptions — split paid vs beta
+  const allSubs = subscriptions.map(s => ({
     id:                 s.id,
     user_id:            s.user_id,
     email:              emailMap[s.user_id] || '—',
@@ -82,7 +82,16 @@ export default async (req) => {
     plan_name:          s.plan_name          || 'Elite',
     billing_interval:   s.billing_interval   || 'month',
     current_period_end: s.current_period_end || null,
+    beta_expires_at:    s.beta_expires_at    || null,
     stripe_customer_id: s.stripe_customer_id || '—',
+  }));
+  const enrichedSubs = allSubs.filter(s => s.plan_name !== 'beta_elite');
+  const betaUsers    = allSubs.filter(s => s.plan_name === 'beta_elite').map(s => ({
+    ...s,
+    days_left: s.beta_expires_at
+      ? Math.max(0, Math.ceil((new Date(s.beta_expires_at) - Date.now()) / 86400000))
+      : null,
+    expired: s.beta_expires_at ? new Date(s.beta_expires_at) < new Date() : false,
   }));
 
   // Waitlist
@@ -92,18 +101,30 @@ export default async (req) => {
   );
   const waitlist = wlRes.ok ? await wlRes.json() : [];
 
-  // MRR
-  const monthly = subscriptions.filter(s => s.billing_interval !== 'year').length;
-  const annual  = subscriptions.filter(s => s.billing_interval === 'year').length;
+  // Beta codes
+  const bcRes = await fetch(
+    `${supabaseUrl}/rest/v1/beta_codes?order=created_at.desc`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+  );
+  const betaCodes = bcRes.ok ? await bcRes.json() : [];
+
+  // MRR (paid only, exclude beta)
+  const monthly = enrichedSubs.filter(s => s.billing_interval !== 'year').length;
+  const annual  = enrichedSubs.filter(s => s.billing_interval === 'year').length;
   const mrr     = (monthly * 9.99) + (annual * (79.99 / 12));
 
   return new Response(JSON.stringify({
     subscribers:      enrichedSubs,
+    betaUsers,
+    betaCodes,
     waitlist,
     mrr:              mrr.toFixed(2),
     totalSubscribers: enrichedSubs.length,
     monthlyCount:     monthly,
     annualCount:      annual,
+    betaCount:        betaUsers.length,
+    betaExpired:      betaUsers.filter(u => u.expired).length,
+    betaConverted:    betaUsers.filter(u => !u.expired && u.billing_interval !== 'beta').length,
     waitlistCount:    waitlist.length,
   }), { status: 200, headers: CORS });
 };

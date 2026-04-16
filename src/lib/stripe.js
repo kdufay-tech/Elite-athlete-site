@@ -5,8 +5,16 @@
 // ─────────────────────────────────────────────────────────────
 import { loadStripe } from '@stripe/stripe-js';
 
-const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-if (!STRIPE_KEY) console.warn('⚠️  VITE_STRIPE_PUBLISHABLE_KEY missing — add to .env.local');
+// ── BETA / TEST MODE TOGGLE ───────────────────────────────────
+// Set VITE_BETA_MODE=true in Netlify env to activate Stripe test mode.
+// All test keys/prices are used automatically. Remove or set to false for live.
+export const IS_BETA_MODE = import.meta.env.VITE_BETA_MODE === 'true';
+
+const STRIPE_KEY = IS_BETA_MODE
+  ? import.meta.env.VITE_STRIPE_TEST_PUBLISHABLE_KEY
+  : import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+
+if (!STRIPE_KEY) console.warn(`⚠️  ${IS_BETA_MODE ? 'VITE_STRIPE_TEST_PUBLISHABLE_KEY' : 'VITE_STRIPE_PUBLISHABLE_KEY'} missing`);
 
 let stripePromise = null;
 export function getStripe() {
@@ -21,10 +29,11 @@ export const TIER_ORDER = { free: 0, athlete: 1, elite: 2, coach: 3 };
 export function getUserTier(subscription) {
   if (!subscription) return 'free';
   const plan = (subscription.plan_name || '').toLowerCase();
-  if (plan.includes('coach'))   return 'coach';
-  if (plan.includes('elite'))   return 'elite';
-  if (plan.includes('athlete')) return 'athlete';
-  if (subscription.status === 'active') return 'elite'; // legacy paid = elite
+  if (plan.includes('coach'))                return 'coach';
+  if (plan.includes('elite'))                return 'elite';
+  if (plan === 'beta_elite')                 return 'elite'; // beta users get full elite access
+  if (plan.includes('athlete'))              return 'athlete';
+  if (subscription.status === 'active')      return 'elite'; // legacy paid = elite
   return 'free';
 }
 
@@ -34,9 +43,17 @@ export function canAccess(userTier, requiredTier) {
 }
 
 // ── STRIPE PRICE IDS ─────────────────────────────────────────
-// Add these 7 keys to .env.local and Netlify Environment Variables.
-// Create the products in Stripe Dashboard first, then paste price IDs here.
-export const STRIPE_PRICES = {
+// Live prices: VITE_STRIPE_PRICE_*
+// Test prices: VITE_STRIPE_TEST_PRICE_* (used when VITE_BETA_MODE=true)
+export const STRIPE_PRICES = IS_BETA_MODE ? {
+  athlete_monthly: import.meta.env.VITE_STRIPE_TEST_PRICE_ATHLETE_MONTHLY,
+  elite_monthly:   import.meta.env.VITE_STRIPE_TEST_PRICE_ELITE_MONTHLY,
+  coach_monthly:   import.meta.env.VITE_STRIPE_TEST_PRICE_COACH_MONTHLY,
+  athlete_annual:  import.meta.env.VITE_STRIPE_TEST_PRICE_ATHLETE_ANNUAL,
+  elite_annual:    import.meta.env.VITE_STRIPE_TEST_PRICE_ELITE_ANNUAL,
+  coach_annual:    import.meta.env.VITE_STRIPE_TEST_PRICE_COACH_ANNUAL,
+  athlete_seat:    import.meta.env.VITE_STRIPE_TEST_PRICE_ATHLETE_SEAT,
+} : {
   athlete_monthly: import.meta.env.VITE_STRIPE_PRICE_ATHLETE_MONTHLY,
   elite_monthly:   import.meta.env.VITE_STRIPE_PRICE_ELITE_MONTHLY,
   coach_monthly:   import.meta.env.VITE_STRIPE_PRICE_COACH_MONTHLY,
@@ -113,7 +130,7 @@ const _links = {
 };
 
 // ── REDIRECT TO CHECKOUT ─────────────────────────────────────
-export async function redirectToCheckout({ priceKey, planName, userEmail, successUrl, cancelUrl }) {
+export async function redirectToCheckout({ priceKey, planName, userEmail, successUrl, cancelUrl, couponCode }) {
   const priceId = STRIPE_PRICES[priceKey];
   if (!priceId) {
     throw new Error(
@@ -136,7 +153,7 @@ export async function redirectToCheckout({ priceKey, planName, userEmail, succes
   const res = await fetch('/.netlify/functions/stripe-checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ priceId, planName, userEmail, successUrl, cancelUrl }),
+    body: JSON.stringify({ priceId, planName, userEmail, successUrl, cancelUrl, couponCode }),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));

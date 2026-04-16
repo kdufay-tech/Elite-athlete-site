@@ -39,9 +39,10 @@ export default async (req) => {
   if (!isAllowed)
     return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers });
 
-  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const isBeta    = process.env.BETA_MODE === 'true';
+  const secretKey = isBeta ? process.env.STRIPE_TEST_SECRET_KEY : process.env.STRIPE_SECRET_KEY;
   if (!secretKey)
-    return new Response(JSON.stringify({ error: 'STRIPE_SECRET_KEY not configured on server' }), { status: 500, headers });
+    return new Response(JSON.stringify({ error: `${isBeta ? 'STRIPE_TEST_SECRET_KEY' : 'STRIPE_SECRET_KEY'} not configured on server` }), { status: 500, headers });
 
   let body;
   try {
@@ -51,6 +52,10 @@ export default async (req) => {
   }
 
   const { priceId, planName, userEmail } = body;
+
+  // If a coupon code is passed (e.g. BETAFOUNDER), apply it as a discount.
+  // Stripe disallows allow_promotion_codes when discounts is set.
+  const hasCoupon = body.couponCode && typeof body.couponCode === 'string';
 
   if (!priceId || typeof priceId !== 'string' || priceId.length > 100)
     return new Response(JSON.stringify({ error: 'Invalid or missing priceId: ' + priceId }), { status: 400, headers });
@@ -69,12 +74,15 @@ export default async (req) => {
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
-    allow_promotion_codes: true,
     billing_address_collection: 'auto',
     subscription_data: { metadata: { plan_name: safePlanName } },
   };
+  if (hasCoupon) {
+    payload.discounts = [{ coupon: body.couponCode.trim().toUpperCase() }];
+  } else {
+    payload.allow_promotion_codes = true;
+  }
   if (safeEmail) payload.customer_email = safeEmail;
-  // Pass user ID so webhook can match payment to account even if emails differ
   if (body.userId) payload.client_reference_id = String(body.userId).slice(0, 200);
 
   try {

@@ -5,11 +5,13 @@
 import { useState } from 'react';
 import { signIn, signUp, supabase } from '../lib/supabase';
 
-export default function AuthModal({ onClose, onAuth }) {
-  const [mode, setMode]           = useState('signin'); // 'signin' | 'signup' | 'reset'
+export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCode }) {
+  const [mode, setMode]           = useState(initialMode || 'signin');
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [confirm, setConfirm]     = useState('');
+  const [betaCode, setBetaCode]   = useState(initialBetaCode || '');
+  const [showBeta, setShowBeta]   = useState(!!initialBetaCode || initialMode === 'beta');
   const [showPass, setShowPass]   = useState(false);
   const [showConf, setShowConf]   = useState(false);
   const [loading, setLoading]     = useState(false);
@@ -42,11 +44,11 @@ export default function AuthModal({ onClose, onAuth }) {
         if (data.user && !data.session) {
           setSuccess('Check your email to confirm your account, then sign in.');
         } else if (data.session) {
-          onAuth(data.session.user); onClose();
+          onAuth(data.session.user, betaCode.trim().toUpperCase() || null); onClose();
         }
       } else {
         const data = await signIn(email, password);
-        onAuth(data.user); onClose();
+        onAuth(data.user, betaCode.trim().toUpperCase() || null); onClose();
       }
     } catch (err) {
       setError(err.message || 'Authentication failed.');
@@ -148,6 +150,36 @@ export default function AuthModal({ onClose, onAuth }) {
 
           {mode === 'signup' &&
             pwField('Confirm Password', confirm, setConfirm, showConf, setShowConf, 'Re-enter password', 'conf')}
+
+          {/* Beta code field — shown on signup or when toggled */}
+          {(mode === 'signup' || mode === 'signin') && (
+            <div className="f">
+              {showBeta ? (
+                <>
+                  <label className="fl" style={{ color: 'var(--gold)', letterSpacing: '1.5px' }}>◆ Beta Code</label>
+                  <input
+                    className="fi"
+                    type="text"
+                    placeholder="e.g. ATHLETE2026"
+                    value={betaCode}
+                    onChange={e => setBetaCode(e.target.value.toUpperCase())}
+                    style={{ letterSpacing: '2px', fontFamily: 'monospace' }}
+                  />
+                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', marginTop: '4px' }}>
+                    Unlocks 3 months of full Elite access — no credit card needed
+                  </div>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowBeta(true)}
+                  style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: '0.7rem', fontFamily: 'inherit', letterSpacing: '1px', padding: '4px 0', textAlign: 'left' }}
+                >
+                  ◆ Have a beta code?
+                </button>
+              )}
+            </div>
+          )}
 
           <button
             className="bg"
