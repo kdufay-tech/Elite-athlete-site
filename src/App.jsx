@@ -5251,83 +5251,7 @@ COACHING GUIDELINES:
         </button>
       )}
 
-      {/* ── IN-APP CAMERA MODAL ─────────────────────────────────────── */}
-      {cameraModal && (
-        <div style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.97)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-          {/* Header */}
-          <div style={{position:"absolute",top:0,left:0,right:0,padding:"1rem 1.5rem",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
-            <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"0.7rem",fontWeight:700,letterSpacing:"3px",textTransform:"uppercase",color:"var(--ivory2)"}}>
-              {cameraModal==='progress' ? 'Progress Photo' : cameraModal==='profile-before' ? 'Before Photo' : 'Current Photo'}
-            </div>
-            <div style={{display:"flex",gap:"0.75rem",alignItems:"center"}}>
-              <button onClick={flipCamera} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"50%",width:"40px",height:"40px",cursor:"pointer",color:"var(--ivory2)",fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center"}} title="Flip camera">↺</button>
-              <button onClick={closeCamera} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"50%",width:"40px",height:"40px",cursor:"pointer",color:"var(--ivory2)",fontSize:"1.2rem",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
-            </div>
-          </div>
-          {/* Viewfinder */}
-          <div style={{position:"relative",width:"min(90vw,640px)",aspectRatio:"4/3",borderRadius:"12px",overflow:"hidden",border:"1px solid rgba(255,255,255,0.1)"}}>
-            <video ref={cameraVideoRef} autoPlay playsInline muted style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
-            {/* Ready overlay — shown while video is initialising */}
-            {!videoReady && (
-              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8}}>
-                <div style={{width:28,height:28,border:"3px solid rgba(255,255,255,0.2)",borderTop:"3px solid #fff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-                <div style={{fontSize:"0.6rem",color:"rgba(255,255,255,0.6)",letterSpacing:2}}>STARTING CAMERA</div>
-              </div>
-            )}
-            {/* Corner guides */}
-            {[['0%','0%','borderTop','borderLeft'],['0%','auto','borderTop','borderRight'],['auto','0%','borderBottom','borderLeft'],['auto','auto','borderBottom','borderRight']].map(([t,r,bt,bl],i)=>(
-              <div key={i} style={{position:"absolute",top:t==='auto'?undefined:'12px',bottom:t==='auto'?'12px':undefined,left:r==='auto'?undefined:'12px',right:r==='auto'?'12px':undefined,width:"22px",height:"22px",[bt]:"2px solid rgba(168,130,42,0.8)",[bl]:"2px solid rgba(168,130,42,0.8)"}}/>
-            ))}
-          </div>
-          {/* Capture button */}
-          <div style={{marginTop:"2rem",display:"flex",gap:"1.5rem",alignItems:"center"}}>
-            <button onClick={closeCamera} style={{fontFamily:"'Inter',sans-serif",fontSize:"0.6rem",fontWeight:600,letterSpacing:"2.5px",textTransform:"uppercase",background:"transparent",border:"1px solid rgba(255,255,255,0.1)",color:"var(--muted)",padding:"0.6rem 1.4rem",borderRadius:"4px",cursor:"pointer"}}>Cancel</button>
-            <button
-              disabled={!videoReady}
-              onClick={()=>{
-                const dataUrl = capturePhoto();
-                if (!dataUrl) return;
-                if (cameraModal === 'progress') {
-                  const date = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-                  const meta = {label:"Progress",date,weight:"",note:""};
-                  setProgressPhotos(prev=>[{id:Date.now().toString(),date,dataUrl,...meta},...prev]);
-                  if (authUser?.id) uploadProgressPhoto(authUser.id, dataUrl, meta).then(saved=>{
-                    if (saved?.id) setProgressPhotos(prev=>prev.map((p,i)=>i===0?{...p,id:saved.id,storage_path:saved.storage_path}:p));
-                  }).catch(err=>console.error('Photo upload failed:',err));
-                  shout("Progress photo captured","◆");
-                } else if (cameraModal === 'profile-before') {
-                  setProfilePhotoBefore(dataUrl);
-                  shout("Before photo captured","◆");
-                } else if (cameraModal === 'profile-after') {
-                  setProfilePhotoAfter(dataUrl);
-                  shout("Photo captured","◆");
-                }
-                closeCamera();
-              }}
-              style={{
-                width:"72px",height:"72px",borderRadius:"50%",
-                background: videoReady ? "#fff" : "rgba(255,255,255,0.3)",
-                border:"4px solid rgba(255,255,255,0.3)",
-                cursor: videoReady ? "pointer" : "not-allowed",
-                display:"flex",alignItems:"center",justifyContent:"center",
-                boxShadow:"0 0 0 2px rgba(255,255,255,0.15)",
-                transition:"transform 0.1s, background 0.2s",
-                opacity: videoReady ? 1 : 0.5,
-              }}
-              onMouseDown={e=>{ if(videoReady) e.currentTarget.style.transform="scale(0.94)"; }}
-              onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}
-            >
-              <div style={{width:"52px",height:"52px",borderRadius:"50%",background: videoReady?"#fff":"rgba(255,255,255,0.5)",border:"2px solid rgba(0,0,0,0.15)"}}/>
-            </button>
-            <div style={{width:"86px"}}/>
-          </div>
-          <div style={{marginTop:"0.75rem",fontSize:"0.58rem",letterSpacing:"2px",color: videoReady?"rgba(255,255,255,0.4)":"rgba(255,255,255,0.15)",textTransform:"uppercase"}}>
-            {videoReady ? "Tap to capture" : "Starting camera…"}
-          </div>
-        </div>
-      )}
-
-      {toast && <Toast t={toast}/>}
+      {toast && <Toast t={toast}/> }
 
     </>
   );
@@ -10270,6 +10194,66 @@ ${recruitingNote}`:null,
       {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} userId={authUser?.id} couponCode={payModal?.couponCode} onClose={()=>setPayModal(null)}
         onSuccess={()=>{setPayModal(null);shout("Subscription activated! Welcome to Elite.","◆");loadUserData(authUser?.id);}}/>}
       {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id);setScreen("dashboard");shout(`Welcome, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);}}/>}
+
+      {/* ── IN-APP CAMERA MODAL ─────────────────────────────── */}
+      {cameraModal && (
+        <div style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.97)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,padding:"1rem 1.5rem",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+            <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"0.7rem",fontWeight:700,letterSpacing:"3px",textTransform:"uppercase",color:"var(--ivory2)"}}>
+              {cameraModal==='progress' ? 'Progress Photo' : cameraModal==='profile-before' ? 'Before Photo' : 'Current Photo'}
+            </div>
+            <div style={{display:"flex",gap:"0.75rem",alignItems:"center"}}>
+              <button onClick={flipCamera} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"50%",width:"40px",height:"40px",cursor:"pointer",color:"var(--ivory2)",fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center"}}>↺</button>
+              <button onClick={closeCamera} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"50%",width:"40px",height:"40px",cursor:"pointer",color:"var(--ivory2)",fontSize:"1.2rem",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+            </div>
+          </div>
+          <div style={{position:"relative",width:"min(90vw,640px)",aspectRatio:"4/3",borderRadius:"12px",overflow:"hidden",border:"1px solid rgba(255,255,255,0.1)"}}>
+            <video ref={cameraVideoRef} autoPlay playsInline muted style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+            {!videoReady && (
+              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8}}>
+                <div style={{width:28,height:28,border:"3px solid rgba(255,255,255,0.2)",borderTop:"3px solid #fff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+                <div style={{fontSize:"0.6rem",color:"rgba(255,255,255,0.6)",letterSpacing:2}}>STARTING CAMERA</div>
+              </div>
+            )}
+            {[['0%','0%','borderTop','borderLeft'],['0%','auto','borderTop','borderRight'],['auto','0%','borderBottom','borderLeft'],['auto','auto','borderBottom','borderRight']].map(([t,r,bt,bl],i)=>(
+              <div key={i} style={{position:"absolute",top:t==='auto'?undefined:'12px',bottom:t==='auto'?'12px':undefined,left:r==='auto'?undefined:'12px',right:r==='auto'?'12px':undefined,width:"22px",height:"22px",[bt]:"2px solid rgba(168,130,42,0.8)",[bl]:"2px solid rgba(168,130,42,0.8)"}}/>
+            ))}
+          </div>
+          <div style={{marginTop:"2rem",display:"flex",gap:"1.5rem",alignItems:"center"}}>
+            <button onClick={closeCamera} style={{fontFamily:"'Inter',sans-serif",fontSize:"0.6rem",fontWeight:600,letterSpacing:"2.5px",textTransform:"uppercase",background:"transparent",border:"1px solid rgba(255,255,255,0.1)",color:"var(--muted)",padding:"0.6rem 1.4rem",borderRadius:"4px",cursor:"pointer"}}>Cancel</button>
+            <button
+              disabled={!videoReady}
+              onClick={()=>{
+                const dataUrl = capturePhoto();
+                if (!dataUrl) return;
+                if (cameraModal === 'progress') {
+                  const date = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+                  const meta = {label:"Progress",date,weight:"",note:""};
+                  setProgressPhotos(prev=>[{id:Date.now().toString(),date,dataUrl,...meta},...prev]);
+                  if (authUser?.id) uploadProgressPhoto(authUser.id, dataUrl, meta).then(saved=>{
+                    if (saved?.id) setProgressPhotos(prev=>prev.map((p,i)=>i===0?{...p,id:saved.id,storage_path:saved.storage_path}:p));
+                  }).catch(err=>console.error('Photo upload failed:',err));
+                  shout("Progress photo captured","◆");
+                } else if (cameraModal === 'profile-before') {
+                  setProfilePhotoBefore(dataUrl); shout("Before photo captured","◆");
+                } else if (cameraModal === 'profile-after') {
+                  setProfilePhotoAfter(dataUrl); shout("Photo captured","◆");
+                }
+                closeCamera();
+              }}
+              style={{width:"72px",height:"72px",borderRadius:"50%",background:videoReady?"#fff":"rgba(255,255,255,0.3)",border:"4px solid rgba(255,255,255,0.3)",cursor:videoReady?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 0 2px rgba(255,255,255,0.15)",transition:"transform 0.1s, background 0.2s",opacity:videoReady?1:0.5}}
+              onMouseDown={e=>{if(videoReady)e.currentTarget.style.transform="scale(0.94)";}}
+              onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}
+            >
+              <div style={{width:"52px",height:"52px",borderRadius:"50%",background:videoReady?"#fff":"rgba(255,255,255,0.5)",border:"2px solid rgba(0,0,0,0.15)"}}/>
+            </button>
+            <div style={{width:"86px"}}/>
+          </div>
+          <div style={{marginTop:"0.75rem",fontSize:"0.58rem",letterSpacing:"2px",color:videoReady?"rgba(255,255,255,0.4)":"rgba(255,255,255,0.15)",textTransform:"uppercase"}}>
+            {videoReady?"Tap to capture":"Starting camera…"}
+          </div>
+        </div>
+      )}
       {emailModal && <EmailModal emailModal={emailModal} authUser={authUser} isPremium={isPremium} setPayModal={setPayModal} shout={shout} onClose={()=>setEmailModal(null)}
         onSend={async(toEmail)=>{
           if(emailModal.type==="meal") await _sendEmailMealPlan(toEmail);
