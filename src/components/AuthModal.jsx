@@ -41,14 +41,27 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
     try {
       if (mode === 'signup') {
         const data = await signUp(email, password);
+        // Always persist beta code to localStorage so it survives the email confirmation round-trip
+        const trimmedCode = betaCode.trim().toUpperCase();
+        if (trimmedCode) localStorage.setItem('pending_beta_code', trimmedCode);
         if (data.user && !data.session) {
-          setSuccess('Check your email to confirm your account, then sign in.');
+          // Email confirmation required — code is saved, will redeem on next sign-in
+          setSuccess('Account created! Check your email for a confirmation link, then sign in — your beta access will activate automatically.');
         } else if (data.session) {
-          onAuth(data.session.user, betaCode.trim().toUpperCase() || null); onClose();
+          // Auto-confirmed (email confirmation disabled) — redeem immediately
+          localStorage.removeItem('pending_beta_code');
+          onAuth(data.session.user, trimmedCode || null);
+          onClose();
         }
       } else {
         const data = await signIn(email, password);
-        onAuth(data.user, betaCode.trim().toUpperCase() || null); onClose();
+        // On sign-in, pass any beta code from the field OR from localStorage
+        const trimmedCode = betaCode.trim().toUpperCase();
+        const storedCode  = localStorage.getItem('pending_beta_code') || '';
+        const codeToUse   = trimmedCode || storedCode;
+        if (codeToUse) localStorage.removeItem('pending_beta_code');
+        onAuth(data.user, codeToUse || null);
+        onClose();
       }
     } catch (err) {
       setError(err.message || 'Authentication failed.');

@@ -4429,6 +4429,12 @@ export default function App() {
         setAuthUser(session.user);
         loadUserData(session.user.id);
         setScreen("dashboard");
+        // Redeem any pending beta code (user confirmed email and returned to app)
+        const pendingCode = localStorage.getItem('pending_beta_code');
+        if (pendingCode) {
+          localStorage.removeItem('pending_beta_code');
+          redeemBetaCode(session.user.id, pendingCode);
+        }
       }
       setAuthLoading(false);
 
@@ -4467,6 +4473,12 @@ export default function App() {
         loadUserData(session.user.id);
         setScreen("dashboard");
         setAuthLoading(false);
+        // Redeem any pending beta code from localStorage (survives email confirmation flow)
+        const pendingCode = localStorage.getItem('pending_beta_code');
+        if (pendingCode) {
+          localStorage.removeItem('pending_beta_code');
+          redeemBetaCode(session.user.id, pendingCode);
+        }
       }
     });
     return () => authSub?.unsubscribe();
