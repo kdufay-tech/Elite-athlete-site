@@ -4114,8 +4114,9 @@ export default function App() {
   const [emailModal,  setEmailModal]  = useState(null);
 
   // ── BETA STATE ────────────────────────────────────────────────
-  const [betaModal,      setBetaModal]      = useState(false); // landing beta CTA modal
-  const [conversionModal,setConversionModal]= useState(false); // fires when beta expires
+  const [betaModal,        setBetaModal]        = useState(false);
+  const [conversionModal,  setConversionModal]  = useState(false);
+  const [feedbackModal,    setFeedbackModal]    = useState(false);
   const isBeta       = subscription?.plan_name === 'beta_elite';
   const betaExpiry   = subscription?.beta_expires_at ? new Date(subscription.beta_expires_at) : null;
   const betaExpired  = isBeta && betaExpiry && betaExpiry < new Date();
@@ -4207,11 +4208,28 @@ export default function App() {
   const capturePhoto = () => {
     const video = cameraVideoRef.current;
     if (!video) return null;
+    // Guard: video must have loaded metadata and have valid dimensions
+    if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
+      shout("Camera not ready — wait a moment and try again", "!");
+      return null;
+    }
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.92);
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    // Mirror front-facing camera to match what user sees in preview
+    if (cameraFacing === 'user') {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    // Sanity check: a blank canvas encodes to ~600 bytes — real photo is much larger
+    if (dataUrl.length < 1000) {
+      shout("Capture produced a blank image — try again", "!");
+      return null;
+    }
+    return dataUrl;
   };
 
   const [profile, setProfile] = useState({ name:"", weight:"", height:"", age:"", sport:"football", position:"", goal:"Weight Maintenance" });
@@ -5203,7 +5221,22 @@ COACHING GUIDELINES:
       {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id);setScreen("dashboard");shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);}}/>}
       {betaModal && <AuthModal onClose={()=>setBetaModal(false)} initialMode="signup" onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id);setScreen("dashboard");if(betaCode) redeemBetaCode(user.id, betaCode); else shout(`Welcome, ${user.email?.split('@')[0]}!`,"◆");}} />}
       {success && <SuccessScreen/>}
-      {conversionModal && <BetaConversionModal onClose={()=>setConversionModal(false)} onUpgrade={()=>{setConversionModal(false);setPayModal({tierKey:'elite',billing:'annual'});}} />}
+      {conversionModal && <BetaConversionModal onClose={()=>setConversionModal(false)} onUpgrade={()=>{setConversionModal(false);setPayModal({tierKey:'elite',billing:'annual',couponCode:'BETAFOUNDER'});}} />}
+      {feedbackModal   && <BetaFeedbackModal   onClose={()=>setFeedbackModal(false)} authUser={authUser} getSession={getSession} />}
+
+      {/* Floating beta feedback button */}
+      {isBeta && !betaExpired && screen==='dashboard' && !feedbackModal && (
+        <button onClick={()=>setFeedbackModal(true)} style={{
+          position:'fixed',bottom:24,right:24,zIndex:8000,
+          background:'linear-gradient(135deg,#1a1a1a,#111)',
+          border:'1px solid rgba(201,168,76,0.35)',borderRadius:28,
+          padding:'10px 18px',display:'flex',alignItems:'center',gap:8,
+          cursor:'pointer',boxShadow:'0 4px 20px rgba(0,0,0,0.5)',fontFamily:'inherit',
+        }}>
+          <span style={{fontSize:16}}>💬</span>
+          <span style={{fontSize:'0.62rem',fontWeight:700,letterSpacing:'1.5px',color:'var(--gold)',textTransform:'uppercase'}}>Beta Feedback</span>
+        </button>
+      )}
 
       {/* ── IN-APP CAMERA MODAL ─────────────────────────────────────── */}
       {cameraModal && (
@@ -10966,6 +10999,93 @@ function BetaConversionModal({ onClose, onUpgrade }) {
         <button onClick={onClose} style={{background:'none',border:'none',color:'#444',cursor:'pointer',fontSize:'0.7rem',letterSpacing:1}}>
           Not now — I'll lose access
         </button>
+      </div>
+    </div>
+  );
+}
+
+function BetaFeedbackModal({ onClose, authUser, getSession }) {
+  const [category, setCategory] = React.useState('general');
+  const [rating,   setRating]   = React.useState(0);
+  const [message,  setMessage]  = React.useState('');
+  const [busy,     setBusy]     = React.useState(false);
+  const [done,     setDone]     = React.useState(false);
+  const [err,      setErr]      = React.useState('');
+
+  const CATS = [
+    ['bug',      '🐛', 'Bug Report'],
+    ['feature',  '💡', 'Feature Request'],
+    ['ux',       '🎨', 'Design / UX'],
+    ['content',  '📋', 'Content'],
+    ['general',  '💬', 'General'],
+  ];
+
+  const submit = async () => {
+    if (!message.trim()) { setErr('Please write a message.'); return; }
+    setBusy(true); setErr('');
+    try {
+      const session = await getSession();
+      const res = await fetch('/.netlify/functions/beta-feedback', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, rating: rating || null, message, page: window.location.pathname }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      setDone(true);
+    } catch(e) { setErr('Failed to send — please try again.'); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'flex-end',justifyContent:'flex-end',padding:'20px'}}>
+      <div style={{background:'#111',border:'1px solid rgba(201,168,76,0.2)',borderRadius:14,width:'min(440px,95vw)',padding:'28px',position:'relative',marginBottom:0}}>
+        <button onClick={onClose} style={{position:'absolute',top:14,right:16,background:'none',border:'none',color:'#444',fontSize:'1.2rem',cursor:'pointer'}}>×</button>
+        {done ? (
+          <div style={{textAlign:'center',padding:'20px 0'}}>
+            <div style={{fontSize:36,marginBottom:12}}>🙏</div>
+            <div style={{fontSize:'1rem',fontWeight:700,color:'var(--gold)',marginBottom:8}}>Thank you!</div>
+            <div style={{fontSize:'0.82rem',color:'#777',lineHeight:1.6}}>Your feedback helps shape Elite Athlete. We read every submission.</div>
+            <button onClick={onClose} style={{marginTop:20,background:'var(--gold)',color:'#0a0908',border:'none',borderRadius:8,padding:'10px 28px',fontSize:'0.72rem',fontWeight:700,letterSpacing:1,cursor:'pointer'}}>Close</button>
+          </div>
+        ) : (
+          <>
+            <div style={{fontSize:'0.6rem',letterSpacing:3,color:'var(--gold)',textTransform:'uppercase',marginBottom:6}}>Beta Feedback</div>
+            <div style={{fontSize:'1rem',fontWeight:700,color:'#fff',marginBottom:18}}>Help us improve Elite Athlete</div>
+
+            {/* Category */}
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
+              {CATS.map(([val,icon,label])=>(
+                <button key={val} onClick={()=>setCategory(val)} style={{
+                  background: category===val ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${category===val ? 'rgba(201,168,76,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:'0.72rem',
+                  color: category===val ? 'var(--gold)' : '#777', fontFamily:'inherit',
+                }}>{icon} {label}</button>
+              ))}
+            </div>
+
+            {/* Star rating */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:'0.62rem',color:'#444',letterSpacing:1,marginBottom:6}}>OVERALL RATING (OPTIONAL)</div>
+              <div style={{display:'flex',gap:6}}>
+                {[1,2,3,4,5].map(n=>(
+                  <button key={n} onClick={()=>setRating(n===rating?0:n)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'1.4rem',opacity:n<=rating?1:0.25,transition:'opacity 0.1s'}}>★</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Message */}
+            <textarea
+              placeholder="Tell us what's working, what's broken, or what you'd like to see..."
+              value={message} onChange={e=>setMessage(e.target.value)}
+              style={{width:'100%',minHeight:100,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,padding:'10px 12px',color:'#fff',fontSize:'0.83rem',fontFamily:'inherit',resize:'vertical',outline:'none',boxSizing:'border-box'}}
+            />
+            {err && <div style={{fontSize:'0.72rem',color:'#e74c3c',marginTop:6}}>{err}</div>}
+            <button onClick={submit} disabled={busy} style={{width:'100%',marginTop:12,background:'var(--gold)',color:'#0a0908',border:'none',borderRadius:8,padding:'11px',fontSize:'0.72rem',fontWeight:700,letterSpacing:1.5,cursor:'pointer',opacity:busy?0.7:1}}>
+              {busy ? 'Sending…' : 'Send Feedback'}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

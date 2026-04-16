@@ -335,6 +335,35 @@ export default function AdminDashboard({ user }) {
               </table>
             }
           </Section>
+
+          {/* Beta Feedback */}
+          <Section title="Beta Feedback" count={data.feedback?.length || 0}>
+            {!data.feedback?.length ? <Empty text="No feedback submitted yet." /> :
+              <div style={{ overflowX:'auto' }}>
+                <table style={s.table}>
+                  <thead><tr>
+                    {['Email','Category','Rating','Message','Date'].map(h=><th key={h} style={s.th}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>{data.feedback.map((f,i)=>(
+                    <tr key={f.id} style={{ background: i%2===0?'#0D0D0D':'#111', verticalAlign:'top' }}>
+                      <td style={{ ...s.td, color:'#C9A84C', fontSize:12, whiteSpace:'nowrap' }}>{f.email}</td>
+                      <td style={s.td}>
+                        <span style={{ fontSize:10, padding:'3px 8px', borderRadius:4, letterSpacing:1, textTransform:'uppercase',
+                          background:'rgba(255,255,255,0.06)', color:'#888' }}>{f.category}</span>
+                      </td>
+                      <td style={{ ...s.td, color:'#C9A84C', letterSpacing:1 }}>
+                        {f.rating ? '★'.repeat(f.rating) + '☆'.repeat(5-f.rating) : '—'}
+                      </td>
+                      <td style={{ ...s.td, color:'#ccc', maxWidth:360, fontSize:13, lineHeight:1.5 }}>{f.message}</td>
+                      <td style={{ ...s.td, color:'#555', fontSize:11, whiteSpace:'nowrap' }}>
+                        {new Date(f.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+                      </td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            }
+          </Section>
         </>}
       </div>
     </div>

@@ -108,6 +108,13 @@ export default async (req) => {
   );
   const betaCodes = bcRes.ok ? await bcRes.json() : [];
 
+  // Beta feedback
+  const fbRes = await fetch(
+    `${supabaseUrl}/rest/v1/beta_feedback?order=created_at.desc&limit=100`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+  );
+  const feedback = fbRes.ok ? await fbRes.json() : [];
+
   // MRR (paid only, exclude beta)
   const monthly = enrichedSubs.filter(s => s.billing_interval !== 'year').length;
   const annual  = enrichedSubs.filter(s => s.billing_interval === 'year').length;
@@ -117,6 +124,7 @@ export default async (req) => {
     subscribers:      enrichedSubs,
     betaUsers,
     betaCodes,
+    feedback,
     waitlist,
     mrr:              mrr.toFixed(2),
     totalSubscribers: enrichedSubs.length,
