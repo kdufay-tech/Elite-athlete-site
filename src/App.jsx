@@ -4014,6 +4014,7 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 /* SUCCESS */
 .succ{position:fixed;inset:0;z-index:9998;background:var(--onyx);display:flex;align-items:center;justify-content:center;animation:sfade 0.5s ease;}
 @keyframes sfade{from{opacity:0;}to{opacity:1;}}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 .succ-inner{text-align:center;}
 .succ-icon{font-size:5rem;margin-bottom:1.5rem;}
 .succ-h{font-family:'DM Sans',sans-serif;font-size:3rem;font-weight:700;color:var(--ivory);letter-spacing:-1px;}
@@ -4145,91 +4146,103 @@ export default function App() {
   };
 
   // ── IN-APP CAMERA ─────────────────────────────────────────────
-  // Works on desktop + mobile via getUserMedia (unlike HTML capture attr which is mobile-only)
-  const [cameraModal, setCameraModal] = useState(null); // null | 'profile-before' | 'profile-after' | 'progress'
-  const [cameraStream, setCameraStream] = useState(null);
-  const [cameraFacing, setCameraFacing] = useState('environment');
-  const cameraVideoRef = useRef(null);
+  const [cameraModal,   setCameraModal]   = useState(null);
+  const [cameraStream,  setCameraStream]  = useState(null);
+  const [cameraFacing,  setCameraFacing]  = useState('environment');
+  const [videoReady,    setVideoReady]    = useState(false); // true once 'playing' event fires
+  const cameraVideoRef  = useRef(null);
+  const cameraFacingRef = useRef('environment'); // ref copy for use inside capturePhoto closure
 
-  // Attach stream to video element when modal opens or stream changes
-  // cameraModal in deps ensures we retry after the <video> element mounts
+  // Attach stream to video element + listen for 'playing' event
   useEffect(() => {
-    if (cameraStream && cameraVideoRef.current) {
-      cameraVideoRef.current.srcObject = cameraStream;
-      cameraVideoRef.current.play().catch(()=>{});
-    }
+    const video = cameraVideoRef.current;
+    if (!video || !cameraStream) return;
+    setVideoReady(false);
+    video.srcObject = cameraStream;
+    const onPlaying = () => setVideoReady(true);
+    video.addEventListener('playing', onPlaying);
+    // Some browsers on mobile fire 'canplay' but not 'playing' — cover both
+    video.addEventListener('canplay', onPlaying);
+    video.play().catch(() => {});
+    return () => {
+      video.removeEventListener('playing', onPlaying);
+      video.removeEventListener('canplay', onPlaying);
+    };
   }, [cameraStream, cameraModal]);
 
   const openCamera = async (target) => {
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        shout("Camera not supported in this browser — use Upload instead","!");
-        return;
+        shout("Camera not supported in this browser — use Upload instead", "!"); return;
       }
-      // Stop any existing stream first
-      if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
+      if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+      const facing = cameraFacingRef.current;
       const stream = await navigator.mediaDevices.getUserMedia({
-        // Use 'ideal' (soft constraint) — never throws OverconstrainedError on laptops
-        video: { facingMode: { ideal: cameraFacing }, width:{ideal:1280}, height:{ideal:720} },
+        video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
-      // Set modal FIRST so React renders the <video> element,
-      // then set stream — useEffect finds cameraVideoRef.current populated
       setCameraModal(target);
-      await new Promise(r => setTimeout(r, 80)); // one React render cycle
+      // Small delay so React renders <video> before we set the stream
+      await new Promise(r => setTimeout(r, 100));
       setCameraStream(stream);
     } catch(e) {
       console.error('Camera error:', e.name, e.message);
-      if (e.name === 'NotAllowedError') shout("Camera permission denied — please allow camera access","!");
-      else if (e.name === 'NotFoundError') shout("No camera found — use Upload instead","!");
-      else shout("Camera unavailable — use Upload instead","!");
+      if      (e.name === 'NotAllowedError') shout("Camera permission denied — allow access in browser settings", "!");
+      else if (e.name === 'NotFoundError')   shout("No camera found — use Upload instead", "!");
+      else                                    shout("Camera unavailable — use Upload instead", "!");
     }
   };
 
   const closeCamera = () => {
-    if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
+    if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
     setCameraStream(null);
     setCameraModal(null);
+    setVideoReady(false);
   };
 
   const flipCamera = async () => {
-    const newFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    const newFacing = cameraFacingRef.current === 'environment' ? 'user' : 'environment';
+    cameraFacingRef.current = newFacing;
     setCameraFacing(newFacing);
-    if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
+    if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: newFacing } },
-        audio: false,
+        video: { facingMode: { ideal: newFacing } }, audio: false,
       });
+      setVideoReady(false);
       setCameraStream(stream);
-    } catch(e) { shout("Could not flip camera","!"); }
+    } catch(e) { shout("Could not flip camera", "!"); }
   };
 
   const capturePhoto = () => {
     const video = cameraVideoRef.current;
-    if (!video) return null;
-    // Guard: video must have loaded metadata and have valid dimensions
-    if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
-      shout("Camera not ready — wait a moment and try again", "!");
-      return null;
+    if (!video) { shout("Camera not ready", "!"); return null; }
+
+    // Use intrinsic video dimensions; fall back to rendered element size
+    const w = video.videoWidth  || video.clientWidth  || 1280;
+    const h = video.videoHeight || video.clientHeight || 720;
+
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width  = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      // Mirror front-facing camera
+      if (cameraFacingRef.current === 'user') {
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      // A valid JPEG always starts with /9j/ in base64 — blank canvas won't have this
+      if (!dataUrl.includes('/9j/') && dataUrl.length < 5000) {
+        shout("Capture produced a blank image — try again", "!"); return null;
+      }
+      return dataUrl;
+    } catch(e) {
+      console.error('capturePhoto error:', e);
+      shout("Capture failed: " + e.message, "!"); return null;
     }
-    const canvas = document.createElement('canvas');
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    // Mirror front-facing camera to match what user sees in preview
-    if (cameraFacing === 'user') {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
-    ctx.drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    // Sanity check: a blank canvas encodes to ~600 bytes — real photo is much larger
-    if (dataUrl.length < 1000) {
-      shout("Capture produced a blank image — try again", "!");
-      return null;
-    }
-    return dataUrl;
   };
 
   const [profile, setProfile] = useState({ name:"", weight:"", height:"", age:"", sport:"football", position:"", goal:"Weight Maintenance" });
@@ -5254,6 +5267,13 @@ COACHING GUIDELINES:
           {/* Viewfinder */}
           <div style={{position:"relative",width:"min(90vw,640px)",aspectRatio:"4/3",borderRadius:"12px",overflow:"hidden",border:"1px solid rgba(255,255,255,0.1)"}}>
             <video ref={cameraVideoRef} autoPlay playsInline muted style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+            {/* Ready overlay — shown while video is initialising */}
+            {!videoReady && (
+              <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8}}>
+                <div style={{width:28,height:28,border:"3px solid rgba(255,255,255,0.2)",borderTop:"3px solid #fff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+                <div style={{fontSize:"0.6rem",color:"rgba(255,255,255,0.6)",letterSpacing:2}}>STARTING CAMERA</div>
+              </div>
+            )}
             {/* Corner guides */}
             {[['0%','0%','borderTop','borderLeft'],['0%','auto','borderTop','borderRight'],['auto','0%','borderBottom','borderLeft'],['auto','auto','borderBottom','borderRight']].map(([t,r,bt,bl],i)=>(
               <div key={i} style={{position:"absolute",top:t==='auto'?undefined:'12px',bottom:t==='auto'?'12px':undefined,left:r==='auto'?undefined:'12px',right:r==='auto'?'12px':undefined,width:"22px",height:"22px",[bt]:"2px solid rgba(168,130,42,0.8)",[bl]:"2px solid rgba(168,130,42,0.8)"}}/>
@@ -5262,37 +5282,48 @@ COACHING GUIDELINES:
           {/* Capture button */}
           <div style={{marginTop:"2rem",display:"flex",gap:"1.5rem",alignItems:"center"}}>
             <button onClick={closeCamera} style={{fontFamily:"'Inter',sans-serif",fontSize:"0.6rem",fontWeight:600,letterSpacing:"2.5px",textTransform:"uppercase",background:"transparent",border:"1px solid rgba(255,255,255,0.1)",color:"var(--muted)",padding:"0.6rem 1.4rem",borderRadius:"4px",cursor:"pointer"}}>Cancel</button>
-            <button onClick={()=>{
-              const dataUrl = capturePhoto();
-              if (!dataUrl) { shout("Capture failed — try again","!"); return; }
-              if (cameraModal === 'progress') {
-                const date = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-                const meta = {label:"Progress",date,weight:"",note:""};
-                setProgressPhotos(prev=>[{id:Date.now().toString(),date,dataUrl,...meta},...prev]);
-                if (authUser?.id) uploadProgressPhoto(authUser.id, dataUrl, meta).then(saved=>{
-                  if (saved?.id) setProgressPhotos(prev=>prev.map((p,i)=>i===0?{...p,id:saved.id,storage_path:saved.storage_path}:p));
-                }).catch(err=>console.error('Photo upload failed:',err));
-                shout("Progress photo captured","◆");
-              } else if (cameraModal === 'profile-before') {
-                setProfilePhotoBefore(dataUrl);
-                shout("Before photo captured","◆");
-              } else if (cameraModal === 'profile-after') {
-                setProfilePhotoAfter(dataUrl);
-                shout("Photo captured","◆");
-              }
-              closeCamera();
-            }} style={{
-              width:"72px",height:"72px",borderRadius:"50%",
-              background:"#fff",border:"4px solid rgba(255,255,255,0.3)",
-              cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
-              boxShadow:"0 0 0 2px rgba(255,255,255,0.15)",
-              transition:"transform 0.1s",
-            }} onMouseDown={e=>e.currentTarget.style.transform="scale(0.94)"} onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}>
-              <div style={{width:"52px",height:"52px",borderRadius:"50%",background:"#fff",border:"2px solid rgba(0,0,0,0.15)"}}/>
+            <button
+              disabled={!videoReady}
+              onClick={()=>{
+                const dataUrl = capturePhoto();
+                if (!dataUrl) return;
+                if (cameraModal === 'progress') {
+                  const date = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+                  const meta = {label:"Progress",date,weight:"",note:""};
+                  setProgressPhotos(prev=>[{id:Date.now().toString(),date,dataUrl,...meta},...prev]);
+                  if (authUser?.id) uploadProgressPhoto(authUser.id, dataUrl, meta).then(saved=>{
+                    if (saved?.id) setProgressPhotos(prev=>prev.map((p,i)=>i===0?{...p,id:saved.id,storage_path:saved.storage_path}:p));
+                  }).catch(err=>console.error('Photo upload failed:',err));
+                  shout("Progress photo captured","◆");
+                } else if (cameraModal === 'profile-before') {
+                  setProfilePhotoBefore(dataUrl);
+                  shout("Before photo captured","◆");
+                } else if (cameraModal === 'profile-after') {
+                  setProfilePhotoAfter(dataUrl);
+                  shout("Photo captured","◆");
+                }
+                closeCamera();
+              }}
+              style={{
+                width:"72px",height:"72px",borderRadius:"50%",
+                background: videoReady ? "#fff" : "rgba(255,255,255,0.3)",
+                border:"4px solid rgba(255,255,255,0.3)",
+                cursor: videoReady ? "pointer" : "not-allowed",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                boxShadow:"0 0 0 2px rgba(255,255,255,0.15)",
+                transition:"transform 0.1s, background 0.2s",
+                opacity: videoReady ? 1 : 0.5,
+              }}
+              onMouseDown={e=>{ if(videoReady) e.currentTarget.style.transform="scale(0.94)"; }}
+              onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}
+            >
+              <div style={{width:"52px",height:"52px",borderRadius:"50%",background: videoReady?"#fff":"rgba(255,255,255,0.5)",border:"2px solid rgba(0,0,0,0.15)"}}/>
             </button>
             <div style={{width:"86px"}}/>
           </div>
-          <div style={{marginTop:"0.75rem",fontSize:"0.58rem",letterSpacing:"2px",color:"rgba(255,255,255,0.25)",textTransform:"uppercase"}}>Tap to capture</div>
+          <div style={{marginTop:"0.75rem",fontSize:"0.58rem",letterSpacing:"2px",color: videoReady?"rgba(255,255,255,0.4)":"rgba(255,255,255,0.15)",textTransform:"uppercase"}}>
+            {videoReady ? "Tap to capture" : "Starting camera…"}
+          </div>
         </div>
       )}
 
