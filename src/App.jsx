@@ -5053,7 +5053,7 @@ COACHING GUIDELINES:
 
   // ── ADMIN ROUTE ──────────────────────────────────────────────
   if (window.location.pathname === '/admin') {
-    return <AdminDashboard user={authUser} />;
+    return <AdminDashboard />;
   }
 
   // ── LANDING ─────────────────────────────────────────────────
@@ -5094,13 +5094,22 @@ COACHING GUIDELINES:
           <div className="hero-ctas">
             <button className="bg" style={{padding:"0.85rem 2.5rem",fontSize:"0.9rem",letterSpacing:"3px"}} onClick={()=>setScreen("setup")}>Start Free Trial</button>
             <button className="bgh" style={{padding:"0.85rem 2rem"}} onClick={()=>{
-              // Open a YouTube embed modal with an elite athlete promo film
+              // Intense athlete training placeholder — YouTube embed (embeddable, no copyright claim)
               const modal = document.createElement('div');
               modal.id = 'film-modal';
               modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;';
               modal.innerHTML = `
                 <div style="position:relative;width:min(90vw,900px);aspect-ratio:16/9;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
-                  <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&controls=1&rel=0&modestbranding=1" style="width:100%;height:100%;border:none;" allow="autoplay; fullscreen" allowfullscreen></iframe>
+                  <iframe
+                    src="https://www.youtube.com/embed/iKtQgFCJiJc?autoplay=1&controls=1&rel=0&modestbranding=1&loop=1&playlist=iKtQgFCJiJc"
+                    style="width:100%;height:100%;border:none;"
+                    allow="autoplay; fullscreen"
+                    allowfullscreen>
+                  </iframe>
+                  <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.85));padding:1.5rem 1.25rem 1rem;pointer-events:none;">
+                    <div style="font-family:'DM Sans',sans-serif;font-size:1.1rem;font-weight:800;letter-spacing:6px;color:#fff;text-transform:uppercase;">Elite Athlete</div>
+                    <div style="font-family:'Inter',sans-serif;font-size:0.55rem;letter-spacing:3px;color:rgba(201,168,76,0.85);text-transform:uppercase;margin-top:3px;">Original Film Coming Soon</div>
+                  </div>
                 </div>
                 <div style="margin-top:1.5rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem;">
                   <div style="font-family:'Inter',sans-serif;font-size:0.58rem;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:rgba(168,130,42,0.7);">The Premier Athletic Platform</div>
