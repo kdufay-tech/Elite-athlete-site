@@ -3893,6 +3893,12 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
   .stile{aspect-ratio:1/1;}
   .stile-name{font-size:0.55rem !important;letter-spacing:1.5px !important;}
   .inj-grid{grid-template-columns:repeat(2,1fr) !important;}
+  .totals-bar{grid-template-columns:repeat(2,1fr) !important;padding:1rem !important;gap:0.75rem !important;}
+  .tot-val{font-size:1.5rem !important;}
+  .tot-lbl{font-size:0.45rem !important;letter-spacing:1.5px !important;}
+  .two{grid-template-columns:1fr !important;}
+  .panel .pb{padding:1rem !important;}
+  .panel .ph{padding:1rem !important;flex-wrap:wrap;gap:0.5rem;}
 }
 @media(max-width:480px){
   .nav{padding:0 0.5rem;height:50px;}
@@ -5685,7 +5691,7 @@ COACHING GUIDELINES:
           {dash==="nutrition" && (
             <div>
               {/* Header */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"2rem"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"2rem",flexWrap:"wrap",gap:"0.75rem"}}>
                 <div><div className="eyebrow">Daily Fuel</div><h2 className="sh2">Nutrition <em>Plan</em></h2></div>
                 <div style={{display:"flex",gap:"0.45rem",flexWrap:"wrap"}}>
                   {["Weight Gain","Weight Loss","Weight Maintenance"].map(t=>(
@@ -5709,7 +5715,7 @@ COACHING GUIDELINES:
               {/* Sport + Position Nutrition Intelligence Panel */}
               {sportNutrition && (
                 <div style={{background:"var(--slate)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:"var(--r)",padding:"1.1rem 1.25rem",marginBottom:"1.25rem"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.75rem"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.75rem",flexWrap:"wrap",gap:"0.75rem"}}>
                     <div>
                       <div style={{fontSize:"0.6rem",letterSpacing:"3.5px",textTransform:"uppercase",color:"var(--ivory2)",marginBottom:"0.3rem",fontFamily:"'Inter',sans-serif",fontWeight:600}}>
                         <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:"0.58rem",fontWeight:700,letterSpacing:"1px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"2px",padding:"1px 5px",marginRight:"0.3rem",color:"var(--ivory2)"}}>{sport.icon}</span>{sport.label}{profile.position ? ` · ${profile.position}` : ""} — Sport-Optimized Nutrition
@@ -6220,9 +6226,9 @@ COACHING GUIDELINES:
           {/* WORKOUT */}
           {dash==="workout" && (
             <div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"1.25rem"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"1.25rem",flexWrap:"wrap",gap:"0.75rem"}}>
                 <div><div className="eyebrow">Training</div><h2 className="sh2">Workout <em>Plan</em></h2></div>
-                <div style={{display:"flex",gap:"0.5rem",alignItems:"center"}}>
+                <div style={{display:"flex",gap:"0.5rem",alignItems:"center",flexWrap:"wrap"}}>
                   <div style={{textAlign:"right"}}>
                     <div style={{fontSize:"0.72rem",color:"var(--muted)"}}>Training Week</div>
                     <div style={{display:"flex",alignItems:"center",gap:"0.4rem",marginTop:"0.2rem"}}>
@@ -6429,7 +6435,8 @@ COACHING GUIDELINES:
                   <button className="bsm" onClick={()=>setEditSchedule(e=>!e)}>{editSchedule?"✓ Done":"✏ Edit Schedule"}</button>
                 </div>
                 <div className="pb" style={{padding:"0.75rem 1rem"}}>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"0.4rem"}}>
+                  <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"0.4rem",minWidth:"500px"}}>
                     {weekSchedule.map((day,di)=>(
                       <div key={day.day} style={{textAlign:"center"}}>
                         <div style={{fontSize:"0.72rem",fontWeight:600,color:"var(--gold)",marginBottom:"0.3rem"}}>{day.day}</div>
@@ -6458,6 +6465,7 @@ COACHING GUIDELINES:
                         )}
                       </div>
                     ))}
+                  </div>
                   </div>
                   {!editSchedule && <div style={{fontSize:"0.72rem",color:"var(--muted)",marginTop:"0.6rem",fontStyle:"italic"}}>Tap any day to load that session · Edit to customize your week</div>}
                 </div>
@@ -10419,10 +10427,10 @@ ${recruitingNote}`:null,
             </div>
 
             {/* Body: list + detail */}
-            <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+            <div style={{display:"flex",flex:1,overflow:"hidden",flexDirection:window.innerWidth<=768&&exLibSelected?"column":"row"}}>
 
               {/* Exercise list */}
-              <div style={{width:exLibSelected?"280px":"100%",flexShrink:0,overflowY:"auto",borderRight:exLibSelected?"1px solid rgba(255,255,255,0.06)":"none"}}>
+              <div style={{width:exLibSelected?(window.innerWidth<=768?"100%":"280px"):"100%",flexShrink:0,overflowY:"auto",borderRight:exLibSelected&&window.innerWidth>768?"1px solid rgba(255,255,255,0.06)":"none",maxHeight:exLibSelected&&window.innerWidth<=768?"200px":"none"}}>
                 {(()=>{
                   const q=exLibQuery.toLowerCase();
                   const filtered=EXERCISE_LIBRARY.filter(e=>(exLibMuscle==="All"||e.muscle===exLibMuscle)&&(exLibCat==="All"||e.cat===exLibCat)&&(!q||e.name.toLowerCase().includes(q)||e.muscles.toLowerCase().includes(q)));
@@ -10676,6 +10684,7 @@ function PricingSection({ setPayModal }) {
             </div>
           );
         })}
+      </div>
       </div>
 
       {/* Value anchor */}
