@@ -5,6 +5,17 @@
 import { useState } from 'react';
 import { signIn, signUp, supabase } from '../lib/supabase';
 
+// ── P4 Security Fix: Password complexity validation ──
+function validatePassword(pw) {
+  const errors = [];
+  if (!pw || pw.length < 8) errors.push('At least 8 characters');
+  if (!/[A-Z]/.test(pw)) errors.push('One uppercase letter');
+  if (!/[a-z]/.test(pw)) errors.push('One lowercase letter');
+  if (!/[0-9]/.test(pw)) errors.push('One number');
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw)) errors.push('One special character');
+  return { valid: errors.length === 0, errors };
+}
+
 export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCode }) {
   const [mode, setMode]           = useState(initialMode || 'signin');
   const [email, setEmail]         = useState('');
@@ -36,7 +47,11 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
     }
     if (!email || !password) { setError('Email and password required.'); return; }
     if (mode === 'signup' && password !== confirm) { setError('Passwords do not match.'); return; }
-    if (mode === 'signup' && password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    // ── P4 Security Fix: Full password complexity check ──
+    if (mode === 'signup') {
+      const pwCheck = validatePassword(password);
+      if (!pwCheck.valid) { setError('Password requires: ' + pwCheck.errors.join(', ')); return; }
+    }
     setLoading(true);
     try {
       if (mode === 'signup') {
@@ -160,6 +175,22 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
 
           {mode !== 'reset' && pwField('Password', password, setPassword, showPass, setShowPass,
             mode === 'signup' ? 'Minimum 8 characters' : '••••••••', 'pw')}
+
+          {/* ── P4 Security: Password strength indicator ── */}
+          {mode === 'signup' && password && (() => {
+            const { valid, errors } = validatePassword(password);
+            return (
+              <div style={{ margin: '-0.5rem 0 0.5rem 0', padding: '0 0.25rem' }}>
+                {valid ? (
+                  <span style={{ color: '#4BAE71', fontSize: '0.68rem' }}>✓ Password meets all requirements</span>
+                ) : (
+                  errors.map((err, i) => (
+                    <div key={i} style={{ color: '#E08080', fontSize: '0.68rem', lineHeight: 1.6 }}>✗ {err}</div>
+                  ))
+                )}
+              </div>
+            );
+          })()}
 
           {mode === 'signup' &&
             pwField('Confirm Password', confirm, setConfirm, showConf, setShowConf, 'Re-enter password', 'conf')}
