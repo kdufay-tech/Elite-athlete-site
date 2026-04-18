@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
+import { sendEmail } from './lib/email';
 
 const ADMIN_EMAIL = 'admin@eliteathlete.com';
 
@@ -21,6 +22,12 @@ export default function AdminDashboard() {
   const [newMaxUses,  setNewMaxUses]  = useState('');
   const [codeMsg,     setCodeMsg]     = useState(null);
   const [codeBusy,    setCodeBusy]    = useState(false);
+  // ── Beta Invite Email Flow state ──
+  const [betaEmails,      setBetaEmails]      = useState('');
+  const [betaCodeType,    setBetaCodeType]    = useState('ATHLETE2026');
+  const [betaSending,     setBetaSending]     = useState(false);
+  const [betaSendResults, setBetaSendResults] = useState(null);
+  const [betaSendProgress, setBetaSendProgress] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -109,6 +116,45 @@ export default function AdminDashboard() {
       body: JSON.stringify({ action: 'toggle_beta_code', code_id, active }),
     });
     fetchData();
+  }
+
+  // ── Beta Invite Email Flow ──
+  async function sendBetaInvites() {
+    const emailList = betaEmails
+      .split(/[,;\n]+/)
+      .map(e => e.trim().toLowerCase())
+      .filter(e => e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    if (!emailList.length) return;
+
+    setBetaSending(true);
+    setBetaSendResults(null);
+    const results = { sent: 0, failed: 0, errors: [] };
+    const betaDays = betaCodeType === 'COACH2026' ? '45' : '30';
+    const betaTier = betaCodeType === 'COACH2026' ? 'Coach' : 'Athlete';
+
+    for (let i = 0; i < emailList.length; i++) {
+      const addr = emailList[i];
+      setBetaSendProgress(`Sending ${i + 1} of ${emailList.length}...`);
+      try {
+        if (i > 0) await new Promise(r => setTimeout(r, 1200));
+        await sendEmail({
+          toEmail: addr,
+          fromName: 'Elite Athlete',
+          subject: `You're Invited to Elite Athlete Beta — ${betaTier} Access`,
+          message: `You have been selected for exclusive beta access to Elite Athlete — The Premier Athletic Platform.\n\nYour Beta Access Code: ${betaCodeType}\nAccess Duration: ${betaDays} days of full premium access\nActivation Link: https://the-elite-athlete.netlify.app\n\nHOW TO ACTIVATE:\n1. Visit https://the-elite-athlete.netlify.app\n2. Create your account (email + password)\n3. Enter your beta code: ${betaCodeType}\n4. Select your sport and position\n5. Your personalized dashboard loads instantly\n\nWHAT YOU GET:\n• Sport & position-specific meal plans\n• Periodized training programs for your position\n• Injury recovery protocols with rehab guidance\n• AI-powered coaching\n• 180+ supplement recommendations\n• Progress tracking, journals & calendar\n• PDF export and email delivery for all plans\n${betaCodeType === 'COACH2026' ? '\nAS A COACH:\n• Share this code with your entire roster\n• Each athlete gets their own account\n• Full data export to track athlete progress\n' : ''}\nThis is a limited beta — your feedback will shape the future of Elite Athlete.\n\nQuestions? Visit: https://the-elite-athlete.netlify.app/report-bug.html\n\n— The Elite Athlete Team\nEngineered for Champions`,
+          replyTo: 'noreply@elite-athlete.app',
+        });
+        results.sent++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push(`${addr}: ${err?.text || err?.message || 'Failed'}`);
+      }
+    }
+
+    setBetaSending(false);
+    setBetaSendProgress('');
+    setBetaSendResults(results);
+    if (results.sent > 0) setBetaEmails('');
   }
 
   if (!authChecked) return (
@@ -233,6 +279,71 @@ export default function AdminDashboard() {
               </div>
               {codeMsg && <div style={{marginTop:10,fontSize:13,color:codeMsg.ok?'#C9A84C':'#e74c3c'}}>{codeMsg.ok?'✓':'✗'} {codeMsg.text}</div>}
             </div>
+          </div>
+
+          {/* ── Beta Invite Email Flow ── */}
+          <div style={{marginBottom:40,background:'#111',border:'1px solid #C9A84C22',borderRadius:12,padding:'24px 28px'}}>
+            <div style={{fontSize:12,fontWeight:700,letterSpacing:3,textTransform:'uppercase',color:'#C9A84C',marginBottom:20}}>◆ Beta Invite Email Flow</div>
+
+            {/* Code Type Selector */}
+            <div style={{display:'flex',gap:10,marginBottom:18}}>
+              {[['ATHLETE2026','Athlete · 30 days'],['COACH2026','Coach · 45 days']].map(([code,label])=>(
+                <button key={code} onClick={()=>setBetaCodeType(code)} style={{
+                  flex:1, padding:'12px 16px', borderRadius:8, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, letterSpacing:1,
+                  border: betaCodeType===code ? '2px solid #C9A84C' : '1px solid #ffffff12',
+                  background: betaCodeType===code ? '#C9A84C12' : '#0D0D0D',
+                  color: betaCodeType===code ? '#C9A84C' : '#555',
+                }}>{code}<div style={{fontSize:10,fontWeight:400,letterSpacing:0,marginTop:4,opacity:0.7}}>{label}</div></button>
+              ))}
+            </div>
+
+            {/* Email List */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:10,letterSpacing:2,color:'#444',textTransform:'uppercase',marginBottom:6}}>Email Addresses (comma, semicolon, or newline separated)</div>
+              <textarea
+                value={betaEmails}
+                onChange={e=>setBetaEmails(e.target.value)}
+                placeholder={"coach@university.edu, athlete1@gmail.com\nathlete2@gmail.com"}
+                rows={5}
+                style={{
+                  width:'100%', background:'#0D0D0D', border:'1px solid #ffffff15', borderRadius:8,
+                  padding:12, color:'#fff', fontSize:13, fontFamily:'monospace', resize:'vertical',
+                  boxSizing:'border-box', outline:'none', lineHeight:1.6,
+                }}
+              />
+              <div style={{fontSize:11,color:'#333',marginTop:4}}>
+                {betaEmails.split(/[,;\n]+/).filter(e=>e.trim()&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())).length} valid email(s) detected
+              </div>
+            </div>
+
+            {/* Send Button */}
+            <button
+              onClick={sendBetaInvites}
+              disabled={betaSending || !betaEmails.trim()}
+              style={{
+                width:'100%', padding:'14px 24px', borderRadius:8, border:'none', fontFamily:'inherit',
+                background: betaSending ? '#333' : '#C9A84C', color:'#0D0D0D',
+                fontWeight:700, fontSize:14, letterSpacing:2, cursor: betaSending?'not-allowed':'pointer',
+                textTransform:'uppercase', opacity: (!betaEmails.trim()&&!betaSending)?0.4:1,
+              }}
+            >
+              {betaSending ? betaSendProgress || 'Sending...' : `Send ${betaCodeType} Invites`}
+            </button>
+
+            {/* Results */}
+            {betaSendResults && (
+              <div style={{marginTop:16,padding:16,background:'#0D0D0D',borderRadius:8,border:'1px solid #ffffff08'}}>
+                <div style={{fontSize:14,color:'#4BAE71',marginBottom:4}}>✓ Sent: {betaSendResults.sent}</div>
+                {betaSendResults.failed > 0 && (
+                  <>
+                    <div style={{fontSize:14,color:'#e74c3c',marginBottom:8}}>✗ Failed: {betaSendResults.failed}</div>
+                    {betaSendResults.errors.map((err,i) => (
+                      <div key={i} style={{fontSize:11,color:'#e74c3c88',marginBottom:2}}>{err}</div>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <Section title="Active Subscribers" count={data.subscribers.length}>
