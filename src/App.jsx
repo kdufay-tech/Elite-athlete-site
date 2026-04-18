@@ -3880,6 +3880,16 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
   .hero-bg{opacity:0.3;}
   .gg{grid-template-columns:1fr;}
   .er{flex-direction:column;align-items:flex-start;gap:0.4rem;}
+  .dash-hero{height:auto;min-height:280px;}
+  .dh-greet{font-size:2.2rem;}
+  .dh-greet em{font-size:1.6rem;}
+  .dh-c{padding:0 1rem;}
+  .dh-strip{grid-template-columns:repeat(2,1fr);}
+  .dh-stat{padding:0.7rem 1rem;}
+  .dh-stat-val{font-size:1.2rem;}
+  .dh-stat-lbl{font-size:0.45rem;letter-spacing:2px;}
+  .dh-acts{position:relative;top:auto;right:auto;padding:0 1rem;margin-bottom:0.5rem;flex-wrap:wrap;}
+  .mt-img{-webkit-backface-visibility:hidden;backface-visibility:hidden;will-change:transform;}
 }
 @media(max-width:480px){
   .nav{padding:0 0.5rem;height:50px;}
@@ -3891,6 +3901,10 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
   .wrap{padding:0 0.75rem;}
   .bg{padding:0.6rem 1.2rem;font-size:0.56rem;}
   .bgh{padding:0.5rem 0.8rem;font-size:0.56rem;}
+  .dh-greet{font-size:1.8rem;}
+  .dh-greet em{font-size:1.3rem;}
+  .dh-strip{grid-template-columns:repeat(2,1fr);}
+  .dh-stat-val{font-size:1.1rem;}
 }
 
 /* RULE */
@@ -4192,10 +4206,15 @@ export default function App() {
     video.addEventListener('playing', onPlaying);
     // Some browsers on mobile fire 'canplay' but not 'playing' — cover both
     video.addEventListener('canplay', onPlaying);
+    // Mobile fallback: if neither event fires after 3s, force ready
+    const timeout = setTimeout(() => {
+      if (video.srcObject && video.readyState >= 2) setVideoReady(true);
+    }, 3000);
     video.play().catch(() => {});
     return () => {
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('canplay', onPlaying);
+      clearTimeout(timeout);
     };
   }, [cameraStream, cameraModal]);
 
