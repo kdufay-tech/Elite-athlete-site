@@ -1,3 +1,4 @@
 /report-bug.html    /report-bug.html    200!
 /privacy-policy.html    /privacy-policy.html    200!
+/.netlify/functions/*    /.netlify/functions/:splat    200!
 /*    /index.html    200
