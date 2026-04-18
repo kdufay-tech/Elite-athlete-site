@@ -4337,6 +4337,8 @@ export default function App() {
     weeklyEnabled: true,    weeklyDay: "1", // Monday
   });
   const [swRegistered, setSwRegistered] = useState(false);
+  const [deferredInstall, setDeferredInstall] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [coaches, setCoaches] = useState([]);
   const [newCoach, setNewCoach] = useState({name:"",email:"",role:"Head Coach",sport:""});
   const [selectedCoach, setSelectedCoach] = useState(null);
@@ -4370,25 +4372,54 @@ export default function App() {
   const [notes, setNotes] = useState([]);
 
   // ── AUTH LISTENER ────────────────────────────────────────────
-  // ── SERVICE WORKER + NOTIFICATIONS ──────────────────────────
+  // ── SERVICE WORKER + PWA INSTALL + NOTIFICATIONS ──────────────
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then(reg => {
         setSwRegistered(true);
-        // Load saved notification settings
         const saved = localStorage.getItem('ea_notif_settings');
         if (saved) {
           try { setNotifSettings(JSON.parse(saved)); } catch(e) {}
         }
       }).catch(err => console.log('SW registration failed:', err));
     }
+    // PWA install prompt
+    const installHandler = (e) => {
+      e.preventDefault();
+      setDeferredInstall(e);
+      if (!window.matchMedia('(display-mode: standalone)').matches) {
+        setShowInstallBanner(true);
+      }
+    };
+    window.addEventListener('beforeinstallprompt', installHandler);
     if (typeof Notification !== 'undefined') {
       setNotifPermission(Notification.permission);
     }
+    return () => window.removeEventListener('beforeinstallprompt', installHandler);
   }, []);
+
+  // ── PWA Install Handler ──
+  const handleInstallClick = async () => {
+    if (!deferredInstall) return;
+    deferredInstall.prompt();
+    const { outcome } = await deferredInstall.userChoice;
+    if (outcome === 'accepted') shout('Elite Athlete installed!', '◆');
+    setDeferredInstall(null);
+    setShowInstallBanner(false);
+  };
 
   // Schedule a notification at a given time string "HH:MM" daily
   const scheduleDaily = (timeStr, title, body, tag) => {
+
+  // ── PWA Install Handler ──
+  const handlePWAInstall = async () => {
+    if (!deferredInstall) return;
+    deferredInstall.prompt();
+    const { outcome } = await deferredInstall.userChoice;
+    setDeferredInstall(null);
+    setShowInstallBanner(false);
+    if (outcome === 'accepted') shout('App installed! Find Elite Athlete on your home screen.','◆');
+  };
     if (!swRegistered || notifPermission !== 'granted') return;
     const [h, m] = timeStr.split(':').map(Number);
     const now = new Date();
@@ -5261,6 +5292,36 @@ COACHING GUIDELINES:
       )}
 
       {toast && <Toast t={toast}/> }
+
+      {/* ── PWA Install Banner ── */}
+      {showInstallBanner && (
+        <div style={{
+          position:'fixed',bottom:0,left:0,right:0,zIndex:9998,
+          background:'linear-gradient(135deg,#1A1A1A 0%,#0D0D0D 100%)',
+          borderTop:'1px solid rgba(201,168,76,0.4)',
+          padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',
+          boxShadow:'0 -4px 24px rgba(0,0,0,0.6)',
+        }}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <img src="/icons/icon-72x72.png" alt="" style={{width:36,height:36,borderRadius:8}} />
+            <div>
+              <div style={{color:'var(--gold)',fontWeight:700,fontSize:'0.78rem',letterSpacing:1}}>Install Elite Athlete</div>
+              <div style={{color:'#777',fontSize:'0.65rem',marginTop:2}}>Add to home screen for instant access</div>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={()=>setShowInstallBanner(false)} style={{
+              background:'transparent',border:'1px solid #333',color:'#666',
+              padding:'8px 14px',borderRadius:6,cursor:'pointer',fontSize:'0.68rem',fontFamily:'inherit',
+            }}>Later</button>
+            <button onClick={handleInstallClick} style={{
+              background:'linear-gradient(135deg,#C9A227 0%,#E8C547 100%)',border:'none',color:'#0D0D0D',
+              padding:'8px 18px',borderRadius:6,cursor:'pointer',fontWeight:700,fontSize:'0.68rem',
+              letterSpacing:1,fontFamily:'inherit',
+            }}>Install</button>
+          </div>
+        </div>
+      )}
 
     </>
   );
