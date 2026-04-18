@@ -3676,7 +3676,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 
 /* HERO */
 .hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
-.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%;
+.hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;
   animation:hzoom 22s ease-in-out infinite alternate;}
 @keyframes hzoom{from{transform:scale(1);}to{transform:scale(1.07);}}
 .hero-vig{position:absolute;inset:0;
@@ -3724,8 +3724,8 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .stile{position:relative;aspect-ratio:3/4;overflow:hidden;cursor:pointer;transition:transform 0.5s cubic-bezier(0.16,1,0.3,1);}
 .stile:hover{z-index:2;transform:scale(1.04);}
 .stile.sel{z-index:3;}
-.stile-img{position:absolute;inset:0;background-size:cover;background-position:center;
-  filter:saturate(0.6) brightness(0.55);transition:all 0.65s cubic-bezier(0.16,1,0.3,1);}
+.stile-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
+  filter:saturate(0.6) brightness(0.55);transition:all 0.65s cubic-bezier(0.16,1,0.3,1);pointer-events:none;}
 .stile:hover .stile-img{transform:scale(1.1);filter:saturate(0.9) brightness(0.7);}
 .stile.sel .stile-img{filter:saturate(1.1) brightness(0.55);}
 .stile-ov{position:absolute;inset:0;background:linear-gradient(180deg,transparent 20%,rgba(8,8,7,0.92)100%);}
@@ -3787,7 +3787,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 
 /* DASHBOARD */
 .dash-hero{position:relative;height:340px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;margin-bottom:2.5rem;}
-.dh-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%;
+.dh-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;
   filter:saturate(0.3) brightness(0.28);transition:all 0.8s;}
 .dh-vig{position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(6,5,4,0.05)0%,rgba(6,5,4,0.15)35%,rgba(6,5,4,0.97)100%);}
@@ -3825,8 +3825,8 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
   box-shadow:0 2px 16px rgba(0,0,0,0.6);}
 .mtile:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,0.7);}
 .mtile.on{box-shadow:0 0 0 2px rgba(191,161,106,0.6),0 12px 32px rgba(0,0,0,0.6);}
-.mt-img{position:absolute;inset:0;background-size:cover;background-position:center;
-  filter:saturate(0.85) brightness(0.52);transition:all 0.4s;}
+.mt-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
+  filter:saturate(0.85) brightness(0.52);transition:all 0.4s;pointer-events:none;}
 .mtile:hover .mt-img{filter:saturate(1.0) brightness(0.65);transform:scale(1.05);}
 .mtile.on .mt-img{filter:saturate(0.95) brightness(0.58);}
 .mt-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.08) 0%,rgba(0,0,0,0.72) 100%);}
@@ -3880,7 +3880,7 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
   .hero-bg{opacity:0.3;}
   .gg{grid-template-columns:1fr;}
   .er{flex-direction:column;align-items:flex-start;gap:0.4rem;}
-  .dash-hero{height:auto;min-height:280px;}
+  .dash-hero{height:auto;min-height:260px;}
   .dh-greet{font-size:2.2rem;}
   .dh-greet em{font-size:1.6rem;}
   .dh-c{padding:0 1rem;}
@@ -3889,7 +3889,10 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
   .dh-stat-val{font-size:1.2rem;}
   .dh-stat-lbl{font-size:0.45rem;letter-spacing:2px;}
   .dh-acts{position:relative;top:auto;right:auto;padding:0 1rem;margin-bottom:0.5rem;flex-wrap:wrap;}
-  .mt-img{-webkit-backface-visibility:hidden;backface-visibility:hidden;will-change:transform;}
+  .sport-grid{display:grid;grid-template-columns:repeat(3,1fr) !important;gap:6px !important;}
+  .stile{aspect-ratio:1/1;}
+  .stile-name{font-size:0.55rem !important;letter-spacing:1.5px !important;}
+  .inj-grid{grid-template-columns:repeat(2,1fr) !important;}
 }
 @media(max-width:480px){
   .nav{padding:0 0.5rem;height:50px;}
@@ -3903,8 +3906,9 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
   .bgh{padding:0.5rem 0.8rem;font-size:0.56rem;}
   .dh-greet{font-size:1.8rem;}
   .dh-greet em{font-size:1.3rem;}
-  .dh-strip{grid-template-columns:repeat(2,1fr);}
-  .dh-stat-val{font-size:1.1rem;}
+  .sport-grid{grid-template-columns:repeat(3,1fr) !important;}
+  .stile-name{font-size:0.5rem !important;letter-spacing:1px !important;}
+  .stile-body{padding:0.8rem 0.5rem !important;}
 }
 
 /* RULE */
@@ -5160,7 +5164,7 @@ COACHING GUIDELINES:
       </nav>
 
       <section className="hero">
-        <div className="hero-bg" style={{backgroundImage:"url(https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1800&q=80)"}}/>
+        <img className="hero-bg" src="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1800&q=80" alt="" loading="eager" />
         <div className="hero-vig"/>
         <div className="hero-grain"/>
         <div className="hero-c">
@@ -5218,7 +5222,7 @@ COACHING GUIDELINES:
             {Object.entries(SPORTS).map(([key,s])=>(
               <div key={key} className={`stile${profile.sport===key?" sel":""}`}
                 onClick={()=>{setProfile(p=>({...p,sport:key,position:""}));setScreen("setup");}}>
-                <div className="stile-img" style={{backgroundImage:`url(${s.img})`}}/>
+                <img className="stile-img" src={s.img} alt="" loading="eager" draggable="false" />
                 <div className="stile-ov"/>
                 <div className="stile-ck">{profile.sport===key?"✓":""}</div>
                 <div className="stile-body">
@@ -5615,7 +5619,7 @@ COACHING GUIDELINES:
 
         {/* DASH HERO */}
         <div className="dash-hero">
-          <div className="dh-bg" style={{backgroundImage:`url(${sport.img})`}}/>
+          <img className="dh-bg" src={sport.img} alt="" loading="eager" />
           <div className="dh-vig"/>
           <div className="dh-rule"/>
           {/* Action buttons — top right */}
@@ -5660,7 +5664,7 @@ COACHING GUIDELINES:
             {MODS.map(m=>(
               <div key={m.id} className={`mtile${dash===m.id?" on":""}`}
                 onClick={()=>m.id==="upgrade"?setScreen("pricing"):goTo(m.id)}>
-                <div className="mt-img" style={{backgroundImage:`url(${m.img})`}}/>
+                <img className="mt-img" src={m.img} alt="" loading="eager" draggable="false" />
                 <div className="mt-grad"/>
                 {/* Diamond geometric overlay — the Taradome tile standard */}
                 <div className="mt-geo">
@@ -10621,9 +10625,10 @@ function PricingSection({ setPayModal }) {
       </div>
 
       {/* 4-column price grid */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'2px',
+      <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(220px,1fr))',gap:'2px',
         background:'rgba(191,161,106,0.07)',border:'1px solid rgba(191,161,106,0.07)',
-        borderRadius:'var(--r-xl)',overflow:'hidden'}}>
+        borderRadius:'var(--r-xl)',overflow:'hidden',minWidth:'880px'}}>
         {TIERS.map(t => {
           const b = billing === 'annual' ? t.annual : t.monthly;
           return (
