@@ -45,22 +45,14 @@ export function canAccess(userTier, requiredTier) {
 // ── STRIPE PRICE IDS ─────────────────────────────────────────
 // Live prices: VITE_STRIPE_PRICE_*
 // Test prices: VITE_STRIPE_TEST_PRICE_* (used when VITE_BETA_MODE=true)
-export const STRIPE_PRICES = IS_BETA_MODE ? {
-  athlete_monthly: import.meta.env.VITE_STRIPE_TEST_PRICE_ATHLETE_MONTHLY,
-  elite_monthly:   import.meta.env.VITE_STRIPE_TEST_PRICE_ELITE_MONTHLY,
-  coach_monthly:   import.meta.env.VITE_STRIPE_TEST_PRICE_COACH_MONTHLY,
-  athlete_annual:  import.meta.env.VITE_STRIPE_TEST_PRICE_ATHLETE_ANNUAL,
-  elite_annual:    import.meta.env.VITE_STRIPE_TEST_PRICE_ELITE_ANNUAL,
-  coach_annual:    import.meta.env.VITE_STRIPE_TEST_PRICE_COACH_ANNUAL,
-  athlete_seat:    import.meta.env.VITE_STRIPE_TEST_PRICE_ATHLETE_SEAT,
-} : {
-  athlete_monthly: import.meta.env.VITE_STRIPE_PRICE_ATHLETE_MONTHLY,
-  elite_monthly:   import.meta.env.VITE_STRIPE_PRICE_ELITE_MONTHLY,
-  coach_monthly:   import.meta.env.VITE_STRIPE_PRICE_COACH_MONTHLY,
-  athlete_annual:  import.meta.env.VITE_STRIPE_PRICE_ATHLETE_ANNUAL,
-  elite_annual:    import.meta.env.VITE_STRIPE_PRICE_ELITE_ANNUAL,
-  coach_annual:    import.meta.env.VITE_STRIPE_PRICE_COACH_ANNUAL,
-  athlete_seat:    import.meta.env.VITE_STRIPE_PRICE_ATHLETE_SEAT,
+export const STRIPE_PRICES = {
+  athlete_monthly: import.meta.env.VITE_STRIPE_TEST_PRICE_ATHLETE_MONTHLY || import.meta.env.VITE_STRIPE_PRICE_ATHLETE_MONTHLY,
+  elite_monthly:   import.meta.env.VITE_STRIPE_TEST_PRICE_ELITE_MONTHLY   || import.meta.env.VITE_STRIPE_PRICE_ELITE_MONTHLY,
+  coach_monthly:   import.meta.env.VITE_STRIPE_TEST_PRICE_COACH_MONTHLY   || import.meta.env.VITE_STRIPE_PRICE_COACH_MONTHLY,
+  athlete_annual:  import.meta.env.VITE_STRIPE_TEST_PRICE_ATHLETE_ANNUAL  || import.meta.env.VITE_STRIPE_PRICE_ATHLETE_ANNUAL,
+  elite_annual:    import.meta.env.VITE_STRIPE_TEST_PRICE_ELITE_ANNUAL    || import.meta.env.VITE_STRIPE_PRICE_ELITE_ANNUAL,
+  coach_annual:    import.meta.env.VITE_STRIPE_TEST_PRICE_COACH_ANNUAL    || import.meta.env.VITE_STRIPE_PRICE_COACH_ANNUAL,
+  athlete_seat:    import.meta.env.VITE_STRIPE_TEST_PRICE_ATHLETE_SEAT    || import.meta.env.VITE_STRIPE_PRICE_Coach_Per_Athlete_seat,
 };
 
 // ── TIER DISPLAY METADATA ─────────────────────────────────────
