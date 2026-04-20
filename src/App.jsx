@@ -3829,8 +3829,8 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
   box-shadow:0 2px 16px rgba(0,0,0,0.6);}
 .mtile:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,0.7);}
 .mtile.on{box-shadow:0 0 0 2px rgba(191,161,106,0.6),0 12px 32px rgba(0,0,0,0.6);}
-.mt-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
-  filter:saturate(0.85) brightness(0.52);transition:all 0.4s;pointer-events:none;}
+.mt-img{position:absolute;inset:0;width:100%;height:100%;
+  filter:brightness(0.7);transition:all 0.4s;pointer-events:none;}
 .mtile:hover .mt-img{filter:saturate(1.0) brightness(0.65);transform:scale(1.05);}
 .mtile.on .mt-img{filter:saturate(0.95) brightness(0.58);}
 .mt-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.08) 0%,rgba(0,0,0,0.72) 100%);}
@@ -5250,7 +5250,7 @@ COACHING GUIDELINES:
             {Object.entries(SPORTS).map(([key,s])=>(
               <div key={key} className={`stile${profile.sport===key?" sel":""}`}
                 onClick={()=>{setProfile(p=>({...p,sport:key,position:""}));setScreen("setup");}}>
-                <img className="stile-img" src={s.img} alt="" referrerPolicy="no-referrer" loading="eager" draggable="false"/>
+                <div className="stile-img" style={{backgroundImage:`url(${s.img})`,backgroundSize:"cover",backgroundPosition:"center"}}/>
                 <div className="stile-ov"/>
                 <div className="stile-ck">{profile.sport===key?"✓":""}</div>
                 <div className="stile-body">
@@ -5529,14 +5529,14 @@ COACHING GUIDELINES:
 
   // ── DASHBOARD ────────────────────────────────────────────────
   const MODS = [
-    {id:"nutrition", label:"Nutrition",  sub:"Meal Plans",      icon:"N", img:"https://images.unsplash.com/photo-1547592180-85f173990554?w=800&q=85"},
-    {id:"workout",   label:"Workout",    sub:"Training",        icon:"W", img:"https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=85"},
-    {id:"injury",    label:"Recovery",   sub:"Rehabilitation",  icon:"R", img:"https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=85"},
-    {id:"progress",  label:"Progress",   sub:"Analytics",       icon:"P", img:"https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&q=85"},
-    {id:"journal",   label:"Journal",    sub:"Personal Notes",  icon:"J", img:"https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=85"},
-    {id:"calendar",  label:"Calendar",   sub:"Schedule",        icon:"C", img:"https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&q=85"},
-    {id:"profile",   label:"Profile",    sub:"Settings",        icon:"✦", img:sport?.img || "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80"},
-    {id:"upgrade",   label:"Upgrade",    sub:"Premium Plans",   icon:"◆", img:"https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80"},
+    {id:"nutrition", label:"Nutrition",  sub:"Meal Plans",      icon:"N", grad:"linear-gradient(135deg,#1a2a1a 0%,#2d4a1e 50%,#1a3010 100%)"},
+    {id:"workout",   label:"Workout",    sub:"Training",        icon:"W", grad:"linear-gradient(135deg,#1a1a2e 0%,#2d2060 50%,#0d0d1a 100%)"},
+    {id:"injury",    label:"Recovery",   sub:"Rehabilitation",  icon:"R", grad:"linear-gradient(135deg,#2a1a1a 0%,#4a1e1e 50%,#2a0d0d 100%)"},
+    {id:"progress",  label:"Progress",   sub:"Analytics",       icon:"P", grad:"linear-gradient(135deg,#1a1a2a 0%,#1e2d4a 50%,#0d1020 100%)"},
+    {id:"journal",   label:"Journal",    sub:"Personal Notes",  icon:"J", grad:"linear-gradient(135deg,#1a1a1a 0%,#3a2d10 50%,#1a1500 100%)"},
+    {id:"calendar",  label:"Calendar",   sub:"Schedule",        icon:"C", grad:"linear-gradient(135deg,#0d1a2a 0%,#1e3a4a 50%,#0a1520 100%)"},
+    {id:"profile",   label:"Profile",    sub:"Settings",        icon:"✦", grad:"linear-gradient(135deg,#1a1208 0%,#3a2a10 50%,#2a1a05 100%)"},
+    {id:"upgrade",   label:"Upgrade",    sub:"Premium Plans",   icon:"◆", grad:"linear-gradient(135deg,#1a0a00 0%,#4a2a00 50%,#BFA16A33 100%)"},
   ];
 
   // ── PRICING SCREEN ─────────────────────────────────────────
@@ -5692,7 +5692,7 @@ COACHING GUIDELINES:
             {MODS.map(m=>(
               <div key={m.id} className={`mtile${dash===m.id?" on":""}`}
                 onClick={()=>m.id==="upgrade"?setScreen("pricing"):goTo(m.id)}>
-                <img className="mt-img" src={m.img} alt="" referrerPolicy="no-referrer" loading="eager" draggable="false"/>
+                <div className="mt-img" style={{background:m.grad}}/>
                 <div className="mt-grad"/>
                 {/* Diamond geometric overlay — the Taradome tile standard */}
                 <div className="mt-geo">
