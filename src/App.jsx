@@ -3868,6 +3868,16 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 @media(max-width:700px){.two,.three,.four{grid-template-columns:1fr;}}
 @media(max-width:900px){.four{grid-template-columns:1fr 1fr;} .mod-grid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:500px){.mod-grid{grid-template-columns:1fr 1fr;gap:6px;} .mtile{min-height:160px;border-radius:12px;}}
+/* ── GLOBAL MOBILE OVERFLOW FIX ──────────────────────────────────────────────
+   Prevents right-side content cutoff on Notifications, Recruiting, Supplements,
+   Nutrition, Performance and all other two-column sections on mobile. */
+@media(max-width:640px){
+  body{overflow-x:hidden;}
+  .wrap{overflow-x:hidden;width:100%;box-sizing:border-box;}
+  .panel{overflow-x:hidden;width:100%;box-sizing:border-box;}
+  .pb{overflow-x:hidden;}
+  .g2mob{grid-template-columns:1fr !important;}
+}
 
 /* ── MOBILE RESPONSIVE ────────────────────────────────── */
 @media(max-width:768px){
@@ -6146,7 +6156,7 @@ COACHING GUIDELINES:
                         </div>
                       ))}
                       <div className="gr"/>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
+                      <div className="g2mob" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
                         {[
                           {l:"Protein %", v:Math.round(totalP*4/totalCals*100)||0,  color:"#4BAE71"},
                           {l:"Carbs %",   v:Math.round(totalC*4/totalCals*100)||0,  color:"#6AABCC"},
@@ -8347,7 +8357,7 @@ COACHING GUIDELINES:
                     ))}
                   </div>
 
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem",marginBottom:"1.25rem"}}>
+                  <div className="g2mob" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem",marginBottom:"1.25rem"}}>
 
                     {/* LEFT — input panel */}
                     <div>
@@ -8821,7 +8831,7 @@ COACHING GUIDELINES:
                               };
                               reader.readAsDataURL(file);
                             }}/>
-                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
+                          <div className="g2mob" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
                             {/* Upload from File — premium gold */}
                             <label htmlFor="prog-file-inp" style={{display:"block",cursor:"pointer"}}>
                               <div style={{
@@ -9007,7 +9017,7 @@ COACHING GUIDELINES:
                       </div>
                     </div>
 
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem",marginBottom:"1.25rem"}}>
+                    <div className="g2mob" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem",marginBottom:"1.25rem"}}>
 
                       {/* LEFT: The visual card */}
                       <div>
@@ -9371,7 +9381,7 @@ ${recruitingNote}`:null,
                       </div>
                     </div>
 
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
+                    <div className="g2mob" className="g2mob" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
 
                       {/* LEFT — Coaches + Report Builder */}
                       <div style={{display:"flex",flexDirection:"column",gap:"0.85rem"}}>
@@ -9599,7 +9609,7 @@ ${recruitingNote}`:null,
                     </div>
                   )}
 
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
+                  <div className="g2mob" className="g2mob" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
 
                     {/* LEFT — Reminder settings */}
                     <div style={{display:"flex",flexDirection:"column",gap:"0.85rem"}}>
