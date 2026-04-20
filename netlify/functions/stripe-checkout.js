@@ -5,6 +5,8 @@
 
 const ALLOWED_ORIGINS = [
   'https://the-elite-athlete.netlify.app',
+  'https://elite-athlete.app',
+  'https://www.elite-athlete.app',
   'http://localhost:5173',
   'http://localhost:8888',
 ];
@@ -39,8 +41,8 @@ export default async (req) => {
   if (!isAllowed)
     return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers });
 
-  const isBeta    = process.env.BETA_MODE === 'true';
-  const secretKey = isBeta ? process.env.STRIPE_TEST_SECRET_KEY : process.env.STRIPE_SECRET_KEY;
+  const isBeta    = process.env.BETA_MODE === 'true' || process.env.VITE_BETA_MODE === 'true';
+  const secretKey = (isBeta && process.env.STRIPE_TEST_SECRET_KEY) ? process.env.STRIPE_TEST_SECRET_KEY : process.env.STRIPE_SECRET_KEY;
   if (!secretKey)
     return new Response(JSON.stringify({ error: `${isBeta ? 'STRIPE_TEST_SECRET_KEY' : 'STRIPE_SECRET_KEY'} not configured on server` }), { status: 500, headers });
 
