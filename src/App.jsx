@@ -9817,7 +9817,7 @@ ${recruitingNote}`:null,
                       ))}
                     </div>
 
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"1.25rem"}}>
 
                       {/* LEFT — Supplement cards */}
                       <div style={{display:"flex",flexDirection:"column",gap:"0.55rem"}}>
