@@ -22,11 +22,11 @@ const sanitizeHtml = (str) => String(str || '')
 // DATA
 // ─────────────────────────────────────────────────────────────
 const SPORTS = {
-  football:   { icon: "FB", label: "Football",   img: "https://images.pexels.com/photos/1618200/pexels-photo-1618200.jpeg?auto=compress&cs=tinysrgb&w=800", positions: ["Quarterback","Running Back","Wide Receiver","Tight End","Offensive Lineman","Defensive End","Linebacker","Cornerback","Safety","Kicker"], injuries: ["ACL Tear","MCL Sprain","Hamstring Strain","Rotator Cuff","Concussion","Ankle Sprain","Turf Toe","Shoulder Dislocation"] },
-  basketball: { icon: "BB", label: "Basketball", img: "https://images.pexels.com/photos/1080884/pexels-photo-1080884.jpeg?auto=compress&cs=tinysrgb&w=800", positions: ["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"], injuries: ["Ankle Sprain","Knee Tendinitis","Finger Dislocation","Achilles Strain","Back Spasm","Hip Flexor"] },
-  soccer:     { icon: "SC", label: "Soccer",     img: "https://images.pexels.com/photos/274422/pexels-photo-274422.jpeg?auto=compress&cs=tinysrgb&w=800", positions: ["Goalkeeper","Center Back","Full Back","Defensive Mid","Central Mid","Attacking Mid","Winger","Striker"], injuries: ["Groin Pull","Hamstring Tear","Knee Ligament","Shin Splints","Ankle Sprain","Calf Strain"] },
-  hockey:     { icon: "HK", label: "Hockey",     img: "https://images.pexels.com/photos/1647887/pexels-photo-1647887.jpeg?auto=compress&cs=tinysrgb&w=800", positions: ["Goalie","Defenseman","Left Wing","Right Wing","Center"], injuries: ["Shoulder Separation","Hip Flexor","Knee MCL","Groin Strain","Concussion","Rib Fracture"] },
-  volleyball: { icon: "VB", label: "Volleyball", img: "https://images.pexels.com/photos/1277804/pexels-photo-1277804.jpeg?auto=compress&cs=tinysrgb&w=800", positions: ["Setter","Libero","Outside Hitter","Middle Blocker","Opposite Hitter","Right Side"], injuries: ["Patellar Tendinitis","Shoulder Impingement","Ankle Sprain","Finger Sprain","Lower Back"] },
+  football:   { icon: "FB", label: "Football",   img: "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&q=80", positions: ["Quarterback","Running Back","Wide Receiver","Tight End","Offensive Lineman","Defensive End","Linebacker","Cornerback","Safety","Kicker"], injuries: ["ACL Tear","MCL Sprain","Hamstring Strain","Rotator Cuff","Concussion","Ankle Sprain","Turf Toe","Shoulder Dislocation"] },
+  basketball: { icon: "BB", label: "Basketball", img: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80", positions: ["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"], injuries: ["Ankle Sprain","Knee Tendinitis","Finger Dislocation","Achilles Strain","Back Spasm","Hip Flexor"] },
+  soccer:     { icon: "SC", label: "Soccer",     img: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80", positions: ["Goalkeeper","Center Back","Full Back","Defensive Mid","Central Mid","Attacking Mid","Winger","Striker"], injuries: ["Groin Pull","Hamstring Tear","Knee Ligament","Shin Splints","Ankle Sprain","Calf Strain"] },
+  hockey:     { icon: "HK", label: "Hockey",     img: "https://images.unsplash.com/photo-1515703407324-5f753afd8be8?w=800&q=80", positions: ["Goalie","Defenseman","Left Wing","Right Wing","Center"], injuries: ["Shoulder Separation","Hip Flexor","Knee MCL","Groin Strain","Concussion","Rib Fracture"] },
+  volleyball: { icon: "VB", label: "Volleyball", img: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&q=80", positions: ["Setter","Libero","Outside Hitter","Middle Blocker","Opposite Hitter","Right Side"], injuries: ["Patellar Tendinitis","Shoulder Impingement","Ankle Sprain","Finger Sprain","Lower Back"] },
 };
 
 // Each meal: { name, cal, p, c, f }  (kcal, protein g, carbs g, fat g)
@@ -3728,7 +3728,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .stile{position:relative;aspect-ratio:3/4;overflow:hidden;cursor:pointer;transition:transform 0.5s cubic-bezier(0.16,1,0.3,1);}
 .stile:hover{z-index:2;transform:scale(1.04);}
 .stile.sel{z-index:3;}
-.stile-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
+.stile-img{position:absolute;inset:0;background-size:cover;background-position:center;
   filter:saturate(0.6) brightness(0.55);transition:all 0.65s cubic-bezier(0.16,1,0.3,1);pointer-events:none;}
 .stile:hover .stile-img{transform:scale(1.1);filter:saturate(0.9) brightness(0.7);}
 .stile.sel .stile-img{filter:saturate(1.1) brightness(0.55);}
@@ -3829,8 +3829,8 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
   box-shadow:0 2px 16px rgba(0,0,0,0.6);}
 .mtile:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,0.7);}
 .mtile.on{box-shadow:0 0 0 2px rgba(191,161,106,0.6),0 12px 32px rgba(0,0,0,0.6);}
-.mt-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;
-  filter:saturate(0.85) brightness(0.52);transition:filter 0.4s,transform 0.4s;pointer-events:none;will-change:transform;}
+.mt-img{position:absolute;inset:0;background-size:cover;background-position:center;
+  filter:saturate(0.85) brightness(0.52);transition:all 0.4s;pointer-events:none;}
 .mtile:hover .mt-img{filter:saturate(1.0) brightness(0.65);transform:scale(1.05);}
 .mtile.on .mt-img{filter:saturate(0.95) brightness(0.58);}
 .mt-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.08) 0%,rgba(0,0,0,0.72) 100%);}
@@ -5192,7 +5192,7 @@ COACHING GUIDELINES:
       </nav>
 
       <section className="hero">
-        <img className="hero-bg" src="https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg?auto=compress&cs=tinysrgb&w=1800" alt="" loading="eager" />
+        <div className="hero-bg" style={{backgroundImage:"url(https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1800&q=80)"}}/>
         <div className="hero-vig"/>
         <div className="hero-grain"/>
         <div className="hero-c">
@@ -5250,7 +5250,7 @@ COACHING GUIDELINES:
             {Object.entries(SPORTS).map(([key,s])=>(
               <div key={key} className={`stile${profile.sport===key?" sel":""}`}
                 onClick={()=>{setProfile(p=>({...p,sport:key,position:""}));setScreen("setup");}}>
-                <img className="stile-img" src={s.img} alt="" loading="eager" draggable="false" />
+                <div className="stile-img" style={{backgroundImage:`url(${s.img})`}}/>
                 <div className="stile-ov"/>
                 <div className="stile-ck">{profile.sport===key?"✓":""}</div>
                 <div className="stile-body">
@@ -5273,12 +5273,12 @@ COACHING GUIDELINES:
           </div>
           <div className="bento">
             {[
-              {cls:"bt-a",img:"https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=900",num:"01",title:"Precision Nutrition",desc:"Custom meal plans engineered for your sport, position, and performance goals. Macro-optimized menus with elite grocery curation and daily tracking."},
-              {cls:"bt-b",img:"https://images.pexels.com/photos/841130/pexels-photo-841130.jpeg?auto=compress&cs=tinysrgb&w=600",num:"02",title:"Elite Workout Plans",desc:"Position-specific strength and conditioning protocols."},
-              {cls:"bt-c",img:"https://images.pexels.com/photos/3076509/pexels-photo-3076509.jpeg?auto=compress&cs=tinysrgb&w=600",num:"03",title:"Injury Recovery",desc:"Sport-specific rehabilitation protocols and recovery nutrition."},
-              {cls:"bt-d",img:"https://images.pexels.com/photos/703016/pexels-photo-703016.jpeg?auto=compress&cs=tinysrgb&w=600",num:"04",title:"Progress Tracking",desc:"3-month analytics and exportable reports."},
-              {cls:"bt-e",img:"https://images.pexels.com/photos/267394/pexels-photo-267394.jpeg?auto=compress&cs=tinysrgb&w=600",num:"05",title:"Training Calendar",desc:"Intelligent scheduling for all facets of your program."},
-              {cls:"bt-f",img:"https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=600",num:"06",title:"Athlete Journal",desc:"Private journal — shareable and exportable."},
+              {cls:"bt-a",img:"https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=900&q=80",num:"01",title:"Precision Nutrition",desc:"Custom meal plans engineered for your sport, position, and performance goals. Macro-optimized menus with elite grocery curation and daily tracking."},
+              {cls:"bt-b",img:"https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=600&q=80",num:"02",title:"Elite Workout Plans",desc:"Position-specific strength and conditioning protocols."},
+              {cls:"bt-c",img:"https://images.unsplash.com/photo-1552072092-7f9b8d63efcb?w=600&q=80",num:"03",title:"Injury Recovery",desc:"Sport-specific rehabilitation protocols and recovery nutrition."},
+              {cls:"bt-d",img:"https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80",num:"04",title:"Progress Tracking",desc:"3-month analytics and exportable reports."},
+              {cls:"bt-e",img:"https://images.unsplash.com/photo-1486218119243-13301543a1b4?w=600&q=80",num:"05",title:"Training Calendar",desc:"Intelligent scheduling for all facets of your program."},
+              {cls:"bt-f",img:"https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&q=80",num:"06",title:"Athlete Journal",desc:"Private journal — shareable and exportable."},
             ].map(f=>(
               <div key={f.num} className={`bt ${f.cls}`} onClick={()=>setScreen("setup")}>
                 <div className="bt-img" style={{backgroundImage:`url(${f.img})`}}/>
@@ -5529,14 +5529,14 @@ COACHING GUIDELINES:
 
   // ── DASHBOARD ────────────────────────────────────────────────
   const MODS = [
-    {id:"nutrition", label:"Nutrition",  sub:"Meal Plans",      icon:"N", img:"https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800"},
-    {id:"workout",   label:"Workout",    sub:"Training",        icon:"W", img:"https://images.pexels.com/photos/841130/pexels-photo-841130.jpeg?auto=compress&cs=tinysrgb&w=800"},
-    {id:"injury",    label:"Recovery",   sub:"Rehabilitation",  icon:"R", img:"https://images.pexels.com/photos/3076509/pexels-photo-3076509.jpeg?auto=compress&cs=tinysrgb&w=800"},
-    {id:"progress",  label:"Progress",   sub:"Analytics",       icon:"P", img:"https://images.pexels.com/photos/703016/pexels-photo-703016.jpeg?auto=compress&cs=tinysrgb&w=800"},
-    {id:"journal",   label:"Journal",    sub:"Personal Notes",  icon:"J", img:"https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=800"},
-    {id:"calendar",  label:"Calendar",   sub:"Schedule",        icon:"C", img:"https://images.pexels.com/photos/267394/pexels-photo-267394.jpeg?auto=compress&cs=tinysrgb&w=800"},
-    {id:"profile",   label:"Profile",    sub:"Settings",        icon:"✦", img:sport?.img || "https://images.pexels.com/photos/274422/pexels-photo-274422.jpeg?auto=compress&cs=tinysrgb&w=800"},
-    {id:"upgrade",   label:"Upgrade",    sub:"Premium Plans",   icon:"◆", img:"https://images.pexels.com/photos/274422/pexels-photo-274422.jpeg?auto=compress&cs=tinysrgb&w=800"},
+    {id:"nutrition", label:"Nutrition",  sub:"Meal Plans",      icon:"N", img:"https://images.unsplash.com/photo-1547592180-85f173990554?w=800&q=85"},
+    {id:"workout",   label:"Workout",    sub:"Training",        icon:"W", img:"https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=85"},
+    {id:"injury",    label:"Recovery",   sub:"Rehabilitation",  icon:"R", img:"https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=85"},
+    {id:"progress",  label:"Progress",   sub:"Analytics",       icon:"P", img:"https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&q=85"},
+    {id:"journal",   label:"Journal",    sub:"Personal Notes",  icon:"J", img:"https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=85"},
+    {id:"calendar",  label:"Calendar",   sub:"Schedule",        icon:"C", img:"https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&q=85"},
+    {id:"profile",   label:"Profile",    sub:"Settings",        icon:"✦", img:sport?.img || "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80"},
+    {id:"upgrade",   label:"Upgrade",    sub:"Premium Plans",   icon:"◆", img:"https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80"},
   ];
 
   // ── PRICING SCREEN ─────────────────────────────────────────
@@ -5647,7 +5647,7 @@ COACHING GUIDELINES:
 
         {/* DASH HERO */}
         <div className="dash-hero">
-          <img className="dh-bg" src={sport.img} alt="" loading="eager" />
+          <div className="dh-bg" style={{backgroundImage:`url(${sport.img})`}}/>
           <div className="dh-vig"/>
           <div className="dh-rule"/>
           {/* Action buttons — top right */}
@@ -5692,8 +5692,7 @@ COACHING GUIDELINES:
             {MODS.map(m=>(
               <div key={m.id} className={`mtile${dash===m.id?" on":""}`}
                 onClick={()=>m.id==="upgrade"?setScreen("pricing"):goTo(m.id)}>
-                <img className="mt-img" src={m.img} alt="" loading="eager" draggable="false"
-                  onError={e=>{e.target.style.opacity='0';}} />
+                <div className="mt-img" style={{backgroundImage:`url(${m.img})`}}/>
                 <div className="mt-grad"/>
                 {/* Diamond geometric overlay — the Taradome tile standard */}
                 <div className="mt-geo">
@@ -5800,9 +5799,9 @@ COACHING GUIDELINES:
                 <div className="pb">
                   <div className="freq-grid">
                     {[
-                      {n:3,lbl:"3 Meals",sub:"Classic · Busy schedule",   img:"https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400"},
-                      {n:5,lbl:"5 Meals",sub:"Optimal · Performance",      img:"https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400"},
-                      {n:7,lbl:"7 Meals",sub:"Elite · Maximum fuel",       img:"https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400"},
+                      {n:3,lbl:"3 Meals",sub:"Classic · Busy schedule",   img:"https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80"},
+                      {n:5,lbl:"5 Meals",sub:"Optimal · Performance",      img:"https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80"},
+                      {n:7,lbl:"7 Meals",sub:"Elite · Maximum fuel",       img:"https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80"},
                     ].map(f=>(
                       <div key={f.n} className={`freq-tile${mealFreq===f.n?" on":""}`} onClick={()=>setMealFreq(f.n)}>
                         <div className="freq-bg" style={{backgroundImage:`url(${f.img})`}}/>
@@ -6998,14 +6997,14 @@ COACHING GUIDELINES:
                         const sorted = [...new Set([...highRisk.filter(h=>allInjuries.includes(h)), ...allInjuries])];
                         // Cinematic burgundy photo pool — sports injury / athletic / medical themed
                         const injPhotos = [
-                          "https://images.pexels.com/photos/703016/pexels-photo-703016.jpeg?auto=compress&cs=tinysrgb&w=300",
-                          "https://images.pexels.com/photos/841130/pexels-photo-841130.jpeg?auto=compress&cs=tinysrgb&w=300",
-                          "https://images.pexels.com/photos/3076509/pexels-photo-3076509.jpeg?auto=compress&cs=tinysrgb&w=300",
-                          "https://images.pexels.com/photos/703016/pexels-photo-703016.jpeg?auto=compress&cs=tinysrgb&w=300",
-                          "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=300",
-                          "https://images.pexels.com/photos/267394/pexels-photo-267394.jpeg?auto=compress&cs=tinysrgb&w=300",
-                          "https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg?auto=compress&cs=tinysrgb&w=300",
-                          "https://images.pexels.com/photos/1618200/pexels-photo-1618200.jpeg?auto=compress&cs=tinysrgb&w=300",
+                          "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&q=70",
+                          "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=300&q=70",
+                          "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=300&q=70",
+                          "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&q=70",
+                          "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&q=70",
+                          "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=300&q=70",
+                          "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=300&q=70",
+                          "https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?w=300&q=70",
                         ];
                         return (
                           <div className="inj-grid">
@@ -7211,18 +7210,18 @@ COACHING GUIDELINES:
               {/* Progress Sub-Nav — cinematic tile standard */}
               <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"6px",marginBottom:"1.75rem"}} className="prog-grid">
                 {[
-                  ["coach",         "AI Coach",       "Your personal coach",   "https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["overview",      "Overview",       "Dashboard summary",     "https://images.pexels.com/photos/590045/pexels-photo-590045.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["checkin",       "Daily Check-In", "Wellness tracking",     "https://images.pexels.com/photos/3076509/pexels-photo-3076509.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["body",          "Body Tracking",  "Weight & composition",  "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["nutrition",     "Nutrition Log",  "Macros & calories",     "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["performance",   "Performance",    "Benchmarks & tests",    "https://images.pexels.com/photos/703016/pexels-photo-703016.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["photos",        "Photos",         "Visual progress",       "https://images.pexels.com/photos/703016/pexels-photo-703016.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["recruiting",    "Recruiting",     "Scout outreach",        "https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["coachconnect",  "Coach Connect",  "Send to your coach",    "https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["notifications", "Notifications",  "Alerts & reminders",    "https://images.pexels.com/photos/267394/pexels-photo-267394.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["supplements",   "Supplements",    "Stack guidance",        "https://images.pexels.com/photos/3076509/pexels-photo-3076509.jpeg?auto=compress&cs=tinysrgb&w=400"],
-                  ["history",       "History",        "Training archive",      "https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=400"],
+                  ["coach",         "AI Coach",       "Your personal coach",   "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&q=80"],
+                  ["overview",      "Overview",       "Dashboard summary",     "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80"],
+                  ["checkin",       "Daily Check-In", "Wellness tracking",     "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&q=80"],
+                  ["body",          "Body Tracking",  "Weight & composition",  "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80"],
+                  ["nutrition",     "Nutrition Log",  "Macros & calories",     "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80"],
+                  ["performance",   "Performance",    "Benchmarks & tests",    "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=400&q=80"],
+                  ["photos",        "Photos",         "Visual progress",       "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=400&q=80"],
+                  ["recruiting",    "Recruiting",     "Scout outreach",        "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&q=80"],
+                  ["coachconnect",  "Coach Connect",  "Send to your coach",    "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&q=80"],
+                  ["notifications", "Notifications",  "Alerts & reminders",    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80"],
+                  ["supplements",   "Supplements",    "Stack guidance",        "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&q=80"],
+                  ["history",       "History",        "Training archive",      "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400&q=80"],
                 ].map(([id,label,sub,img])=>{
                   const isOn = progressTab===id;
                   return (
