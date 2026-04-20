@@ -7242,9 +7242,9 @@ COACHING GUIDELINES:
                         </svg>
                       </div>
                       {/* Text */}
-                      <div style={{position:"relative",zIndex:1,height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 6px",gap:"2px"}}>
-                        <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"0.58rem",fontWeight:800,letterSpacing:"2.5px",textTransform:"uppercase",color:"#FFFFFF",lineHeight:1,textAlign:"center",textShadow:"0 1px 6px rgba(0,0,0,0.8)"}}>{label}</div>
-                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:"0.44rem",letterSpacing:"1.5px",textTransform:"uppercase",color:isOn?"rgba(255,255,255,0.75)":"rgba(255,255,255,0.45)",lineHeight:1,textAlign:"center"}}>{sub}</div>
+                      <div style={{position:"relative",zIndex:1,height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 4px",gap:"2px"}}>
+                        <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"clamp(0.38rem,1.8vw,0.58rem)",fontWeight:800,letterSpacing:"1px",textTransform:"uppercase",color:"#FFFFFF",lineHeight:1.2,textAlign:"center",textShadow:"0 1px 6px rgba(0,0,0,0.8)",wordBreak:"break-word",overflowWrap:"break-word",maxWidth:"100%"}}>{label}</div>
+                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:"clamp(0.32rem,1.2vw,0.44rem)",letterSpacing:"1px",textTransform:"uppercase",color:isOn?"rgba(255,255,255,0.75)":"rgba(255,255,255,0.45)",lineHeight:1,textAlign:"center",wordBreak:"break-word",maxWidth:"100%"}}>{sub}</div>
                       </div>
                     </div>
                   );
