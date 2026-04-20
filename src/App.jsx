@@ -3680,7 +3680,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 
 /* HERO */
 .hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
-.hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;
+.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%;
   animation:hzoom 22s ease-in-out infinite alternate;}
 @keyframes hzoom{from{transform:scale(1);}to{transform:scale(1.07);}}
 .hero-vig{position:absolute;inset:0;
@@ -3791,7 +3791,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 
 /* DASHBOARD */
 .dash-hero{position:relative;height:340px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;margin-bottom:2.5rem;}
-.dh-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;
+.dh-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%;
   filter:saturate(0.3) brightness(0.28);transition:all 0.8s;}
 .dh-vig{position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(6,5,4,0.05)0%,rgba(6,5,4,0.15)35%,rgba(6,5,4,0.97)100%);}
