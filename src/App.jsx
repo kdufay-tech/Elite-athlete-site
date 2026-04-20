@@ -3680,7 +3680,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 
 /* HERO */
 .hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
-.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%;
+.hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;
   animation:hzoom 22s ease-in-out infinite alternate;}
 @keyframes hzoom{from{transform:scale(1);}to{transform:scale(1.07);}}
 .hero-vig{position:absolute;inset:0;
@@ -3728,7 +3728,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .stile{position:relative;aspect-ratio:3/4;overflow:hidden;cursor:pointer;transition:transform 0.5s cubic-bezier(0.16,1,0.3,1);}
 .stile:hover{z-index:2;transform:scale(1.04);}
 .stile.sel{z-index:3;}
-.stile-img{position:absolute;inset:0;background-size:cover;background-position:center;
+.stile-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
   filter:saturate(0.6) brightness(0.55);transition:all 0.65s cubic-bezier(0.16,1,0.3,1);pointer-events:none;}
 .stile:hover .stile-img{transform:scale(1.1);filter:saturate(0.9) brightness(0.7);}
 .stile.sel .stile-img{filter:saturate(1.1) brightness(0.55);}
@@ -3791,7 +3791,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 
 /* DASHBOARD */
 .dash-hero{position:relative;height:340px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;margin-bottom:2.5rem;}
-.dh-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%;
+.dh-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;
   filter:saturate(0.3) brightness(0.28);transition:all 0.8s;}
 .dh-vig{position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(6,5,4,0.05)0%,rgba(6,5,4,0.15)35%,rgba(6,5,4,0.97)100%);}
@@ -3829,7 +3829,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
   box-shadow:0 2px 16px rgba(0,0,0,0.6);}
 .mtile:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,0.7);}
 .mtile.on{box-shadow:0 0 0 2px rgba(191,161,106,0.6),0 12px 32px rgba(0,0,0,0.6);}
-.mt-img{position:absolute;inset:0;background-size:cover;background-position:center;
+.mt-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
   filter:saturate(0.85) brightness(0.52);transition:all 0.4s;pointer-events:none;}
 .mtile:hover .mt-img{filter:saturate(1.0) brightness(0.65);transform:scale(1.05);}
 .mtile.on .mt-img{filter:saturate(0.95) brightness(0.58);}
@@ -5192,7 +5192,7 @@ COACHING GUIDELINES:
       </nav>
 
       <section className="hero">
-        <div className="hero-bg" style={{backgroundImage:"url(https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1800&q=80)"}}/>
+        <img className="hero-bg" src="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1800&q=80" alt="" referrerPolicy="no-referrer" loading="eager"/>
         <div className="hero-vig"/>
         <div className="hero-grain"/>
         <div className="hero-c">
@@ -5250,7 +5250,7 @@ COACHING GUIDELINES:
             {Object.entries(SPORTS).map(([key,s])=>(
               <div key={key} className={`stile${profile.sport===key?" sel":""}`}
                 onClick={()=>{setProfile(p=>({...p,sport:key,position:""}));setScreen("setup");}}>
-                <div className="stile-img" style={{backgroundImage:`url(${s.img})`}}/>
+                <img className="stile-img" src={s.img} alt="" referrerPolicy="no-referrer" loading="eager" draggable="false"/>
                 <div className="stile-ov"/>
                 <div className="stile-ck">{profile.sport===key?"✓":""}</div>
                 <div className="stile-body">
@@ -5647,7 +5647,7 @@ COACHING GUIDELINES:
 
         {/* DASH HERO */}
         <div className="dash-hero">
-          <div className="dh-bg" style={{backgroundImage:`url(${sport.img})`}}/>
+          <img className="dh-bg" src={sport.img} alt="" referrerPolicy="no-referrer" loading="eager"/>
           <div className="dh-vig"/>
           <div className="dh-rule"/>
           {/* Action buttons — top right */}
@@ -5692,7 +5692,7 @@ COACHING GUIDELINES:
             {MODS.map(m=>(
               <div key={m.id} className={`mtile${dash===m.id?" on":""}`}
                 onClick={()=>m.id==="upgrade"?setScreen("pricing"):goTo(m.id)}>
-                <div className="mt-img" style={{backgroundImage:`url(${m.img})`}}/>
+                <img className="mt-img" src={m.img} alt="" referrerPolicy="no-referrer" loading="eager" draggable="false"/>
                 <div className="mt-grad"/>
                 {/* Diamond geometric overlay — the Taradome tile standard */}
                 <div className="mt-geo">
