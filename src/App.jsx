@@ -5290,14 +5290,14 @@ COACHING GUIDELINES:
           <div id="landing-beta" style={{padding:"4rem 1.5rem",textAlign:"center",borderTop:"1px solid rgba(201,168,76,0.1)",background:"rgba(201,168,76,0.02)"}}>
             <div style={{display:"inline-block",fontSize:"0.58rem",letterSpacing:"4px",color:"var(--gold)",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:"20px",padding:"4px 14px",marginBottom:"1.25rem"}}>FREE BETA ACCESS</div>
             <div style={{fontFamily:"'Cormorant SC',serif",fontSize:"clamp(1.8rem,4vw,2.8rem)",fontWeight:600,letterSpacing:"2px",color:"var(--ivory)",marginBottom:"1rem",lineHeight:1.2}}>
-              3 Months of Full Elite Access.<br/>No Credit Card. No Catch.
+              Full Elite Access.<br/>No Credit Card. No Catch.
             </div>
             <div style={{fontSize:"0.85rem",color:"var(--muted)",maxWidth:"540px",margin:"0 auto 2.5rem",lineHeight:1.75}}>
-              Elite Athlete is opening a limited beta for coaches and athletes. Get unrestricted access to every feature — AI Coach, full nutrition, workout programming, performance tracking — completely free for 90 days.
+              Elite Athlete is opening a limited beta for coaches and athletes. Get unrestricted access to every feature — AI Coach, full nutrition, workout programming, performance tracking — completely free.
             </div>
             <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"1.5rem",marginBottom:"2.5rem"}}>
-              {[["🏈","Athletes","Full position-specific programming, AI coaching, supplement stacks — built for your sport.","ATHLETE2026"],
-                ["📋","Coaches","See how your athletes are training. Get early access to Coach Pro when it launches Q3 2026.","COACH2026"]].map(([icon,title,desc,code])=>(
+              {[["🏈","Athletes","Full position-specific programming, AI coaching, supplement stacks — built for your sport. 30 days free.","ATHLETE2026"],
+                ["📋","Coaches","See how your athletes are training. Full roster access. 45 days free. Coach Pro launching Q3 2026.","COACH2026"]].map(([icon,title,desc,code])=>(
                 <div key={code} style={{background:"#111",border:"1px solid rgba(201,168,76,0.2)",borderRadius:12,padding:"24px",maxWidth:280,textAlign:"left"}}>
                   <div style={{fontSize:"1.8rem",marginBottom:"0.75rem"}}>{icon}</div>
                   <div style={{fontSize:"0.7rem",letterSpacing:"2px",color:"var(--gold)",marginBottom:"6px",textTransform:"uppercase"}}>{title}</div>
@@ -5310,7 +5310,7 @@ COACHING GUIDELINES:
               CLAIM FREE BETA ACCESS →
             </button>
             <div style={{fontSize:"0.65rem",color:"var(--muted)",marginTop:"12px",letterSpacing:"1px"}}>
-              Use code ATHLETE2026 or COACH2026 after signing up · 90 days · No payment required
+              Use code ATHLETE2026 (30 days) or COACH2026 (45 days) after signing up · No payment required
             </div>
           </div>
 
@@ -7186,7 +7186,7 @@ COACHING GUIDELINES:
               </div>
 
               {/* Progress Sub-Nav — cinematic tile standard */}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"6px",marginBottom:"1.75rem"}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"6px",marginBottom:"1.75rem"}} className="prog-grid">
                 {[
                   ["coach",         "AI Coach",       "Your personal coach",   "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400&q=80"],
                   ["overview",      "Overview",       "Dashboard summary",     "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80"],
@@ -7215,13 +7215,13 @@ COACHING GUIDELINES:
                       cursor:"pointer",flexShrink:0,
                       boxShadow:isOn?"0 0 0 2px rgba(191,161,106,0.7),0 4px 16px rgba(0,0,0,0.5)":"0 2px 8px rgba(0,0,0,0.4)",
                       transition:"transform 0.25s,box-shadow 0.25s",
-                      transform:isOn?"translateY(-2px)":"none",
+                      transform:isOn?"translateY(-2px)":"none",background:"#0D0D0D",
                     }}
                     onMouseEnter={e=>{if(!isOn){e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 18px rgba(0,0,0,0.5)";}}}
                     onMouseLeave={e=>{if(!isOn){e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,0.4)";}}}>
                       {/* Photo background */}
-                      <div style={{position:"absolute",inset:0,backgroundImage:`url(${img})`,backgroundSize:"cover",backgroundPosition:"center",
-                        filter:`saturate(${isOn?0.9:0.75}) brightness(${isOn?0.55:0.38})`,transition:"filter 0.3s"}}/>
+                      <img src={img} alt="" loading="lazy" draggable="false" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",
+                        filter:`saturate(${isOn?0.9:0.75}) brightness(${isOn?0.55:0.38})`,transition:"filter 0.3s",pointerEvents:"none"}}/>
                       {/* Gradient */}
                       <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.65) 100%)"}}/>
                       {/* Diamond overlay */}
