@@ -3829,8 +3829,8 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
   box-shadow:0 2px 16px rgba(0,0,0,0.6);}
 .mtile:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,0.7);}
 .mtile.on{box-shadow:0 0 0 2px rgba(191,161,106,0.6),0 12px 32px rgba(0,0,0,0.6);}
-.mt-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
-  filter:saturate(0.85) brightness(0.52);transition:all 0.4s;pointer-events:none;}
+.mt-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;
+  filter:saturate(0.85) brightness(0.52);transition:filter 0.4s,transform 0.4s;pointer-events:none;will-change:transform;}
 .mtile:hover .mt-img{filter:saturate(1.0) brightness(0.65);transform:scale(1.05);}
 .mtile.on .mt-img{filter:saturate(0.95) brightness(0.58);}
 .mt-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.08) 0%,rgba(0,0,0,0.72) 100%);}
@@ -5535,7 +5535,7 @@ COACHING GUIDELINES:
     {id:"progress",  label:"Progress",   sub:"Analytics",       icon:"P", img:"https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&q=85"},
     {id:"journal",   label:"Journal",    sub:"Personal Notes",  icon:"J", img:"https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=85"},
     {id:"calendar",  label:"Calendar",   sub:"Schedule",        icon:"C", img:"https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&q=85"},
-    {id:"profile",   label:"Profile",    sub:"Settings",        icon:"✦", img:sport.img},
+    {id:"profile",   label:"Profile",    sub:"Settings",        icon:"✦", img:sport?.img || "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=85"},
     {id:"upgrade",   label:"Upgrade",    sub:"Premium Plans",   icon:"◆", img:"https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=85"},
   ];
 
@@ -5692,7 +5692,8 @@ COACHING GUIDELINES:
             {MODS.map(m=>(
               <div key={m.id} className={`mtile${dash===m.id?" on":""}`}
                 onClick={()=>m.id==="upgrade"?setScreen("pricing"):goTo(m.id)}>
-                <img className="mt-img" src={m.img} alt="" loading="eager" draggable="false" />
+                <img className="mt-img" src={m.img} alt="" loading="eager" draggable="false"
+                  onError={e=>{e.target.style.opacity='0';}} />
                 <div className="mt-grad"/>
                 {/* Diamond geometric overlay — the Taradome tile standard */}
                 <div className="mt-geo">
