@@ -3877,6 +3877,7 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
   .panel{overflow-x:hidden;width:100%;box-sizing:border-box;}
   .pb{overflow-x:hidden;}
   .g2mob{grid-template-columns:1fr !important;}
+  .g4mob{grid-template-columns:1fr 1fr !important;}
 }
 
 /* ── MOBILE RESPONSIVE ────────────────────────────────── */
@@ -8329,7 +8330,7 @@ COACHING GUIDELINES:
                 return (
                 <div>
                   {/* Macro targets header */}
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.75rem",marginBottom:"1.25rem"}}>
+                  <div className="g4mob" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.75rem",marginBottom:"1.25rem"}}>
                     {[
                       ["Calories",logCals,totalCals,"#BFA16A","kcal"],
                       ["Protein",logProt,pTarget,"#4BAE71","g"],
