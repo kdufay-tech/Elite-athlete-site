@@ -9382,7 +9382,7 @@ ${recruitingNote}`:null,
                       </div>
                     </div>
 
-                    <div className="g2mob" className="g2mob" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
+                    <div className="g2mob" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
 
                       {/* LEFT — Coaches + Report Builder */}
                       <div style={{display:"flex",flexDirection:"column",gap:"0.85rem"}}>
@@ -9610,7 +9610,7 @@ ${recruitingNote}`:null,
                     </div>
                   )}
 
-                  <div className="g2mob" className="g2mob" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
+                  <div className="g2mob" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
 
                     {/* LEFT — Reminder settings */}
                     <div style={{display:"flex",flexDirection:"column",gap:"0.85rem"}}>
