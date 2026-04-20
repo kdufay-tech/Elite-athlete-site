@@ -365,11 +365,15 @@ function getSupplementStack(sport, position) {
   const foundation = SUPPLEMENT_STACKS._foundation || [];
   const sportBase  = SUPPLEMENT_STACKS[sport]?._base || [];
   const posStack   = SUPPLEMENT_STACKS[sport]?.[position] || [];
-  // Deduplicate by name — position-specific overrides base
+  // Normalise name for dedup — collapses "Collagen Peptides + Vitamin C" / "Collagen + Vitamin C"
+  // and similar near-duplicate variants into one canonical key
+  const normalise = (name) => name.toLowerCase().replace(/\bpeptides?\b\s*/gi,'').replace(/\s+/g,' ').trim();
+  // Position-specific overrides base which overrides foundation
   const seen = new Set();
   return [...posStack, ...sportBase, ...foundation].filter(s => {
-    if (seen.has(s.name)) return false;
-    seen.add(s.name);
+    const key = normalise(s.name);
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }
@@ -3834,8 +3838,9 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .mt-dot{display:none;}
 .mt-body{position:relative;z-index:1;padding:1.1rem 1rem;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.25rem;}
 .mt-icon{display:none;}
-.mt-label{font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:800;letter-spacing:3.5px;text-transform:uppercase;color:#FFFFFF;line-height:1;text-shadow:0 1px 10px rgba(0,0,0,0.7);}
+.mt-label{font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:800;letter-spacing:3.5px;text-transform:uppercase;color:#FFFFFF;line-height:1.2;text-shadow:0 1px 10px rgba(0,0,0,0.7);word-break:break-word;overflow-wrap:break-word;}
 .mt-sub{font-family:'Inter',sans-serif;font-size:0.5rem;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-top:0.2rem;font-weight:400;}
+@media(max-width:600px){.mt-label{font-size:0.62rem;letter-spacing:1.5px;}.mt-sub{font-size:0.42rem;letter-spacing:1.5px;}}
 
 /* PANEL — matte glass, inset effect */
 .panel{background:var(--charcoal);border:1px solid rgba(255,255,255,0.05);border-radius:var(--r-lg);overflow:hidden;
@@ -4235,19 +4240,25 @@ export default function App() {
       }
       if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
       const facing = cameraFacingRef.current;
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Wrap getUserMedia with a 8-second timeout to prevent indefinite hang on mobile
+      const streamPromise = navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('CameraTimeout')), 8000)
+      );
+      const stream = await Promise.race([streamPromise, timeoutPromise]);
       setCameraModal(target);
       // Small delay so React renders <video> before we set the stream
       await new Promise(r => setTimeout(r, 100));
       setCameraStream(stream);
     } catch(e) {
       console.error('Camera error:', e.name, e.message);
-      if      (e.name === 'NotAllowedError') shout("Camera permission denied — allow access in browser settings", "!");
-      else if (e.name === 'NotFoundError')   shout("No camera found — use Upload instead", "!");
-      else                                    shout("Camera unavailable — use Upload instead", "!");
+      if      (e.message === 'CameraTimeout')    shout("Camera timed out — tap Upload to use a photo instead", "!");
+      else if (e.name === 'NotAllowedError')      shout("Camera permission denied — allow access in browser settings", "!");
+      else if (e.name === 'NotFoundError')        shout("No camera found — use Upload instead", "!");
+      else                                        shout("Camera unavailable — use Upload instead", "!");
     }
   };
 
@@ -4869,7 +4880,7 @@ export default function App() {
 ATHLETE PROFILE:
 - Name: ${profile.name || "Athlete"}
 - Sport: ${sport.label} | Position: ${profile.position || "General"}
-- Weight: ${profile.weight ? profile.weight + " lbs" : "Not logged"} | Height: ${profile.height ? Math.floor(profile.height/12) + "'" + (profile.height%12) + '"' : "Not logged"} | Age: ${profile.age || "Not logged"}
+- Weight: ${profile.weight ? profile.weight + " lbs" : "Not logged"} | Height: ${profile.height ? Math.floor(Number(profile.height)/12) + "'" + Math.round(Number(profile.height)%12) + '"' : "Not logged"} | Age: ${profile.age || "Not logged"}
 - Primary Goal: ${mealType} | Training Program: ${wkType}
 - Training Week: Week ${wkWeek}
 
@@ -7993,8 +8004,8 @@ COACHING GUIDELINES:
               {/* ══ DAILY CHECK-IN ════════════════════════════════ */}
               {progressTab==="checkin" && (
                 <div>
-                  <div style={{display:"flex",gap:"0.75rem",marginBottom:"1.5rem",alignItems:"flex-start"}}>
-                    <div className="panel" style={{flex:1}}>
+                  <div style={{display:"flex",gap:"0.75rem",marginBottom:"1.5rem",alignItems:"flex-start",flexWrap:"wrap"}}>
+                    <div className="panel" style={{flex:"1 1 300px",minWidth:0}}>
                       <div className="ph"><div className="pt">Today's <em>Check-In</em></div>
                         <span style={{fontSize:"0.74rem",color:"var(--gold)"}}>{new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</span>
                       </div>
@@ -8042,7 +8053,7 @@ COACHING GUIDELINES:
                     </div>
                     {/* Recent check-ins */}
                     {checkIns.length>0 && (
-                      <div style={{width:"240px",flexShrink:0}}>
+                      <div style={{width:"240px",flexShrink:0,minWidth:"200px",flex:"0 1 240px"}}>
                         <div style={{fontSize:"0.72rem",letterSpacing:"2px",color:"var(--muted)",textTransform:"uppercase",marginBottom:"0.75rem"}}>Recent Check-Ins</div>
                         {[...checkIns].reverse().slice(0,7).map((ci,i)=>(
                           <div key={i} style={{background:"var(--smoke)",borderRadius:"var(--r)",padding:"0.6rem 0.75rem",marginBottom:"0.4rem",border:"1px solid var(--border)"}}>
@@ -8960,7 +8971,7 @@ COACHING GUIDELINES:
                 // Latest weight
                 const latestWeight = weightLog.length>0 ? weightLog[weightLog.length-1] : null;
                 const latestPhoto = progressPhotos[0] || null;
-                const heightFt = profile.height ? `${Math.floor(profile.height/12)}'${profile.height%12}"` : null;
+                const heightFt = profile.height ? `${Math.floor(Number(profile.height)/12)}'${Math.round(Number(profile.height)%12)}"` : null;
 
                 // Completion score
                 const fields = [profile.name,profile.sport,profile.position,profile.height,profile.weight,profile.age,
@@ -9206,7 +9217,7 @@ COACHING GUIDELINES:
                                   ``,
                                   `ATHLETE INFO`,
                                   `Sport / Position: ${sport.label} · ${profile.position}`,
-                                  profile.height?`Height: ${Math.floor(profile.height/12)}'${profile.height%12}"`:null,
+                                  profile.height?`Height: ${Math.floor(Number(profile.height)/12)}'${Math.round(Number(profile.height)%12)}"`:null,
                                   (latestWeight?.weight||profile.weight)?`Weight: ${latestWeight?.weight||profile.weight} lbs`:null,
                                   profile.age?`Age: ${profile.age}`:null,
                                   profile.gpa?`GPA: ${profile.gpa}${profile.gpaScale?" / "+profile.gpaScale:""}`:null,
@@ -10251,7 +10262,7 @@ ${recruitingNote}`:null,
                     <div className="ph"><div className="pt">Stats <em>Overview</em></div></div>
                     <div className="pb">
                       <div className="two">
-                        {[["Weight",profile.weight?`${profile.weight} lbs`:"—"],["Height",profile.height?`${Math.floor(profile.height/12)}'${profile.height%12}"`:"—"],["Age",profile.age?`${profile.age} yrs`:"—"],["Goal",profile.goal||"—"]].map(([l,v])=>(
+                        {[["Weight",profile.weight?`${profile.weight} lbs`:"—"],["Height",profile.height?`${Math.floor(Number(profile.height)/12)}'${Math.round(Number(profile.height)%12)}"`:"—"],["Age",profile.age?`${profile.age} yrs`:"—"],["Goal",profile.goal||"—"]].map(([l,v])=>(
                           <div key={l} style={{marginBottom:"1rem"}}>
                             <div style={{fontSize:"0.84rem",letterSpacing:"2px",textTransform:"uppercase",color:"var(--muted)",marginBottom:"0.28rem"}}>{l}</div>
                             <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.4rem",fontWeight:600,color:"var(--ivory)"}}>{v}</div>
