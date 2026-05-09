@@ -6,3 +6,7 @@ dist/
 
 # Local Netlify folder
 .netlify
+
+resend api key.txt
+*.txt
+stripe cupon id.txt
