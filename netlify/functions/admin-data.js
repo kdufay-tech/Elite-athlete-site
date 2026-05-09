@@ -20,7 +20,7 @@ export default async (req) => {
   const token       = authHeader.replace('Bearer ', '');
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
   const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceKey  = process.env.SUPABASE_SERVICE_KEY;
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY;
 
   if (!supabaseUrl || !serviceKey) {
     return new Response(JSON.stringify({ error: 'Server not configured' }), { status: 500, headers: CORS });
@@ -108,6 +108,24 @@ export default async (req) => {
   );
   const betaCodes = bcRes.ok ? await bcRes.json() : [];
 
+  // Beta invites — paginate in batches of 1000 to bypass Supabase REST hard limit
+  let betaInvites = [];
+  let offset = 0;
+  const batchSize = 1000;
+  while (true) {
+    const batchRes = await fetch(
+      `${supabaseUrl}/rest/v1/beta_invites?order=created_at.desc&limit=${batchSize}&offset=${offset}`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+    );
+    if (!batchRes.ok) break;
+    const batch = await batchRes.json();
+    if (!Array.isArray(batch) || batch.length === 0) break;
+    betaInvites = betaInvites.concat(batch);
+    if (batch.length < batchSize) break; // last page
+    offset += batchSize;
+    if (offset >= 10000) break; // safety cap
+  }
+
   // Beta feedback
   const fbRes = await fetch(
     `${supabaseUrl}/rest/v1/beta_feedback?order=created_at.desc&limit=100`,
@@ -133,6 +151,10 @@ export default async (req) => {
     betaCount:        betaUsers.length,
     betaExpired:      betaUsers.filter(u => u.expired).length,
     betaConverted:    betaUsers.filter(u => !u.expired && u.billing_interval !== 'beta').length,
+    betaInvites,
+    betaInviteCount:   betaInvites.length,
+    invitesPending:    betaInvites.filter(i => i.status === 'pending' || i.status === 'sent').length,
+    invitesAccepted:   betaInvites.filter(i => i.status === 'accepted').length,
     waitlistCount:    waitlist.length,
   }), { status: 200, headers: CORS });
 };

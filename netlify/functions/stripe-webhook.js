@@ -9,7 +9,7 @@ export default async (req) => {
   const stripeSecret  = isBeta ? process.env.STRIPE_TEST_SECRET_KEY  : process.env.STRIPE_SECRET_KEY;
   const webhookSecret = isBeta ? process.env.STRIPE_TEST_WEBHOOK_SECRET : process.env.STRIPE_WEBHOOK_SECRET;
   const supabaseUrl   = process.env.SUPABASE_URL;
-  const supabaseKey   = process.env.SUPABASE_SERVICE_KEY;
+  const supabaseKey   = process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY;
 
   if (!stripeSecret || !webhookSecret)
     return new Response(JSON.stringify({ error: 'Stripe keys not configured' }), { status: 500 });

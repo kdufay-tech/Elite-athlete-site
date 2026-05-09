@@ -17,7 +17,7 @@ export default async (req) => {
 
   const token       = authHeader.replace('Bearer ', '');
   const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceKey  = process.env.SUPABASE_SERVICE_KEY;
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY;
 
   // Verify the calling user
   const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
@@ -42,7 +42,21 @@ export default async (req) => {
 
   const betaCode = codes[0];
 
-  // Check max_uses
+  // Check global 500-user beta cap
+  const settingsRes = await fetch(
+    `${supabaseUrl}/rest/v1/app_settings?key=eq.beta_max_users`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+  );
+  const settings = settingsRes.ok ? await settingsRes.json() : [];
+  const maxUsers = settings[0] ? parseInt(settings[0].value) : 500;
+
+  const countRes = await fetch(
+    `${supabaseUrl}/rest/v1/subscriptions?status=eq.active&beta_expires_at=not.is.null&select=id`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, Prefer: 'count=exact' } }
+  );
+  const totalBeta = parseInt(countRes.headers?.get('content-range')?.split('/')[1] || '0');
+  if (totalBeta >= maxUsers)
+    return new Response(JSON.stringify({ error: 'Beta is full', beta_full: true }), { status: 409, headers: CORS });
   if (betaCode.max_uses !== null && betaCode.uses >= betaCode.max_uses)
     return new Response(JSON.stringify({ error: 'Beta code has reached its usage limit' }), { status: 409, headers: CORS });
 
@@ -80,12 +94,20 @@ export default async (req) => {
   if (!upsertRes.ok)
     return new Response(JSON.stringify({ error: 'Failed to activate beta access' }), { status: 500, headers: CORS });
 
-  // Increment code usage count
-  await fetch(`${supabaseUrl}/rest/v1/beta_codes?id=eq.${betaCode.id}`, {
-    method: 'PATCH',
+  // Increment code usage count — use RPC to avoid race condition and RLS issues
+  const incrRes = await fetch(`${supabaseUrl}/rest/v1/rpc/increment_beta_code_uses`, {
+    method: 'POST',
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ uses: betaCode.uses + 1 }),
+    body: JSON.stringify({ code_id: betaCode.id }),
   });
+  // Fallback: direct PATCH if RPC not available
+  if (!incrRes.ok) {
+    await fetch(`${supabaseUrl}/rest/v1/beta_codes?id=eq.${betaCode.id}`, {
+      method: 'PATCH',
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ uses: (betaCode.uses || 0) + 1 }),
+    });
+  }
 
   return new Response(JSON.stringify({
     ok: true,

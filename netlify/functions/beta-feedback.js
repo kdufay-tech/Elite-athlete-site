@@ -17,7 +17,7 @@ export default async (req) => {
 
   const token       = authHeader.replace('Bearer ', '');
   const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceKey  = process.env.SUPABASE_SERVICE_KEY;
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY;
 
   // Verify user
   const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {

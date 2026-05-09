@@ -23,10 +23,10 @@ const sanitizeHtml = (str) => String(str || '')
 // ─────────────────────────────────────────────────────────────
 const SPORTS = {
   football:   { icon: "FB", label: "Football",   img: "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&q=80", positions: ["Quarterback","Running Back","Wide Receiver","Tight End","Offensive Lineman","Defensive End","Linebacker","Cornerback","Safety","Kicker"], injuries: ["ACL Tear","MCL Sprain","Hamstring Strain","Rotator Cuff","Concussion","Ankle Sprain","Turf Toe","Shoulder Dislocation"] },
-  basketball: { icon: "BB", label: "Basketball", img: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80", positions: ["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"], injuries: ["Ankle Sprain","Knee Tendinitis","Finger Dislocation","Achilles Strain","Back Spasm","Hip Flexor"] },
-  soccer:     { icon: "SC", label: "Soccer",     img: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80", positions: ["Goalkeeper","Center Back","Full Back","Defensive Mid","Central Mid","Attacking Mid","Winger","Striker"], injuries: ["Groin Pull","Hamstring Tear","Knee Ligament","Shin Splints","Ankle Sprain","Calf Strain"] },
+  basketball: { icon: "BB", label: "Basketball", img: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80", positions: ["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"], injuries: ["Ankle Sprain","Knee Tendinitis","Finger Dislocation","ACL Tear","Back Spasm","Patellar Tendinitis"] },
+  soccer:     { icon: "SC", label: "Soccer",     img: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80", positions: ["Goalkeeper","Center Back","Full Back","Defensive Mid","Central Mid","Attacking Mid","Winger","Striker"], injuries: ["Groin Strain","Hamstring Strain","Knee Ligament","Shin Splints","Ankle Sprain","Calf Strain"] },
   hockey:     { icon: "HK", label: "Hockey",     img: "https://images.unsplash.com/photo-1515703407324-5f753afd8be8?w=800&q=80", positions: ["Goalie","Defenseman","Left Wing","Right Wing","Center"], injuries: ["Shoulder Separation","Hip Flexor","Knee MCL","Groin Strain","Concussion","Rib Fracture"] },
-  volleyball: { icon: "VB", label: "Volleyball", img: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&q=80", positions: ["Setter","Libero","Outside Hitter","Middle Blocker","Opposite Hitter","Right Side"], injuries: ["Patellar Tendinitis","Shoulder Impingement","Ankle Sprain","Finger Sprain","Lower Back"] },
+  volleyball: { icon: "VB", label: "Volleyball", img: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&q=80", positions: ["Setter","Libero","Outside Hitter","Middle Blocker","Opposite Hitter","Right Side"], injuries: ["Patellar Tendinitis","Rotator Cuff","Ankle Sprain","Finger Dislocation","Back Spasm","Knee Tendinitis"] },
 };
 
 // Each meal: { name, cal, p, c, f }  (kcal, protein g, carbs g, fat g)
@@ -1895,36 +1895,36 @@ const POSITION_INJURY_RISK = {
     "Running Back":      { high: ["Hamstring Strain","Ankle Sprain","Concussion","ACL Tear"], moderate: ["Hip Flexor","Turf Toe"] },
     "Wide Receiver":     { high: ["Hamstring Strain","Ankle Sprain","Turf Toe","Concussion"], moderate: ["ACL Tear","Rotator Cuff"] },
     "Tight End":         { high: ["Ankle Sprain","Hamstring Strain","Shoulder Dislocation"], moderate: ["ACL Tear","MCL Sprain"] },
-    "Offensive Lineman": { high: ["Ankle Sprain","Knee Tendinitis","Back Spasm","MCL Sprain"], moderate: ["Shoulder Dislocation","ACL Tear","Rib Fracture"] },
+    "Offensive Lineman": { high: ["Ankle Sprain","MCL Sprain","ACL Tear","Shoulder Dislocation"], moderate: ["Rotator Cuff","Hamstring Strain","Concussion"] },
     "Defensive End":     { high: ["Shoulder Dislocation","Ankle Sprain","Hamstring Strain"], moderate: ["ACL Tear","Rotator Cuff","Back Spasm"] },
     "Linebacker":        { high: ["Concussion","Hamstring Strain","Ankle Sprain"], moderate: ["ACL Tear","Shoulder Dislocation","Back Spasm"] },
     "Cornerback":        { high: ["Hamstring Strain","Ankle Sprain","Concussion","ACL Tear"], moderate: ["Turf Toe","Hip Flexor"] },
     "Safety":            { high: ["Concussion","Hamstring Strain","Ankle Sprain"], moderate: ["ACL Tear","Shoulder Dislocation"] },
-    "Kicker":            { high: ["Hip Flexor","Groin Strain","Hamstring Strain"], moderate: ["Back Spasm","Ankle Sprain"] },
+    "Kicker":            { high: ["Hamstring Strain","Ankle Sprain","Turf Toe"], moderate: ["MCL Sprain","ACL Tear"] },
   },
   basketball: {
-    "Point Guard":    { high: ["Ankle Sprain","Hamstring Strain","Knee Tendinitis"], moderate: ["ACL Tear","Finger Dislocation"] },
-    "Shooting Guard": { high: ["Ankle Sprain","Knee Tendinitis","Hamstring Strain"], moderate: ["Rotator Cuff","ACL Tear"] },
+    "Point Guard":    { high: ["Ankle Sprain","Knee Tendinitis","ACL Tear"], moderate: ["Patellar Tendinitis","Finger Dislocation"] },
+    "Shooting Guard": { high: ["Ankle Sprain","Knee Tendinitis","Patellar Tendinitis"], moderate: ["ACL Tear","Back Spasm"] },
     "Small Forward":  { high: ["Ankle Sprain","ACL Tear","Knee Tendinitis"], moderate: ["Hamstring Strain","Back Spasm"] },
     "Power Forward":  { high: ["Ankle Sprain","ACL Tear","Patellar Tendinitis"], moderate: ["Back Spasm","Knee Tendinitis"] },
     "Center":         { high: ["Patellar Tendinitis","Ankle Sprain","Back Spasm"], moderate: ["ACL Tear","Knee Tendinitis","Finger Dislocation"] },
   },
   soccer: {
-    "Goalkeeper":    { high: ["Shoulder Dislocation","Ankle Sprain","Finger Dislocation"], moderate: ["Knee Tendinitis","Back Spasm"] },
-    "Center Back":   { high: ["Hamstring Strain","Ankle Sprain","Concussion"], moderate: ["ACL Tear","Groin Strain"] },
+    "Goalkeeper":    { high: ["Ankle Sprain","Groin Strain","Calf Strain"], moderate: ["Knee Ligament","Hamstring Strain"] },
+    "Center Back":   { high: ["Hamstring Strain","Ankle Sprain","Knee Ligament"], moderate: ["Groin Strain","Shin Splints"] },
     "Full Back":     { high: ["Hamstring Strain","Groin Strain","Shin Splints"], moderate: ["ACL Tear","Ankle Sprain"] },
     "Defensive Mid": { high: ["Hamstring Strain","Groin Strain","Ankle Sprain"], moderate: ["ACL Tear","Shin Splints"] },
     "Central Mid":   { high: ["Hamstring Strain","Ankle Sprain","Groin Strain"], moderate: ["Knee Tendinitis","Shin Splints"] },
-    "Attacking Mid": { high: ["Ankle Sprain","Hamstring Strain","ACL Tear"], moderate: ["Hip Flexor","Knee Tendinitis"] },
-    "Winger":        { high: ["Hamstring Strain","Ankle Sprain","Groin Strain"], moderate: ["ACL Tear","Hip Flexor"] },
-    "Striker":       { high: ["Hamstring Strain","Hip Flexor","Ankle Sprain"], moderate: ["ACL Tear","Groin Strain"] },
+    "Attacking Mid": { high: ["Ankle Sprain","Hamstring Strain","Knee Ligament"], moderate: ["Groin Strain","Shin Splints"] },
+    "Winger":        { high: ["Hamstring Strain","Ankle Sprain","Groin Strain"], moderate: ["Knee Ligament","Shin Splints"] },
+    "Striker":       { high: ["Hamstring Strain","Groin Strain","Ankle Sprain"], moderate: ["Knee Ligament","Calf Strain"] },
   },
   hockey: {
-    "Goalie":     { high: ["Groin Strain","Hip Flexor","Shoulder Dislocation"], moderate: ["Ankle Sprain","Back Spasm"] },
-    "Defenseman": { high: ["Shoulder Dislocation","Rib Fracture","MCL Sprain"], moderate: ["Concussion","Groin Strain"] },
-    "Left Wing":  { high: ["Shoulder Dislocation","Concussion","Groin Strain"], moderate: ["Ankle Sprain","MCL Sprain"] },
-    "Right Wing": { high: ["Shoulder Dislocation","Concussion","Groin Strain"], moderate: ["Ankle Sprain","MCL Sprain"] },
-    "Center":     { high: ["Groin Strain","Concussion","Shoulder Dislocation"], moderate: ["Rib Fracture","Back Spasm"] },
+    "Goalie":     { high: ["Groin Strain","Hip Flexor","Knee MCL"], moderate: ["Concussion","Rib Fracture"] },
+    "Defenseman": { high: ["Shoulder Separation","Rib Fracture","Knee MCL"], moderate: ["Concussion","Groin Strain"] },
+    "Left Wing":  { high: ["Shoulder Separation","Concussion","Groin Strain"], moderate: ["Hip Flexor","Knee MCL"] },
+    "Right Wing": { high: ["Shoulder Separation","Concussion","Groin Strain"], moderate: ["Hip Flexor","Knee MCL"] },
+    "Center":     { high: ["Groin Strain","Concussion","Shoulder Separation"], moderate: ["Rib Fracture","Hip Flexor"] },
   },
   volleyball: {
     "Setter":          { high: ["Patellar Tendinitis","Ankle Sprain","Rotator Cuff"], moderate: ["Finger Dislocation","Back Spasm"] },
@@ -3629,20 +3629,20 @@ const CSS = `
 [data-theme="light"] [style*="rgba(255,255,255,0.04)"] { background:var(--border) !important; }
 
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);min-height:100vh;min-height:-webkit-fill-available;overflow-x:hidden;-webkit-font-smoothing:antialiased;}button,a{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 ::selection{background:rgba(191,161,106,0.2);}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:var(--ink);}
 ::-webkit-scrollbar-thumb{background:var(--gold-dk);border-radius:4px;}
 
 /* NOISE */
-.noise{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.022;
+.noise{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;pointer-events:none;opacity:0.022;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 
 /* NAV — matte, minimal */
 .nav{position:fixed;top:0;left:0;right:0;z-index:900;height:64px;
   display:flex;align-items:center;justify-content:space-between;padding:0 2.5rem;
-  background:rgba(6,5,4,0.97);backdrop-filter:blur(20px);
+  background:rgba(6,5,4,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   border-bottom:1px solid rgba(255,255,255,0.05);}
 
 .nav-wm{display:flex;flex-direction:column;line-height:1;gap:2px;}
@@ -3656,6 +3656,24 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .npill.on{background:rgba(255,255,255,0.05);color:var(--ivory);}
 
 .nav-r{display:flex;align-items:center;gap:0.75rem;}
+@media(max-width:640px){
+  /* Totals bar 2x2 */
+  .totals-bar{grid-template-columns:repeat(2,1fr)!important;}
+  .tot-val{font-size:1.5rem!important;}
+
+  /* Meal item macros wrap */
+  .meal-item-row{flex-wrap:wrap!important;}
+  .meal-item-macros{flex-wrap:wrap!important;gap:0.3rem!important;}
+
+  /* Dashboard hero height */
+  .dash-hero{height:220px!important;}
+
+  /* Two-col panels stack */
+  .two{grid-template-columns:1fr!important;}
+
+  /* Generic inline grid overrides via attribute selectors not possible - handled below */
+}
+@media(max-width:600px){.nav{padding:0 1rem;}.nav-pills{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;order:3;width:100%;border-top:1px solid rgba(255,255,255,0.05);padding:0.25rem 0;}.nav-wm-top{display:none;}.nav-wm-main{font-size:0.9rem;letter-spacing:4px;}}
 
 /* BUTTONS — flat, matte, no glow */
 .bg{font-family:'Inter',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:3.5px;text-transform:uppercase;
@@ -3675,7 +3693,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .bsm.on{background:rgba(255,255,255,0.06);color:var(--ivory);border-color:rgba(255,255,255,0.14);}
 
 /* HERO */
-.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
+.hero{position:relative;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%;
   animation:hzoom 22s ease-in-out infinite alternate;}
 @keyframes hzoom{from{transform:scale(1);}to{transform:scale(1.07);}}
@@ -3688,7 +3706,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .hero-kick{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;}
 .hero-kick-line{height:1px;width:48px;background:var(--gold);opacity:0.55;}
 .hero-kick-txt{font-size:0.74rem;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--gold);}
-.hero-h1{font-family:'DM Sans',sans-serif;font-size:clamp(3.8rem,8vw,7.5rem);font-weight:800;line-height:0.92;color:var(--ivory);margin-bottom:1.5rem;letter-spacing:4px;text-transform:uppercase;}
+.hero-h1{font-family:'DM Sans',sans-serif;font-size:clamp(2.4rem,8vw,7.5rem);font-weight:800;line-height:0.92;color:var(--ivory);margin-bottom:1.5rem;letter-spacing:4px;text-transform:uppercase;}
 .hero-h1 em{font-style:normal;color:var(--gold-lt);display:block;font-weight:300;letter-spacing:3px;text-transform:uppercase;}
 .hero-sub{font-family:'Inter',sans-serif;font-size:0.95rem;font-weight:400;letter-spacing:0.3px;
   color:var(--ivory2);max-width:480px;line-height:1.75;margin-bottom:2.5rem;}
@@ -3705,6 +3723,16 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .scell:hover{background:rgba(255,255,255,0.02);}
 .sn{font-family:'DM Sans',sans-serif;font-size:2.4rem;font-weight:800;color:var(--ivory);line-height:1;letter-spacing:1px;}
 .sl{font-family:'Inter',sans-serif;font-size:0.58rem;font-weight:500;letter-spacing:3.5px;text-transform:uppercase;color:var(--muted);margin-top:0.35rem;}
+@media(max-width:640px){
+  .hero-c{padding:4rem 1.5rem 4rem!important;}
+  .hero-h1{font-size:clamp(2.8rem,14vw,5rem)!important;}
+  .sbar{grid-template-columns:repeat(3,1fr)!important;}
+  .scell{padding:1rem 0.5rem!important;}
+  .sn{font-size:1.6rem!important;}
+  .wrap{padding:0 1rem!important;}
+  .meal-item-macros{flex-wrap:wrap!important;gap:0.25rem!important;}
+  .meal-item-row{flex-wrap:wrap!important;gap:0.25rem!important;}
+}
 
 /* LAYOUT */
 .wrap{max-width:1380px;margin:0 auto;padding:0 2.5rem;}
@@ -3719,7 +3747,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .sh2 em{font-style:normal;color:var(--gold-lt);font-weight:300;letter-spacing:2px;}
 
 /* SPORT TILES */
-.sport-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;
+.sport-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:2px;
   background:rgba(191,161,106,0.07);border:1px solid rgba(191,161,106,0.07);border-radius:var(--r-xl);overflow:hidden;}
 .stile{position:relative;aspect-ratio:3/4;overflow:hidden;cursor:pointer;transition:transform 0.5s cubic-bezier(0.16,1,0.3,1);}
 .stile:hover{z-index:2;transform:scale(1.04);}
@@ -3807,16 +3835,13 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
   font-size:0.52rem;font-weight:600;letter-spacing:3.5px;text-transform:uppercase;color:rgba(248,245,240,0.65);}
 /* Bottom stats strip */
 .dh-strip{position:relative;z-index:2;
-  display:grid;grid-template-columns:repeat(4,1fr);
-  border-top:1px solid rgba(255,255,255,0.05);
-  background:rgba(6,5,4,0.95);
-  margin-top:1.5rem;}
+  display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,0.05);background:rgba(6,5,4,0.95);margin-top:1.5rem;}@media(max-width:640px){.dh-strip{grid-template-columns:repeat(2,1fr)!important;}.dh-stat{padding:0.65rem 0.75rem!important;}.meal-item-row{flex-direction:column!important;align-items:flex-start!important;}.meal-item-macros{margin-top:0.25rem!important;flex-wrap:wrap!important;}.dh-greet{font-size:2rem!important;}.dh-greet em{font-size:1.6rem!important;}.nav-r{gap:0.35rem!important;}.nav-r span{display:none!important;}.nav-r button{font-size:0.65rem!important;padding:0.3rem 0.5rem!important;}.ex-lib-list{display:block!important;width:100%!important;}.ex-lib-detail{position:fixed!important;inset:0!important;z-index:1001!important;background:"var(--charcoal)"!important;}}
 .dh-stat{padding:0.85rem 1.5rem;border-right:1px solid rgba(255,255,255,0.04);}
 .dh-stat:last-child{border-right:none;}
 .dh-stat-val{font-family:'DM Sans',sans-serif;font-size:1.5rem;font-weight:800;color:#F8F5F0;line-height:1;letter-spacing:-0.5px;}
 .dh-stat-lbl{font-family:'Inter',sans-serif;font-size:0.52rem;font-weight:600;letter-spacing:3px;
   text-transform:uppercase;color:rgba(154,148,140,0.5);margin-top:0.2rem;}
-.dh-acts{position:absolute;top:1.25rem;right:2rem;z-index:3;display:flex;gap:0.45rem;}
+.dh-acts{position:absolute;top:1.25rem;right:2rem;z-index:3;display:flex;gap:0.45rem;}@media(max-width:640px){.dh-acts{position:relative!important;top:auto!important;right:auto!important;padding:0.5rem 1rem!important;justify-content:flex-start!important;flex-wrap:wrap!important;gap:0.4rem!important;}.dh-hero-content{padding-top:0.5rem!important;}.dash-hero{height:auto!important;min-height:220px!important;}}
 
 /* MODULE TILES — Cinematic Standard */
 .mod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:2.5rem;}
@@ -3861,6 +3886,7 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
 .four{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
 @media(max-width:700px){.two,.three,.four{grid-template-columns:1fr;}}
+@media(max-width:700px){.cal-layout{grid-template-columns:1fr!important;}.cal-detail-panel{position:relative!important;top:auto!important;}}
 @media(max-width:900px){.four{grid-template-columns:1fr 1fr;} .mod-grid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:500px){.mod-grid{grid-template-columns:1fr 1fr;gap:6px;} .mtile{min-height:160px;border-radius:12px;}}
 
@@ -3974,15 +4000,15 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 .cd.sl2{background:rgba(191,161,106,0.13);border-color:var(--gold);}
 
 /* PHOTO DROP */
-.pdrop{border:1px dashed rgba(191,161,106,0.22);border-radius:var(--r-lg);min-height:175px;
+.pdrop{border:1px solid rgba(191,161,106,0.5);border-radius:var(--r-lg);min-height:175px;background:linear-gradient(160deg,#1a1208 0%,#0D0D0D 100%);box-shadow:0 0 20px rgba(191,161,106,0.1),inset 0 0 30px rgba(191,161,106,0.03);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.45rem;
   cursor:pointer;transition:all 0.28s;background:rgba(191,161,106,0.02);text-align:center;padding:1.5rem;}
-.pdrop:hover{border-color:var(--gold);background:rgba(191,161,106,0.05);}
+.pdrop:hover{border-color:var(--gold);background:linear-gradient(160deg,#2a1f0a 0%,#111 100%);box-shadow:0 0 24px rgba(191,161,106,0.15);}
 .pdrop-ic{font-size:2rem;opacity:0.45;}
 .pdrop-lb{font-size:0.68rem;letter-spacing:1.5px;color:var(--muted);font-weight:400;}
 
 /* PAYMENT */
-.pmbg{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.88);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:1rem;}
+.pmbg{position:fixed;top:0;left:0;right:0;bottom:0;z-index:2000;background:rgba(0,0,0,0.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:1rem;}
 .pm{background:var(--charcoal);border:1px solid rgba(191,161,106,0.18);border-radius:var(--r-xl);
   width:100%;max-width:475px;max-height:90vh;overflow-y:auto;box-shadow:var(--lux);}
 .pmh{padding:1.9rem 2.4rem 1.4rem;border-bottom:1px solid rgba(191,161,106,0.07);display:flex;justify-content:space-between;align-items:flex-start;}
@@ -3996,7 +4022,7 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 .ppb:hover{background:#002070;box-shadow:0 8px 30px rgba(0,48,135,0.4);transform:translateY(-1px);}
 
 /* TOAST */
-.toast{position:fixed;bottom:2rem;right:2rem;z-index:9999;
+.toast{position:fixed;bottom:calc(2rem + env(safe-area-inset-bottom, 0px));right:2rem;z-index:9999;
   background:#1C1A17;
   border:1px solid rgba(255,255,255,0.14);border-radius:var(--r-lg);padding:0.9rem 1.4rem;
   display:flex;align-items:center;gap:0.7rem;
@@ -4012,7 +4038,7 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 .av{width:78px;height:78px;border-radius:50%;border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:2rem;background:rgba(191,161,106,0.06);margin:0 auto 1.2rem;}
 
 /* SUCCESS */
-.succ{position:fixed;inset:0;z-index:9998;background:var(--onyx);display:flex;align-items:center;justify-content:center;animation:sfade 0.5s ease;}
+.succ{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9998;background:var(--onyx);display:flex;align-items:center;justify-content:center;animation:sfade 0.5s ease;}
 @keyframes sfade{from{opacity:0;}to{opacity:1;}}
 @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 .succ-inner{text-align:center;}
@@ -4046,20 +4072,20 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 .meal-block{background:var(--slate);border:1px solid rgba(191,161,106,0.08);border-radius:var(--r-lg);
   margin-bottom:0.75rem;overflow:hidden;transition:border-color 0.3s;}
 .meal-block:hover{border-color:rgba(191,161,106,0.22);}
-.meal-block-head{padding:0.9rem 1.25rem;display:flex;align-items:center;justify-content:space-between;
+.meal-block-head{padding:0.9rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.4rem;
   cursor:pointer;border-bottom:1px solid rgba(191,161,106,0.06);}
 .meal-block-left{display:flex;align-items:center;gap:0.75rem;}
 .meal-block-emoji{width:36px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .meal-block-label{font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:500;color:var(--ivory);}
 .meal-block-time{font-size:0.74rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:0.1rem;}
 .meal-block-cal{font-family:'DM Sans',sans-serif;font-size:1.3rem;font-weight:700;color:var(--ivory);line-height:1;letter-spacing:-0.5px;}
-.meal-block-cal-lbl{font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:right;}
+.meal-block-cal-lbl{font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:right;white-space:nowrap;}
 .meal-block-body{padding:0.85rem 1.25rem;}
-.meal-item-row{display:flex;align-items:center;justify-content:space-between;
+.meal-item-row{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;
   padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.03);}
 .meal-item-row:last-child{border-bottom:none;}
 .meal-item-name{font-size:0.9rem;color:var(--ivory2);font-weight:300;line-height:1.6;display:flex;align-items:center;gap:0.6rem;}
-.meal-item-macros{display:flex;gap:0.5rem;flex-shrink:0;}
+.meal-item-macros{display:flex;gap:0.5rem;flex-shrink:0;flex-wrap:wrap;}
 .macro-chip{font-size:0.72rem;font-weight:600;letter-spacing:1px;padding:0.18rem 0.5rem;border-radius:20px;}
 .mc-cal{background:rgba(191,161,106,0.12);color:var(--gold);border:1px solid rgba(191,161,106,0.2);}
 .mc-p{background:rgba(46,160,100,0.1);color:#4BAE71;border:1px solid rgba(46,160,100,0.2);}
@@ -4069,8 +4095,8 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 /* DAILY TOTALS BAR */
 .totals-bar{background:linear-gradient(135deg,rgba(191,161,106,0.1)0%,rgba(191,161,106,0.04)100%);
   border:1px solid rgba(191,161,106,0.22);border-radius:var(--r-lg);padding:1.25rem 1.5rem;
-  display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.25rem;}
-.tot-cell{text-align:center;}
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.25rem;}@media(max-width:600px){.totals-bar{grid-template-columns:repeat(2,1fr);}.tot-val{font-size:1.5rem;}}
+.tot-cell{text-align:center;min-width:0;}
 .tot-val{font-family:'DM Sans',sans-serif;font-size:2rem;font-weight:700;line-height:1;letter-spacing:-1px;}
 .tot-val.cal{color:var(--gold-lt);}
 .tot-val.pro{color:#4BAE71;}
@@ -4090,7 +4116,7 @@ function UpgradePrompt({ feature, desc, onUpgrade }) {
       <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.15rem",fontWeight:700,color:"var(--ivory)",marginBottom:"0.5rem",letterSpacing:"1px"}}>{feature}</div>
       <div style={{fontSize:"0.84rem",color:"var(--muted)",maxWidth:"380px",margin:"0 auto 1.5rem",lineHeight:1.6}}>{desc}</div>
       <button className="bg" style={{padding:"0.85rem 2.5rem",fontSize:"0.72rem",letterSpacing:"2px"}} onClick={onUpgrade}>Upgrade to Elite — $69/mo</button>
-      <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/year · Save 35%</div>
+      <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/yr billed annually · Save 35%</div>
     </div>
   );
 }
@@ -4100,6 +4126,10 @@ function UpgradePrompt({ feature, desc, onUpgrade }) {
 // ─────────────────────────────────────────────────────────────
 export default function App() {
   const [screen, setScreen] = useState("landing");
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [obStep, setObStep] = useState(1);
+  const [obSaving, setObSaving] = useState(false);
+  const dataLoadedRef = useRef(false);
   const [dash, setDash] = useState("nutrition");
   const [toast, setToast] = useState(null);
   const [payModal, setPayModal] = useState(null);
@@ -4143,6 +4173,27 @@ export default function App() {
         if (!json.error?.includes('already')) shout(json.error || 'Invalid beta code', '!');
       }
     } catch(e) { console.error('Beta redeem error:', e); }
+  };
+
+  const redeemInviteToken = async (userId, token) => {
+    if (!token || !userId) return;
+    try {
+      const session = await getSession();
+      const tok = session?.access_token;
+      if (!tok) return;
+      const res = await fetch('/.netlify/functions/accept-beta-invite', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        shout('Beta invite accepted — ' + (json.message || 'Beta access activated!'), '◆');
+        await loadUserData(userId);
+      } else {
+        if (!json.error?.includes('already')) shout(json.error || 'Invalid invite link', '!');
+      }
+    } catch(e) { console.error('Invite redeem error:', e); }
   };
 
   // ── IN-APP CAMERA ─────────────────────────────────────────────
@@ -4458,6 +4509,7 @@ export default function App() {
     getSession().then(session => {
       if (session?.user) {
         setAuthUser(session.user);
+        dataLoadedRef.current = true;
         loadUserData(session.user.id);
         setScreen("dashboard");
         // Redeem any pending beta code (user confirmed email and returned to app)
@@ -4473,11 +4525,21 @@ export default function App() {
       // Detect ?payment=success redirect back from Stripe checkout.
       // Webhook may not have fired yet — poll loadSubscription up to
       // 6 times (every 3s) until an active subscription appears.
+      // Detect ?invite=TOKEN from beta invite email link
+      const inviteToken = new URLSearchParams(window.location.search).get('invite');
+      if (inviteToken) {
+        localStorage.setItem('pending_invite_token', inviteToken);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      // Auto-redeem invite token if user is already signed in
+      if (inviteToken && session?.user) {
+        redeemInviteToken(session.user.id, inviteToken);
+      }
+
       const params = new URLSearchParams(window.location.search);
       if (params.get('payment') === 'success' && session?.user) {
-        window.history.replaceState({}, '', window.location.pathname); // clean URL
-        setSuccess(true);
-        setScreen("dashboard");
+        window.history.replaceState({}, '', window.location.pathname); // clean URL immediately
+        setScreen("dashboard"); // go to dashboard — gates still apply until webhook confirms
         let attempts = 0;
         const poll = setInterval(async () => {
           attempts++;
@@ -4485,10 +4547,15 @@ export default function App() {
             const sub = await loadSubscription(session.user.id);
             if (sub?.status === 'active') {
               setSubscription(sub);
+              setSuccess(true); // only show success toast after Supabase confirms subscription
               clearInterval(poll);
             }
           } catch(e) { /* silent */ }
-          if (attempts >= 6) clearInterval(poll);
+          if (attempts >= 6) {
+            clearInterval(poll);
+            // Webhook may have been delayed — show a softer message
+            setSuccess(true);
+          }
         }, 3000);
       }
     });
@@ -4501,7 +4568,16 @@ export default function App() {
         setAuthLoading(false);
       } else if (session?.user) {
         setAuthUser(session.user);
-        loadUserData(session.user.id);
+        // Only reload user data on actual sign-in, not on silent token refreshes.
+        // TOKEN_REFRESHED fires every ~60 min and would overwrite in-progress edits.
+        if (event !== 'TOKEN_REFRESHED') {
+          if (!dataLoadedRef.current) {
+            dataLoadedRef.current = true;
+            loadUserData(session.user.id);
+          } else {
+            dataLoadedRef.current = false;
+          }
+        }
         setScreen("dashboard");
         setAuthLoading(false);
         // Redeem any pending beta code from localStorage (survives email confirmation flow)
@@ -4509,6 +4585,12 @@ export default function App() {
         if (pendingCode) {
           localStorage.removeItem('pending_beta_code');
           redeemBetaCode(session.user.id, pendingCode);
+        }
+        // Redeem any pending invite token (from ?invite= URL)
+        const pendingInvite = localStorage.getItem('pending_invite_token');
+        if (pendingInvite) {
+          localStorage.removeItem('pending_invite_token');
+          redeemInviteToken(session.user.id, pendingInvite);
         }
       }
     });
@@ -4518,11 +4600,11 @@ export default function App() {
   // ── BETA EXPIRY CHECK ─────────────────────────────────────────
   // Fires conversion modal automatically when beta period ends
   useEffect(() => {
-    if (betaExpired && !conversionModal) setConversionModal(true);
+    if (betaExpired) setConversionModal(true);
   }, [betaExpired]);
 
   // ── LOAD USER DATA FROM SUPABASE ─────────────────────────────
-  const loadUserData = async (userId) => {
+  const loadUserData = async (userId, isNewSignup = false) => {
     setDbLoading(true);
     try {
       const [prof, journals, progNotes, sub, checkInsData, workoutData, weightData, nutritionData, benchmarkData, photoData] = await Promise.all([
@@ -4538,11 +4620,16 @@ export default function App() {
         loadProgressPhotos(userId).catch(()=>[]),
       ]);
       if (prof) {
-        setProfile(p => ({ ...p, ...prof }));
+        setProfile(p => ({ ...p, ...prof, targetWeight: prof.targetWeight||prof.target_weight||p.targetWeight||"" }));
         if (prof.goal) setMealType(
           prof.goal === "Weight Gain" ? "Weight Gain" :
           prof.goal === "Weight Loss" ? "Weight Loss" : "Weight Maintenance"
         );
+        // Show floater for new signups OR incomplete profiles
+        if (isNewSignup || !prof.name || !prof.sport) { setShowOnboarding(true); setObStep(1); }
+      } else {
+        // No profile record at all — definitely new user
+        setShowOnboarding(true); setObStep(1);
       }
       if (journals?.length) setJEntries(journals.map(j => ({ id: j.id, date: new Date(j.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), text: j.text, title: j.title })));
       if (progNotes?.length) setNotes(progNotes.map(n => ({ date: new Date(n.created_at).toLocaleDateString(), text: n.text })));
@@ -4560,6 +4647,16 @@ export default function App() {
     }
   };
 
+  // ── ONBOARDING SAFETY NET ───────────────────────────────────
+  // Fires when auth settles — guarantees floater shows on all platforms
+  useEffect(() => {
+    if (!authUser?.id || dbLoading) return;
+    if (!profile.name || !profile.sport) {
+      setShowOnboarding(true);
+      setObStep(1);
+    }
+  }, [authUser?.id, dbLoading]); // eslint-disable-line
+
   // ── AUTOSAVE PROFILE ─────────────────────────────────────────
   useEffect(() => {
     if (!authUser?.id || !profile.name) return;
@@ -4567,6 +4664,7 @@ export default function App() {
       saveProfile(authUser.id, {
         name: profile.name, weight: profile.weight, height: profile.height,
         age: profile.age, sport: profile.sport, position: profile.position, goal: profile.goal,
+        targetWeight: profile.targetWeight,
       }).catch(err => console.error('Profile save failed:', err));
     }, 1500);
     return () => clearTimeout(timer);
@@ -4589,7 +4687,11 @@ export default function App() {
     if (!authUser?.id || weightLog.length === 0) return;
     const timer = setTimeout(() => {
       const latest = weightLog[weightLog.length - 1];
-      if (latest) saveWeightEntry(authUser.id, latest).catch(err => console.error('weightLog autosave:', err));
+      if (latest) {
+        const { bodyFat, ...rest } = latest;
+        const entry = { ...rest, ...(bodyFat != null ? { body_fat: bodyFat } : {}) };
+        saveWeightEntry(authUser.id, entry).catch(err => console.error('weightLog autosave:', err));
+      }
     }, 1500);
     return () => clearTimeout(timer);
   }, [weightLog.length, authUser]);
@@ -4780,7 +4882,7 @@ export default function App() {
 ATHLETE PROFILE:
 - Name: ${profile.name || "Athlete"}
 - Sport: ${sport.label} | Position: ${profile.position || "General"}
-- Weight: ${profile.weight ? profile.weight + " lbs" : "Not logged"} | Height: ${profile.height ? Math.floor(profile.height/12) + "'" + (profile.height%12) + '"' : "Not logged"} | Age: ${profile.age || "Not logged"}
+- Weight: ${profile.weight ? profile.weight + " lbs" : "Not logged"} | Height: ${profile.height ? profile.height>12?Math.floor(profile.height/12)+"'"+(profile.height%12)+'"':Math.floor(profile.height)+"'"+Math.round((profile.height%1)*12)+'"' : "Not logged"} | Age: ${profile.age || "Not logged"}
 - Primary Goal: ${mealType} | Training Program: ${wkType}
 - Training Week: Week ${wkWeek}
 
@@ -4836,7 +4938,7 @@ COACHING GUIDELINES:
       const today = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
       const res = await fetch("/.netlify/functions/coach", {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: {"Content-Type":"application/json","Authorization":"Bearer "+((await getSession())?.access_token||"")},
         body: JSON.stringify({
           system: context,
           messages: [{role:"user", content:`Today is ${today}. Give me my personalized coaching brief for today — what should I focus on, what does my data tell you, and what's your single most important recommendation right now?`}]
@@ -4878,7 +4980,7 @@ COACHING GUIDELINES:
         .filter(m=>m.content.length>0);
       const res = await fetch("/.netlify/functions/coach", {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: {"Content-Type":"application/json","Authorization":"Bearer "+((await getSession())?.access_token||"")},
         body: JSON.stringify({ system: context, messages: apiMessages }),
         signal: ctrl.signal,
       });
@@ -5049,7 +5151,7 @@ COACHING GUIDELINES:
   }) || [];
 
   // ── LOADING (wait for session check) ────────────────────────
-  if (authLoading) return <div style={{background:"#0a0908",width:"100vw",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#D4AF37",fontFamily:"'DM Sans', sans-serif",fontSize:"1rem",letterSpacing:"8px",fontWeight:700}}>ELITE ATHLETE</div></div>;
+  if (authLoading) return <div style={{background:"#0a0908",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#D4AF37",fontFamily:"'DM Sans', sans-serif",fontSize:"1rem",letterSpacing:"8px",fontWeight:700}}>ELITE ATHLETE</div></div>;
 
   // ── ADMIN ROUTE ──────────────────────────────────────────────
   if (window.location.pathname === '/admin') {
@@ -5097,10 +5199,10 @@ COACHING GUIDELINES:
               // Open a YouTube embed modal with an elite athlete promo film
               const modal = document.createElement('div');
               modal.id = 'film-modal';
-              modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;';
+              modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;';
               modal.innerHTML = `
                 <div style="position:relative;width:min(90vw,900px);aspect-ratio:16/9;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
-                  <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&controls=1&rel=0&modestbranding=1" style="width:100%;height:100%;border:none;" allow="autoplay; fullscreen" allowfullscreen></iframe>
+                  <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;background:#0a0908;"><div style="font-family:Inter,sans-serif;font-size:0.58rem;font-weight:600;letter-spacing:6px;text-transform:uppercase;color:rgba(201,168,76,0.6);">T\u00e1raDome Films \u00d7 Elite Athlete</div><div style="font-family:DM Sans,sans-serif;font-size:clamp(1.8rem,4vw,3.2rem);font-weight:800;letter-spacing:4px;text-transform:uppercase;color:#fff;text-align:center;line-height:1.1;">Our Story<br/><span style=color:rgba(201,168,76,0.85);font-weight:300;font-size:0.6em;letter-spacing:6px;>Coming Soon</span></div><div style="width:48px;height:1px;background:rgba(201,168,76,0.4);"></div><div style="font-family:Inter,sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.3);letter-spacing:2px;">A film about the pursuit of greatness</div></div>
                 </div>
                 <div style="margin-top:1.5rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem;">
                   <div style="font-family:'Inter',sans-serif;font-size:0.58rem;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:rgba(168,130,42,0.7);">The Premier Athletic Platform</div>
@@ -5157,7 +5259,7 @@ COACHING GUIDELINES:
               {cls:"bt-b",img:"https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=600&q=80",num:"02",title:"Elite Workout Plans",desc:"Position-specific strength and conditioning protocols."},
               {cls:"bt-c",img:"https://images.unsplash.com/photo-1552072092-7f9b8d63efcb?w=600&q=80",num:"03",title:"Injury Recovery",desc:"Sport-specific rehabilitation protocols and recovery nutrition."},
               {cls:"bt-d",img:"https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80",num:"04",title:"Progress Tracking",desc:"3-month analytics and exportable reports."},
-              {cls:"bt-e",img:"https://images.unsplash.com/photo-1486218119243-13301543a1b4?w=600&q=80",num:"05",title:"Training Calendar",desc:"Intelligent scheduling for all facets of your program."},
+              {cls:"bt-e",img:"https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=600&q=80",num:"05",title:"Training Calendar",desc:"Intelligent scheduling for all facets of your program."},
               {cls:"bt-f",img:"https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&q=80",num:"06",title:"Athlete Journal",desc:"Private journal — shareable and exportable."},
             ].map(f=>(
               <div key={f.num} className={`bt ${f.cls}`} onClick={()=>setScreen("setup")}>
@@ -5188,33 +5290,8 @@ COACHING GUIDELINES:
 
           <PricingSection setPayModal={setPayModal} />
 
-          {/* ── BETA / FREE TRIAL SECTION ──────────────────────── */}
-          <div id="landing-beta" style={{padding:"4rem 1.5rem",textAlign:"center",borderTop:"1px solid rgba(201,168,76,0.1)",background:"rgba(201,168,76,0.02)"}}>
-            <div style={{display:"inline-block",fontSize:"0.58rem",letterSpacing:"4px",color:"var(--gold)",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:"20px",padding:"4px 14px",marginBottom:"1.25rem"}}>FREE BETA ACCESS</div>
-            <div style={{fontFamily:"'Cormorant SC',serif",fontSize:"clamp(1.8rem,4vw,2.8rem)",fontWeight:600,letterSpacing:"2px",color:"var(--ivory)",marginBottom:"1rem",lineHeight:1.2}}>
-              3 Months of Full Elite Access.<br/>No Credit Card. No Catch.
-            </div>
-            <div style={{fontSize:"0.85rem",color:"var(--muted)",maxWidth:"540px",margin:"0 auto 2.5rem",lineHeight:1.75}}>
-              Elite Athlete is opening a limited beta for coaches and athletes. Get unrestricted access to every feature — AI Coach, full nutrition, workout programming, performance tracking — completely free for 90 days.
-            </div>
-            <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"1.5rem",marginBottom:"2.5rem"}}>
-              {[["🏈","Athletes","Full position-specific programming, AI coaching, supplement stacks — built for your sport.","ATHLETE2026"],
-                ["📋","Coaches","See how your athletes are training. Get early access to Coach Pro when it launches Q3 2026.","COACH2026"]].map(([icon,title,desc,code])=>(
-                <div key={code} style={{background:"#111",border:"1px solid rgba(201,168,76,0.2)",borderRadius:12,padding:"24px",maxWidth:280,textAlign:"left"}}>
-                  <div style={{fontSize:"1.8rem",marginBottom:"0.75rem"}}>{icon}</div>
-                  <div style={{fontSize:"0.7rem",letterSpacing:"2px",color:"var(--gold)",marginBottom:"6px",textTransform:"uppercase"}}>{title}</div>
-                  <div style={{fontSize:"0.8rem",color:"var(--muted)",lineHeight:1.6,marginBottom:"1rem"}}>{desc}</div>
-                  <div style={{background:"rgba(0,0,0,0.4)",border:"1px solid rgba(201,168,76,0.15)",borderRadius:6,padding:"6px 12px",display:"inline-block",fontFamily:"monospace",fontSize:"0.85rem",letterSpacing:"3px",color:"var(--gold)"}}>{code}</div>
-                </div>
-              ))}
-            </div>
-            <button onClick={()=>setBetaModal(true)} style={{background:"var(--gold)",color:"#0a0908",border:"none",borderRadius:8,padding:"14px 36px",fontSize:"0.75rem",fontWeight:800,letterSpacing:"2.5px",cursor:"pointer",marginBottom:"0.75rem",display:"block",margin:"0 auto"}}>
-              CLAIM FREE BETA ACCESS →
-            </button>
-            <div style={{fontSize:"0.65rem",color:"var(--muted)",marginTop:"12px",letterSpacing:"1px"}}>
-              Use code ATHLETE2026 or COACH2026 after signing up · 90 days · No payment required
-            </div>
-          </div>
+          {/* ── BETA / FREE TRIAL SECTION — expires June 30 2026 ── */}
+          {new Date() < new Date("2026-06-30") && <BetaSignupSection onSignup={()=>setBetaModal(true)} />}
 
           {/* LANDING FOOTER */}
           <div id="landing-about" style={{borderTop:"1px solid rgba(191,161,106,0.1)",marginTop:"4rem",paddingTop:"2rem",paddingBottom:"3rem",textAlign:"center"}}>
@@ -5231,10 +5308,10 @@ COACHING GUIDELINES:
 
       {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} userId={authUser?.id} couponCode={payModal?.couponCode} onClose={()=>setPayModal(null)}
         onSuccess={()=>{setPayModal(null);setSuccess(true);setTimeout(()=>{setSuccess(false);setScreen("dashboard");},2500);}}/>}
-      {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id);setScreen("dashboard");shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);}}/>}
-      {betaModal && <AuthModal onClose={()=>setBetaModal(false)} initialMode="signup" onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id);setScreen("dashboard");if(betaCode) redeemBetaCode(user.id, betaCode); else shout(`Welcome, ${user.email?.split('@')[0]}!`,"◆");}} />}
+      {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user, betaCode, isNew)=>{setAuthUser(user);loadUserData(user.id, !!isNew);setScreen("dashboard");if(!isNew) shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);}}/>}
+      {betaModal && <AuthModal onClose={()=>setBetaModal(false)} initialMode="signup" onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id, true);setScreen("dashboard");if(betaCode) redeemBetaCode(user.id, betaCode); else shout(`Welcome, ${user.email?.split('@')[0]}!`,"◆");}} />}
       {success && <SuccessScreen/>}
-      {conversionModal && <BetaConversionModal onClose={()=>setConversionModal(false)} onUpgrade={()=>{setConversionModal(false);setPayModal({tierKey:'elite',billing:'annual',couponCode:'BETAFOUNDER'});}} />}
+      {conversionModal && <BetaConversionModal onClose={()=>setConversionModal(false)} onUpgrade={()=>{setConversionModal(false);setPayModal({tierKey:'elite',billing:'annual',couponCode:'XJeqHLLx'});}} />}
       {feedbackModal   && <BetaFeedbackModal   onClose={()=>setFeedbackModal(false)} authUser={authUser} getSession={getSession} />}
 
       {/* Floating beta feedback button */}
@@ -5270,7 +5347,7 @@ COACHING GUIDELINES:
           <button className="bgh" onClick={()=>setScreen("landing")}>Back</button>
         </div>
       </nav>
-      <div style={{paddingTop:"68px",minHeight:"100vh"}}>
+      <div style={{paddingTop:"68px",minHeight:"100dvh"}}>
         <div style={{height:"280px",position:"relative",backgroundImage:`url(${sport.img})`,backgroundSize:"cover",backgroundPosition:"center 22%"}}>
           <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(8,8,7,0.35)0%,rgba(8,8,7,0.97)100%)"}}/>
           <div className="wrap" style={{position:"relative",zIndex:1,paddingTop:"4rem"}}>
@@ -5315,7 +5392,7 @@ COACHING GUIDELINES:
                   )}
                 </div>
                 {/* Camera shortcut button */}
-                <button onClick={e=>{e.stopPropagation();openCamera(camTarget);}} style={{position:"absolute",bottom:"0.6rem",right:"0.6rem",zIndex:3,background:"rgba(0,0,0,0.6)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:"50%",width:"34px",height:"34px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}} title="Use camera">
+                <button onClick={e=>{e.stopPropagation();openCamera(camTarget);}} style={{position:"absolute",bottom:"0.75rem",right:"0.75rem",zIndex:3,background:"rgba(191,161,106,0.2)",border:"1px solid rgba(191,161,106,0.5)",borderRadius:"50%",width:"38px",height:"38px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}} title="Use camera">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
@@ -5329,12 +5406,12 @@ COACHING GUIDELINES:
             <div className="pb">
               <div className="two">
                 <div>
-                  {[["Full Name","text","Your full name","name"],["Age","number","Years","age"],["Weight","number","lbs","weight"],["Height","number","inches","height"]].map(([l,t,ph,k])=>(
+                  {[["Full Name","text","Your full name","name"],["Email","email","your@email.com","email"],["Age","number","Years","age"],["Weight","number","lbs","weight"],["Height","number","inches","height"]].map(([l,t,ph,k])=>(
                     <div key={k} className="f"><label className="fl">{l}</label><input type={t} className="fi" placeholder={ph} value={profile[k]} onChange={e=>setProfile(p=>({...p,[k]:e.target.value}))}/></div>
                   ))}
                 </div>
                 <div>
-                  <div className="f"><label className="fl">Primary Goal</label>
+                  <div className="f"><label className="fl">Gender</label><select className="fi" value={profile.gender||""} onChange={e=>setProfile(p=>({...p,gender:e.target.value}))}><option value="">Select Gender</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option></select></div><div className="f"><label className="fl">Primary Goal</label>
                     <select className="fi" value={profile.goal} onChange={e=>setProfile(p=>({...p,goal:e.target.value}))}>
                       {["Weight Maintenance","Weight Gain","Weight Loss","Strength Training","Muscle Building","Athletic Performance"].map(g=><option key={g}>{g}</option>)}
                     </select>
@@ -5355,6 +5432,20 @@ COACHING GUIDELINES:
                         <option value="">Select Position</option>
                         {SPORTS[profile.sport].positions.map(pos=><option key={pos}>{pos}</option>)}
                       </select>
+                    </div>
+                  )}
+                  {(profile.goal==="Weight Gain"||profile.goal==="Weight Loss") && (
+                    <div className="f">
+                      <label className="fl">Target Weight (lbs)</label>
+                      <input type="number" className="fi" min="50" max="500"
+                        placeholder={profile.goal==="Weight Gain"?"e.g. 215":"e.g. 175"}
+                        value={profile.targetWeight||""}
+                        onChange={e=>setProfile(p=>({...p,targetWeight:e.target.value}))}/>
+                      {profile.targetWeight && profile.weight && (
+                        <div style={{fontSize:"0.75rem",color:"var(--gold)",marginTop:"0.35rem"}}>
+                          {profile.goal==="Weight Gain"?"+":"-"}{Math.abs(parseFloat(profile.targetWeight||0)-parseFloat(profile.weight||0)).toFixed(1)} lbs to goal
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -5403,7 +5494,7 @@ COACHING GUIDELINES:
           <button className="bgh" onClick={()=>setScreen("dashboard")} style={{fontSize:"0.68rem",letterSpacing:"2px"}}>← Back</button>
         </div>
       </nav>
-      <div style={{paddingTop:"80px",minHeight:"100vh",background:"var(--ink)"}}>
+      <div style={{paddingTop:"80px",minHeight:"100dvh",background:"var(--ink)"}}>
         <div className="wrap" style={{paddingTop:"3rem",paddingBottom:"5rem"}}>
           <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
             <div className="eyebrow" style={{justifyContent:"center"}}>Membership</div>
@@ -5420,6 +5511,62 @@ COACHING GUIDELINES:
       {toast && <Toast t={toast}/>}
     </>
   );
+
+  // BETA EXPIRY GATE - blocks dashboard, forces upgrade
+  if (screen === "dashboard" && betaExpired) {
+    return (
+      <>
+        <style>{CSS}</style>
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:9999,background:"rgba(10,9,8,0.97)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px",fontFamily:"'DM Sans',sans-serif"}}>
+          <div style={{background:"#111",border:"1px solid rgba(201,168,76,0.35)",borderRadius:16,maxWidth:480,width:"100%",padding:"44px 36px",textAlign:"center"}}>
+            <div style={{fontSize:"2.5rem",marginBottom:16}}>{"⏳"}</div>
+            <div style={{fontSize:"0.6rem",letterSpacing:4,color:"var(--gold)",textTransform:"uppercase",marginBottom:8}}>Beta Period Ended</div>
+            <div style={{fontSize:"1.7rem",fontWeight:700,color:"#fff",marginBottom:12,letterSpacing:1}}>Your Beta Access Has Ended</div>
+            <div style={{fontSize:"0.85rem",color:"#888",lineHeight:1.7,marginBottom:28}}>
+              {"You've had full Elite access during the beta. As a founding member, you get "}
+              <span style={{color:"var(--gold)",fontWeight:700}}>50% off your first year</span>
+              {" — locked in forever as long as you stay subscribed."}
+            </div>
+            <div style={{background:"rgba(201,168,76,0.08)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:10,padding:"16px 20px",marginBottom:24}}>
+              <div style={{display:"flex",justifyContent:"center",alignItems:"baseline",gap:8}}>
+                <span style={{fontSize:"0.8rem",color:"#555",textDecoration:"line-through"}}>$529/yr</span>
+                <span style={{fontSize:"2.2rem",color:"var(--gold)",fontWeight:700}}>$264.50</span>
+                <span style={{fontSize:"0.75rem",color:"#888"}}>/first year</span>
+              </div>
+              <div style={{fontSize:"0.65rem",color:"#888",letterSpacing:1,marginTop:4}}>Code XJeqHLLx auto-applied then $529/yr</div>
+            </div>
+            <button onClick={async()=>{
+                try {
+                  const { redirectToCheckout } = await import('./lib/stripe');
+                  await redirectToCheckout({
+                    priceKey: 'elite_annual',
+                    planName: 'elite_annual',
+                    userEmail: authUser?.email,
+                    userId: authUser?.id,
+                    couponCode: 'XJeqHLLx',
+                    successUrl: `${window.location.origin}?payment=success&plan=elite_annual`,
+                    cancelUrl: window.location.origin,
+                  });
+                } catch(err) {
+                  console.error('Checkout error:', err);
+                  alert('Checkout error: ' + err.message);
+                }
+              }}
+              style={{width:"100%",background:"var(--gold)",color:"#0a0908",border:"none",borderRadius:8,padding:"14px",fontSize:"0.75rem",fontWeight:800,letterSpacing:"2px",cursor:"pointer",marginBottom:12}}>
+              UPGRADE TO ELITE — 50% OFF
+            </button>
+            <button onClick={async()=>{await signOut();setAuthUser(null);setSubscription(null);setScreen("landing");}}
+              style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:"0.7rem",letterSpacing:1}}>
+              Sign out
+            </button>
+          </div>
+        </div>
+        {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} userId={authUser?.id} couponCode={payModal?.couponCode}
+          onClose={()=>setPayModal(null)}
+          onSuccess={()=>{setPayModal(null);setSuccess(true);setTimeout(()=>{setSuccess(false);setScreen("dashboard");},2500);}}/>}
+      </>
+    );
+  }
 
   if (screen !== "dashboard") return null;
   return (
@@ -5462,7 +5609,7 @@ COACHING GUIDELINES:
         </div>
       </nav>
 
-      <div style={{paddingTop:"68px",minHeight:"100vh"}}>
+      <div style={{paddingTop:"68px",minHeight:"100dvh"}}>
 
         {/* ── BETA COUNTDOWN BANNER ──────────────────────────── */}
         {isBeta && !betaExpired && betaDaysLeft !== null && (
@@ -5482,16 +5629,22 @@ COACHING GUIDELINES:
                   BETA ACCESS — {betaDaysLeft} DAY{betaDaysLeft!==1?'S':''} REMAINING
                 </span>
                 <span style={{fontSize:'0.68rem',color:'var(--muted)',marginLeft:12}}>
-                  {betaDaysLeft<=14 ? 'Convert now to keep your access — 50% off as a founding member' : 'Full Elite access active · No credit card required'}
+                  {betaDaysLeft<=14 ? 'Convert now to keep your access — 50% off as a founding member' : 'Full Elite access active · Share your feedback and help shape the app'}
                 </span>
               </div>
             </div>
-            {betaDaysLeft <= 14 && (
-              <button onClick={()=>setPayModal({tierKey:'elite',billing:'annual',couponCode:'BETAFOUNDER'})}
-                style={{background:'var(--gold)',color:'#0a0908',border:'none',borderRadius:6,padding:'6px 16px',fontSize:'0.68rem',fontWeight:700,letterSpacing:'1.5px',cursor:'pointer',whiteSpace:'nowrap'}}>
-                UPGRADE — 50% OFF →
-              </button>
-            )}
+            <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+              <a href="/report-bug.html" target="_blank" rel="noopener noreferrer"
+                style={{background:'transparent',color:'var(--gold)',border:'1px solid rgba(201,168,76,0.4)',borderRadius:6,padding:'6px 14px',fontSize:'0.68rem',fontWeight:700,letterSpacing:'1.5px',cursor:'pointer',whiteSpace:'nowrap',textDecoration:'none'}}>
+                ✏ BETA FEEDBACK
+              </a>
+              {betaDaysLeft <= 14 && (
+                <button onClick={()=>setPayModal({tierKey:'elite',billing:'annual',couponCode:'XJeqHLLx'})}
+                  style={{background:'var(--gold)',color:'#0a0908',border:'none',borderRadius:6,padding:'6px 16px',fontSize:'0.68rem',fontWeight:700,letterSpacing:'1.5px',cursor:'pointer',whiteSpace:'nowrap'}}>
+                  UPGRADE — 50% OFF →
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -5587,7 +5740,7 @@ COACHING GUIDELINES:
               {/* Sport + Position Nutrition Intelligence Panel */}
               {sportNutrition && (
                 <div style={{background:"var(--slate)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:"var(--r)",padding:"1.1rem 1.25rem",marginBottom:"1.25rem"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.75rem"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.75rem",flexWrap:"wrap",gap:"0.75rem"}}>
                     <div>
                       <div style={{fontSize:"0.6rem",letterSpacing:"3.5px",textTransform:"uppercase",color:"var(--ivory2)",marginBottom:"0.3rem",fontFamily:"'Inter',sans-serif",fontWeight:600}}>
                         <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:"0.58rem",fontWeight:700,letterSpacing:"1px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:"2px",padding:"1px 5px",marginRight:"0.3rem",color:"var(--ivory2)"}}>{sport.icon}</span>{sport.label}{profile.position ? ` · ${profile.position}` : ""} — Sport-Optimized Nutrition
@@ -5596,11 +5749,11 @@ COACHING GUIDELINES:
                         {sportNutrition.posNote}
                       </div>
                     </div>
-                    <div style={{textAlign:"right",flexShrink:0,marginLeft:"1rem"}}>
+                    <div style={{textAlign:"left",flexShrink:0,marginLeft:0,width:"100%",wordBreak:"break-word"}}>
                       <div style={{fontSize:"2.2rem",fontFamily:"'DM Sans',sans-serif",color:"var(--ivory)",fontWeight:800,letterSpacing:"2px",lineHeight:1}}>{totalCals.toLocaleString()}</div>
                       <div style={{fontSize:"0.52rem",letterSpacing:"3.5px",color:"var(--muted)",textTransform:"uppercase",fontFamily:"'Inter',sans-serif",fontWeight:600,marginTop:"0.2rem"}}>Target kcal/day</div>
                       {sportNutrition.calMultiplier !== 1.0 && (
-                        <div style={{fontSize:"0.82rem",color:sportNutrition.calMultiplier>1?"#4BAE71":"#C0695E",marginTop:"0.2rem",lineHeight:1.4}}>
+                        <div style={{fontSize:"0.82rem",color:sportNutrition.calMultiplier>1?"#4BAE71":"#C0695E",marginTop:"0.2rem",lineHeight:1.4,wordBreak:"break-word"}}>
                           {sportNutrition.calMultiplier>1
                             ? `+${Math.round((sportNutrition.calMultiplier-1)*100)}% more than average — your position demands it`
                             : `-${Math.abs(Math.round((sportNutrition.calMultiplier-1)*100))}% less than average — lean composition priority`}
@@ -5749,13 +5902,13 @@ COACHING GUIDELINES:
                                     const sub=mealSubs[subKey];
                                     const d=sub||it;
                                     return (<>
-                                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"0.4rem"}}>
+                                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"0.4rem",flexWrap:"wrap"}}>
                                         <div className="meal-item-name" style={{flex:1}}>
                                           <div className="md"/>
                                           <span style={sub?{color:"var(--gold)",fontStyle:"italic"}:{}}>{d.name}</span>
                                           {sub&&<span style={{fontSize:"0.7rem",color:"#4BAE71",marginLeft:"0.3rem"}}>✓ sub</span>}
                                         </div>
-                                        <div style={{display:"flex",gap:"0.25rem",alignItems:"center",flexShrink:0}}>
+                                        <div style={{display:"flex",gap:"0.25rem",alignItems:"center",flexShrink:0,flexWrap:"wrap",maxWidth:"100%"}}>
                                           <div className="meal-item-macros">
                                             <span className="macro-chip mc-cal">{d.cal} kcal</span>
                                             <span className="macro-chip mc-p">{d.p}g P</span>
@@ -6098,9 +6251,9 @@ COACHING GUIDELINES:
           {/* WORKOUT */}
           {dash==="workout" && (
             <div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"1.25rem"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"1.25rem",flexWrap:"wrap",gap:"0.5rem"}}>
                 <div><div className="eyebrow">Training</div><h2 className="sh2">Workout <em>Plan</em></h2></div>
-                <div style={{display:"flex",gap:"0.5rem",alignItems:"center"}}>
+                <div style={{display:"flex",gap:"0.5rem",alignItems:"center",flexWrap:"wrap"}}>
                   <div style={{textAlign:"right"}}>
                     <div style={{fontSize:"0.72rem",color:"var(--muted)"}}>Training Week</div>
                     <div style={{display:"flex",alignItems:"center",gap:"0.4rem",marginTop:"0.2rem"}}>
@@ -6121,7 +6274,7 @@ COACHING GUIDELINES:
                       );
                     })()}
                   </div>
-                  <button className="bsm" onClick={()=>setShowLog(l=>!l)} style={{height:"100%"}}>
+                  <button className="bsm" onClick={()=>setShowLog(l=>!l)} style={{height:"100%",flexShrink:0}}>
                     {showLog?"Hide":"📊 Progress Log"}
                   </button>
                   <button className="bg" style={{padding:"0.45rem 1rem",fontSize:"0.76rem",flexShrink:0}}
@@ -6214,15 +6367,15 @@ COACHING GUIDELINES:
                         return (
                           <button key={w.week} onClick={()=>setSelectedPeriodWeek(isSelected?null:w.week)}
                             style={{
-                              background:isActive?"rgba(191,161,106,0.15)":isSelected?"rgba(191,161,106,0.08)":"var(--smoke)",
-                              border:`1px solid ${isActive?"rgba(191,161,106,0.6)":isSelected?"rgba(255,255,255,0.09)":"var(--border)"}`,
+                              background:(isSelected||(isActive&&!selectedPeriodWeek))?"rgba(191,161,106,0.15)":"var(--smoke)",
+                              border:`1px solid ${(isSelected||(isActive&&!selectedPeriodWeek))?"rgba(191,161,106,0.6)":"var(--border)"}`,
                               borderRadius:"6px",padding:"0.4rem 0.2rem",cursor:"pointer",
                               transition:"all 0.15s",fontFamily:"inherit"
                             }}>
                             <div style={{fontSize:"0.6rem",color:phase?.color||"var(--muted)",fontWeight:600,marginBottom:"0.15rem"}}>
                               {w.phase.split("-")[0].substring(0,3).toUpperCase()}
                             </div>
-                            <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.1rem",color:isActive?"var(--gold)":"var(--ivory2)",fontWeight:600}}>{w.week}</div>
+                            <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.1rem",color:(isSelected||(isActive&&!selectedPeriodWeek))?"var(--gold)":"var(--ivory2)",fontWeight:600}}>{w.week}</div>
                             <div style={{fontSize:"0.58rem",color:"var(--muted)",marginTop:"0.1rem"}}>{w.sessions}×</div>
                           </button>
                         );
@@ -6681,7 +6834,7 @@ COACHING GUIDELINES:
 
                         {/* Session Summary Modal */}
                         {showSessionSummary && (
-                          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+                          <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.75)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
                             <div style={{background:"var(--charcoal)",border:"1px solid rgba(255,255,255,0.09)",borderRadius:"16px",padding:"1.5rem",maxWidth:"460px",width:"100%",maxHeight:"80vh",overflowY:"auto"}}>
                               <div style={{textAlign:"center",marginBottom:"1.25rem"}}>
                                 <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.8rem",fontWeight:600,color:"var(--gold)"}}>Session Complete</div>
@@ -6766,8 +6919,8 @@ COACHING GUIDELINES:
                       {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map((d,i)=>(
                         <div key={d} style={{display:"flex",justifyContent:"space-between",padding:"0.58rem 0",borderBottom:"1px solid var(--border)",fontSize:"0.9rem"}}>
                           <span style={{color:"var(--ivory2)",fontWeight:300}}>{d}</span>
-                          <span className={`bdg ${[0,2,4].includes(i)?"bg-g":[6].includes(i)?"bg-green":"bg-red"}`}>
-                            {[0,2,4].includes(i)?"Training":[6].includes(i)?"Active Rest":"Rest Day"}
+                          <span className={`bdg ${weekSchedule[i]?.wkType==="Active Recovery"?"bg-green":weekSchedule[i]?.active?"bg-g":"bg-red"}`}>
+                            {weekSchedule[i]?.wkType==="Active Recovery"?"Active Rest":weekSchedule[i]?.active?(weekSchedule[i].wkType+(weekSchedule[i].wkFocus?": "+weekSchedule[i].wkFocus:"")):"Rest Day"}
                           </span>
                         </div>
                       ))}
@@ -6781,6 +6934,7 @@ COACHING GUIDELINES:
           {/* INJURY */}
           {dash==="injury" && (
             <div>
+              {!canAccess('elite') ? <UpgradePrompt feature="Injury Recovery Protocols" desc="Access 100+ sport and position-specific rehabilitation protocols, post-surgery pathways, and recovery nutrition plans." onUpgrade={()=>setScreen("pricing")}/> : <>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"1.5rem"}}>
                 <div><div className="eyebrow">Rehabilitation</div><h2 className="sh2">Injury <em>Recovery</em></h2></div>
               </div>
@@ -7000,7 +7154,7 @@ COACHING GUIDELINES:
                                   <div style={{fontSize:"0.7rem",color:"var(--muted)"}}>{s.timing}</div>
                                 </div>
                               </div>
-                              <div style={{fontSize:"0.76rem",color:"var(--gold)",fontWeight:600,flexShrink:0,marginLeft:"0.5rem",textAlign:"right"}}>{s.dose}</div>
+                              <div style={{fontSize:"0.76rem",color:"var(--gold)",fontWeight:600,flexShrink:1,marginLeft:"0.5rem",textAlign:"right",wordBreak:"break-word",maxWidth:"45%"}}>{s.dose}</div>
                             </div>
                           ))}
                           <button className="bsm" style={{width:"100%",marginTop:"0.6rem",fontSize:"0.74rem",padding:"0.4rem"}}
@@ -7034,6 +7188,8 @@ COACHING GUIDELINES:
                   </div>
                 </div>
               </div>
+              </>
+            }
             </div>
           )}
 
@@ -7056,7 +7212,7 @@ COACHING GUIDELINES:
               </div>
 
               {/* Progress Sub-Nav — cinematic tile standard */}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"6px",marginBottom:"1.75rem"}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:"6px",marginBottom:"1.75rem"}}>
                 {[
                   ["coach",         "AI Coach",       "Your personal coach",   "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400&q=80"],
                   ["overview",      "Overview",       "Dashboard summary",     "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80"],
@@ -7124,7 +7280,7 @@ COACHING GUIDELINES:
                       onClick={()=>setScreen("pricing")}>
                       Upgrade to Elite — $69/mo
                     </button>
-                    <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/year · Save 35%</div>
+                    <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/yr billed annually · Save 35%</div>
                   </div>
                 ) : (<>
                   {/* Coach header */}
@@ -7180,27 +7336,28 @@ COACHING GUIDELINES:
                       "Am I at risk of overtraining?",
                       "What's my biggest weakness right now?",
                     ].map(q=>(
-                      <button key={q} onClick={()=>{
+                      <button key={q} onClick={async ()=>{
                         setCoachInput(q);
-                        setTimeout(()=>{
+                        setTimeout(async ()=>{
                           setCoachInput("");
                           const userMsg={role:"user",content:q,ts:new Date()};
                           const newMsgs=[...coachMessages,userMsg];
                           setCoachMessages(newMsgs);
                           setCoachLoading(true);
                           const ctx=buildAthleteContext();
+                          const _tok=((await getSession())?.access_token)||"";
                           fetch("/.netlify/functions/coach",{
                             method:"POST",
-                            headers:{"Content-Type":"application/json"},
+                            headers:{"Content-Type":"application/json","Authorization":"Bearer "+_tok},
                             body:JSON.stringify({
                               system:ctx,
-                              messages:newMsgs.map(m=>({role:m.role,content:m.content}))
+                              messages:newMsgs.map(m=>({role:m.role==="user"?"user":"assistant",content:typeof m.content==="string"?m.content.trim():""})).filter(m=>m.content.length>0)
                             })
-                          }).then(r=>r.json()).then(data=>{
+                          }).then(async r=>{const data=await r.json();if(!r.ok)throw new Error(data.error||"HTTP "+r.status);return data;}).then(data=>{
                             const reply=data.content?.[0]?.text||"Let me think about that...";
                             setCoachMessages(prev=>[...prev,{role:"assistant",content:reply,ts:new Date()}]);
-                          }).catch(()=>{
-                            setCoachMessages(prev=>[...prev,{role:"assistant",content:"Connection issue — try again.",ts:new Date()}]);
+                          }).catch((e)=>{
+                            setCoachMessages(prev=>[...prev,{role:"assistant",content:"Connection issue — "+e.message+". Please try again.",ts:new Date()}]);
                           }).finally(()=>setCoachLoading(false));
                         },10);
                       }}
@@ -7795,7 +7952,7 @@ COACHING GUIDELINES:
                       <div className="ph"><div className="pt">Workout <em>Load History</em></div>
                         <span style={{fontSize:"0.74rem",color:"var(--muted)"}}>{wkLog.length} entries</span>
                       </div>
-                      <div className="pb" style={{overflowX:"auto"}}>
+                      <div className="pb" style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
                         <table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.82rem"}}>
                           <thead><tr>
                             {["Week","Date","Program","Exercise","Load","Notes"].map(h=>(
@@ -7863,7 +8020,7 @@ COACHING GUIDELINES:
               {/* ══ DAILY CHECK-IN ════════════════════════════════ */}
               {progressTab==="checkin" && (
                 <div>
-                  <div style={{display:"flex",gap:"0.75rem",marginBottom:"1.5rem",alignItems:"flex-start"}}>
+                  <div style={{display:"flex",gap:"0.75rem",marginBottom:"1.5rem",alignItems:"flex-start",flexWrap:"wrap"}}>
                     <div className="panel" style={{flex:1}}>
                       <div className="ph"><div className="pt">Today's <em>Check-In</em></div>
                         <span style={{fontSize:"0.74rem",color:"var(--gold)"}}>{new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</span>
@@ -7982,13 +8139,74 @@ COACHING GUIDELINES:
                       </div>
                     </div>
                   </div>
+                  {/* ── WEIGHT GOAL PROGRESS ─────────────────────────── */}
+                  {(profile.goal==="Weight Gain"||profile.goal==="Weight Loss") && profile.targetWeight && profile.weight && (()=>{
+                    const current = parseFloat(weightLog.length>0 ? weightLog[weightLog.length-1].weight : profile.weight) || 0;
+                    const start   = parseFloat(weightLog.length>0 ? weightLog[0].weight : profile.weight) || 0;
+                    const target  = parseFloat(profile.targetWeight) || 0;
+                    const isGain  = profile.goal==="Weight Gain";
+                    const totalDelta = Math.abs(target - start);
+                    const achieved   = isGain ? Math.max(0, current - start) : Math.max(0, start - current);
+                    const pct        = totalDelta > 0 ? Math.min(100, Math.round((achieved / totalDelta) * 100)) : 0;
+                    const remaining  = Math.abs(target - current);
+                    const done       = isGain ? current >= target : current <= target;
+                    const barColor   = done ? "#4BAE71" : isGain ? "#BFA16A" : "#7EB8F7";
+                    const cals       = getSportCalorieTarget(0, profile.sport, profile.position, current, profile.height, profile.age, profile.goal);
+                    return (
+                      <div className="panel" style={{marginBottom:"1.25rem"}}>
+                        <div className="ph">
+                          <div className="pt">{isGain?"Gain":"Loss"} <em>Goal Progress</em></div>
+                          <span style={{fontSize:"0.7rem",letterSpacing:"2px",textTransform:"uppercase",color:done?"#4BAE71":"var(--gold)"}}>{done?"✦ ACHIEVED":pct+"%"}</span>
+                        </div>
+                        <div className="pb">
+                          {/* Stats row */}
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0.75rem",marginBottom:"1.1rem"}}>
+                            {[
+                              ["Current",current.toFixed(1)+" lbs","var(--ivory)"],
+                              ["Target", target.toFixed(1)+" lbs","var(--gold)"],
+                              [done?"Achieved":"Remaining", done?"Goal met!":remaining.toFixed(1)+" lbs", done?"#4BAE71":isGain?"#C0695E":"#7EB8F7"],
+                            ].map(([l,v,c])=>(
+                              <div key={l} style={{textAlign:"center",background:"rgba(0,0,0,0.18)",borderRadius:"var(--r)",padding:"0.65rem 0.4rem"}}>
+                                <div style={{fontSize:"0.6rem",letterSpacing:"2px",textTransform:"uppercase",color:"var(--muted)",marginBottom:"0.3rem"}}>{l}</div>
+                                <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.05rem",fontWeight:700,color:c}}>{v}</div>
+                              </div>
+                            ))}
+                          </div>
+                          {/* Progress bar */}
+                          <div style={{marginBottom:"0.5rem"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.68rem",color:"var(--muted)",marginBottom:"0.35rem",letterSpacing:"1px"}}>
+                              <span>Start: {start.toFixed(1)} lbs</span>
+                              <span>{pct}% complete</span>
+                              <span>Target: {target.toFixed(1)} lbs</span>
+                            </div>
+                            <div style={{height:"10px",background:"rgba(255,255,255,0.07)",borderRadius:"99px",overflow:"hidden"}}>
+                              <div style={{height:"100%",width:pct+"%",background:barColor,borderRadius:"99px",transition:"width 0.6s ease",boxShadow:done?"0 0 8px "+barColor:"none"}}/>
+                            </div>
+                          </div>
+                          {/* Calorie target note */}
+                          <div style={{marginTop:"0.85rem",padding:"0.6rem 0.85rem",background:"rgba(168,130,42,0.07)",border:"1px solid rgba(191,161,106,0.18)",borderRadius:"var(--r)",fontSize:"0.76rem",color:"var(--muted)",lineHeight:1.5}}>
+                            <span style={{color:"var(--gold)",fontWeight:600}}>Daily calorie target: </span>
+                            <span style={{color:"var(--ivory)",fontWeight:700}}>{cals.toLocaleString()} kcal</span>
+                            <span> — calibrated for {profile.goal.toLowerCase()} at your current weight &amp; sport.</span>
+                          </div>
+                          {/* Motivational note when done */}
+                          {done && (
+                            <div style={{marginTop:"0.75rem",textAlign:"center",padding:"0.65rem",background:"rgba(75,174,113,0.1)",border:"1px solid rgba(75,174,113,0.3)",borderRadius:"var(--r)",color:"#4BAE71",fontSize:"0.8rem",fontWeight:600,letterSpacing:"1px"}}>
+                              ✦ Goal achieved — update your target in Profile to set a new one
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Weight history table */}
                   {weightLog.length>0 && (
                     <div className="panel" style={{marginBottom:"1.25rem"}}>
                       <div className="ph"><div className="pt">Weight <em>History</em></div>
                         <button className="bsm" style={{fontSize:"0.7rem",color:"var(--muted)"}} onClick={()=>setWeightLog([])}>Clear</button>
                       </div>
-                      <div className="pb" style={{overflowX:"auto"}}>
+                      <div className="pb" style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
                         {/* Chart */}
                         {weightLog.length>1 && (
                           <svg viewBox="0 0 400 100" style={{width:"100%",marginBottom:"1rem",overflow:"visible"}}>
@@ -8047,7 +8265,7 @@ COACHING GUIDELINES:
                       <div className="ph"><div className="pt">Measurements <em>History</em></div>
                         <button className="bsm" style={{fontSize:"0.7rem",color:"var(--muted)"}} onClick={()=>setMeasurements([])}>Clear</button>
                       </div>
-                      <div className="pb" style={{overflowX:"auto"}}>
+                      <div className="pb" style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
                         <table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.82rem"}}>
                           <thead><tr>
                             {["Date","Chest","Waist","Hips","Arms","Thighs"].map(h=>(
@@ -8206,7 +8424,7 @@ COACHING GUIDELINES:
                     ))}
                   </div>
 
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem",marginBottom:"1.25rem"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"1.25rem",marginBottom:"1.25rem"}}>
 
                     {/* LEFT — input panel */}
                     <div>
@@ -8429,14 +8647,14 @@ COACHING GUIDELINES:
                   {nutritionLog.length>0 && (
                     <div className="panel">
                       <div className="ph"><div className="pt">Nutrition <em>Log History</em></div>
-                        <div style={{display:"flex",gap:"0.5rem",alignItems:"center"}}>
+                        <div style={{display:"flex",gap:"0.5rem",alignItems:"center",flexWrap:"wrap"}}>
                           <span style={{fontSize:"0.74rem",color:"var(--muted)"}}>
                             Avg: {Math.round(nutritionLog.reduce((s,n)=>s+(parseFloat(n.calories)||0),0)/nutritionLog.length).toLocaleString()} kcal
                           </span>
                           <button className="bsm" style={{fontSize:"0.7rem",color:"var(--muted)"}} onClick={()=>setNutritionLog([])}>Clear</button>
                         </div>
                       </div>
-                      <div className="pb" style={{overflowX:"auto"}}>
+                      <div className="pb" style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
                         {/* Calorie bars */}
                         <div style={{marginBottom:"1rem"}}>
                           {nutritionLog.slice(-7).map((n,i)=>{
@@ -8610,7 +8828,7 @@ COACHING GUIDELINES:
                       <div className="ph"><div className="pt">Performance <em>History</em></div>
                         <button className="bsm" style={{fontSize:"0.7rem",color:"var(--muted)"}} onClick={()=>setBenchmarks([])}>Clear</button>
                       </div>
-                      <div className="pb" style={{overflowX:"auto"}}>
+                      <div className="pb" style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
                         <table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.82rem"}}>
                           <thead><tr>
                             {["Date","Test","Result","Notes"].map(h=>(
@@ -8644,8 +8862,8 @@ COACHING GUIDELINES:
                       <span style={{fontSize:"0.74rem",color:"var(--muted)"}}>{progressPhotos.length} photo{progressPhotos.length!==1?"s":""} logged</span>
                     </div>
                     <div className="pb">
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem",marginBottom:"1.25rem"}}>
-                        <div style={{display:"flex",flexDirection:"column",gap:"0.6rem"}}>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"1rem",marginBottom:"1.25rem"}}>
+                        <div style={{display:"flex",flexDirection:"column",gap:"0.6rem",alignSelf:"stretch",height:"100%"}}>
                           <input type="file" accept="image/*" id="prog-file-inp" style={{display:"none"}}
                             onChange={e=>{
                               const file=e.target.files?.[0]; if(!file) return;
@@ -8685,14 +8903,14 @@ COACHING GUIDELINES:
                             <label htmlFor="prog-file-inp" style={{display:"block",cursor:"pointer"}}>
                               <div style={{
                                 position:"relative",overflow:"hidden",
-                                background:"var(--slate)",
-                                border:"1px solid rgba(255,255,255,0.1)",
+                                background:"linear-gradient(160deg,#1a1208 0%,#0D0D0D 100%)",
+                                border:"1px solid rgba(191,161,106,0.35)",
                                 borderRadius:"16px",padding:"1.75rem 1rem",
                                 display:"flex",flexDirection:"column",alignItems:"center",gap:"0.65rem",
                                 transition:"all 0.25s ease",
                               }}
-                              onMouseEnter={e=>{e.currentTarget.style.background="linear-gradient(145deg,rgba(191,161,106,0.22) 0%,rgba(191,161,106,0.08) 100%)";e.currentTarget.style.borderColor="rgba(191,161,106,0.65)";e.currentTarget.style.transform="translateY(-2px)";}}
-                              onMouseLeave={e=>{e.currentTarget.style.background="linear-gradient(145deg,rgba(191,161,106,0.12) 0%,rgba(191,161,106,0.04) 100%)";e.currentTarget.style.borderColor="rgba(255,255,255,0.1)";e.currentTarget.style.transform="translateY(0)";}}>
+                              onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 0 30px rgba(191,161,106,0.25)";e.currentTarget.style.borderColor="rgba(191,161,106,0.8)";e.currentTarget.style.transform="translateY(-2px)";}}
+                              onMouseLeave={e=>{e.currentTarget.style.boxShadow="none";e.currentTarget.style.borderColor="rgba(191,161,106,0.35)";e.currentTarget.style.transform="translateY(0)";}}>
                                 {/* Ambient glow */}
                                 <div style={{position:"absolute",top:"-30px",left:"50%",transform:"translateX(-50%)",width:"80px",height:"80px",background:"rgba(255,255,255,0.05)",borderRadius:"50%",filter:"blur(20px)",pointerEvents:"none"}}/>
                                 {/* Icon */}
@@ -8704,8 +8922,8 @@ COACHING GUIDELINES:
                                   </svg>
                                 </div>
                                 <div style={{textAlign:"center"}}>
-                                  <div style={{fontSize:"0.88rem",fontWeight:600,color:"var(--gold)",letterSpacing:"0.3px",marginBottom:"0.2rem"}}>Upload Photo</div>
-                                  <div style={{fontSize:"0.72rem",color:"rgba(255,255,255,0.18)",letterSpacing:"1px"}}>JPG · PNG · HEIC</div>
+                                  <div style={{fontSize:"0.88rem",fontWeight:600,color:"var(--gold)",letterSpacing:"3px",textTransform:"uppercase",marginBottom:"0.2rem",fontSize:"0.72rem",fontWeight:700}}>UPLOAD PHOTO</div>
+                                  <div style={{fontSize:"0.72rem",color:"rgba(255,255,255,0.4)",letterSpacing:"1px",textTransform:"uppercase",whiteSpace:"nowrap",fontSize:"0.55rem"}}>JPG · PNG · HEIC</div>
                                 </div>
                               </div>
                             </label>
@@ -8714,8 +8932,8 @@ COACHING GUIDELINES:
                             <div onClick={()=>openCamera('progress')} style={{cursor:"pointer",display:"block"}}>
                               <div style={{
                                 position:"relative",overflow:"hidden",
-                                background:"var(--smoke)",
-                                border:"1px solid var(--border)",
+                                background:"linear-gradient(160deg,#1a1208 0%,#0D0D0D 100%)",
+                                border:"1px solid rgba(191,161,106,0.35)",
                                 borderRadius:"16px",padding:"1.75rem 1rem",
                                 display:"flex",flexDirection:"column",alignItems:"center",gap:"0.65rem",
                                 transition:"all 0.25s ease",
@@ -8729,13 +8947,13 @@ COACHING GUIDELINES:
                                   </svg>
                                 </div>
                                 <div style={{textAlign:"center"}}>
-                                  <div style={{fontSize:"0.88rem",fontWeight:600,color:"var(--ivory2)",letterSpacing:"0.3px",marginBottom:"0.2rem"}}>Camera</div>
-                                  <div style={{fontSize:"0.66rem",color:"rgba(255,255,255,0.25)",letterSpacing:"1px"}}>Live capture</div>
+                                  <div style={{fontSize:"0.88rem",fontWeight:600,color:"var(--ivory)",letterSpacing:"3px",textTransform:"uppercase",marginBottom:"0.2rem",fontSize:"0.72rem",fontWeight:700}}>CAMERA</div>
+                                  <div style={{fontSize:"0.66rem",color:"rgba(255,255,255,0.4)",letterSpacing:"1.5px",textTransform:"uppercase"}}>LIVE CAPTURE</div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                          <div style={{border:"1px dashed var(--border)",borderRadius:"var(--r)",aspectRatio:"4/3",background:"var(--smoke)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                          <div style={{border:"1px solid rgba(191,161,106,0.2)",borderRadius:"var(--r-lg)",aspectRatio:"4/3",background:"linear-gradient(160deg,#1a1208 0%,#0D0D0D 100%)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
                             {progressPhotos[0]?.dataUrl ? (
                               <img src={progressPhotos[0].dataUrl} alt="Latest" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                             ) : (
@@ -8830,7 +9048,7 @@ COACHING GUIDELINES:
                 // Latest weight
                 const latestWeight = weightLog.length>0 ? weightLog[weightLog.length-1] : null;
                 const latestPhoto = progressPhotos[0] || null;
-                const heightFt = profile.height ? `${Math.floor(profile.height/12)}'${profile.height%12}"` : null;
+                const heightFt = profile.height ? (profile.height > 12 ? `${Math.floor(profile.height/12)}'${Math.round(profile.height%12)}"` : `${Math.floor(profile.height)}'${Math.round((profile.height%1)*12)}"`) : null;
 
                 // Completion score
                 const fields = [profile.name,profile.sport,profile.position,profile.height,profile.weight,profile.age,
@@ -8850,7 +9068,7 @@ COACHING GUIDELINES:
                           Share with college coaches, scouts, and recruiting services
                         </div>
                       </div>
-                      <div style={{display:"flex",gap:"0.5rem",alignItems:"center"}}>
+                      <div style={{display:"flex",gap:"0.5rem",alignItems:"center",flexWrap:"wrap"}}>
                         <div style={{fontSize:"0.76rem",color:completionPct>=80?"#4BAE71":"#F0C040",fontWeight:600}}>
                           {completionPct}% complete
                         </div>
@@ -8866,7 +9084,7 @@ COACHING GUIDELINES:
                       </div>
                     </div>
 
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem",marginBottom:"1.25rem"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"1.25rem",marginBottom:"1.25rem"}}>
 
                       {/* LEFT: The visual card */}
                       <div>
@@ -9076,7 +9294,7 @@ COACHING GUIDELINES:
                                   ``,
                                   `ATHLETE INFO`,
                                   `Sport / Position: ${sport.label} · ${profile.position}`,
-                                  profile.height?`Height: ${Math.floor(profile.height/12)}'${profile.height%12}"`:null,
+                                  profile.height?`Height: ${profile.height>12?Math.floor(profile.height/12):Math.floor(profile.height)}'${profile.height>12?Math.round(profile.height%12):Math.round((profile.height%1)*12)}"`:null,
                                   (latestWeight?.weight||profile.weight)?`Weight: ${latestWeight?.weight||profile.weight} lbs`:null,
                                   profile.age?`Age: ${profile.age}`:null,
                                   profile.gpa?`GPA: ${profile.gpa}${profile.gpaScale?" / "+profile.gpaScale:""}`:null,
@@ -9186,6 +9404,8 @@ ${recruitingNote}`:null,
                     if(latestWeight.bodyFat) lines.push(`Body fat: ${latestWeight.bodyFat}%`);
                     lines.push(``);
                   }
+                  const sp2 = SPORT_NUTRITION_PROFILES[profile.sport];
+                  const proteinTarget = Math.round((parseFloat(profile.weight)||185) * (sp2?.positions?.[profile.position]?.proteinGperLb ?? sp2?.base?.proteinGperLb ?? 0.85));
                   if(reportSections.nutrition && avgCals) {
                     lines.push(`NUTRITION (7-day avg)`);
                     lines.push(`Calories: ${avgCals} kcal/day (target: ${totalCals})`);
@@ -9230,7 +9450,7 @@ ${recruitingNote}`:null,
                       </div>
                     </div>
 
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"1.25rem"}}>
 
                       {/* LEFT — Coaches + Report Builder */}
                       <div style={{display:"flex",flexDirection:"column",gap:"0.85rem"}}>
@@ -9458,7 +9678,7 @@ ${recruitingNote}`:null,
                     </div>
                   )}
 
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"1.25rem"}}>
 
                     {/* LEFT — Reminder settings */}
                     <div style={{display:"flex",flexDirection:"column",gap:"0.85rem"}}>
@@ -9676,7 +9896,7 @@ ${recruitingNote}`:null,
                       ))}
                     </div>
 
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"1.25rem"}}>
 
                       {/* LEFT — Supplement cards */}
                       <div style={{display:"flex",flexDirection:"column",gap:"0.55rem"}}>
@@ -10000,6 +10220,7 @@ ${recruitingNote}`:null,
               })()}
           {dash==="journal" && (
             <div>
+              {!canAccess('athlete') ? <UpgradePrompt feature="Athlete Journal" desc="Log your thoughts, progress notes, and reflections. Export and email to your coach." onUpgrade={()=>setScreen("pricing")}/> : <>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"2rem"}}>
                 <div><div className="eyebrow">Personal</div><h2 className="sh2">Athlete <em>Journal</em></h2></div>
                 <div style={{display:"flex",gap:"0.45rem"}}>
@@ -10079,11 +10300,13 @@ ${recruitingNote}`:null,
                   ))}
                 </div>
               </div>
+              </>
+            }
             </div>
           )}
 
           {/* CALENDAR */}
-          {dash==="calendar" && <CalView shout={shout} meals={meals} mealType={mealType} mealFreq={mealFreq} wkType={wkType} wkFocus={wkFocus} totalCals={totalCals} MEAL_PLANS={MEAL_PLANS} WORKOUTS={WORKOUTS} checkIns={checkIns} wkLog={wkLog} nutritionLog={nutritionLog} weightLog={weightLog} selInj={selInj} profile={profile} setDash={setDash} setProgressTab={setProgressTab}/>}
+          {dash==="calendar" && (!canAccess('athlete') ? <UpgradePrompt feature="Training Calendar" desc="Schedule meals, workouts, and recovery sessions. Export to Apple Calendar or Google Calendar." onUpgrade={()=>setScreen("pricing")}/> : <CalView shout={shout} meals={meals} mealType={mealType} mealFreq={mealFreq} wkType={wkType} wkFocus={wkFocus} totalCals={totalCals} MEAL_PLANS={MEAL_PLANS} WORKOUTS={WORKOUTS} checkIns={checkIns} wkLog={wkLog} nutritionLog={nutritionLog} weightLog={weightLog} selInj={selInj} profile={profile} setDash={setDash} setProgressTab={setProgressTab}/>)}
 
           {/* PROFILE */}
           {dash==="profile" && (
@@ -10121,7 +10344,7 @@ ${recruitingNote}`:null,
                     <div className="ph"><div className="pt">Stats <em>Overview</em></div></div>
                     <div className="pb">
                       <div className="two">
-                        {[["Weight",profile.weight?`${profile.weight} lbs`:"—"],["Height",profile.height?`${Math.floor(profile.height/12)}'${profile.height%12}"`:"—"],["Age",profile.age?`${profile.age} yrs`:"—"],["Goal",profile.goal||"—"]].map(([l,v])=>(
+                        {[["Weight",profile.weight?`${profile.weight} lbs`:"—"],["Height",profile.height?`${Math.floor(parseFloat(profile.height)/12)}'${Math.round(parseFloat(profile.height)%12)}"`:"—"],["Age",profile.age?`${profile.age} yrs`:"—"],["Goal",profile.goal||"—"]].map(([l,v])=>(
                           <div key={l} style={{marginBottom:"1rem"}}>
                             <div style={{fontSize:"0.84rem",letterSpacing:"2px",textTransform:"uppercase",color:"var(--muted)",marginBottom:"0.28rem"}}>{l}</div>
                             <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.4rem",fontWeight:600,color:"var(--ivory)"}}>{v}</div>
@@ -10135,23 +10358,47 @@ ${recruitingNote}`:null,
                   <div className="panel" style={{marginBottom:"1.1rem"}}>
                     <div className="ph"><div className="pt">Edit <em>Profile</em></div></div>
                     <div className="pb">
-                      <div className="f"><label className="fl">Name</label><input className="fi" value={profile.name} onChange={e=>setProfile(p=>({...p,name:e.target.value}))}/></div>
+                      <div className="f"><label className="fl">Name</label><input className="fi" value={profile.name||""} onChange={e=>setProfile(p=>({...p,name:e.target.value}))}/></div>
                       <div className="two">
-                        <div className="f"><label className="fl">Weight (lbs)</label><input type="number" className="fi" min="50" max="500" value={profile.weight} onChange={e=>{const v=parseFloat(e.target.value);if(e.target.value===''||(!isNaN(v)&&v>=50&&v<=500))setProfile(p=>({...p,weight:e.target.value}))}}/></div>
-                        <div className="f"><label className="fl">Height (in)</label><input type="number" className="fi" min="36" max="96" value={profile.height} onChange={e=>{const v=parseFloat(e.target.value);if(e.target.value===''||(!isNaN(v)&&v>=36&&v<=96))setProfile(p=>({...p,height:e.target.value}))}}/></div>
+                        <div className="f"><label className="fl">Weight (lbs)</label><input type="number" className="fi" min="50" max="500" placeholder="e.g. 185" value={profile.weight||""} onChange={e=>setProfile(p=>({...p,weight:e.target.value}))}/></div>
+                        <div className="f"><label className="fl">Height (in)</label><input type="number" className="fi" min="36" max="96" placeholder="e.g. 73" value={profile.height||""} onChange={e=>setProfile(p=>({...p,height:e.target.value}))}/></div>
                       </div>
-                      <div className="f"><label className="fl">Age (years)</label><input type="number" className="fi" placeholder="e.g. 24" min="10" max="100" value={profile.age} onChange={e=>{const v=parseFloat(e.target.value);if(e.target.value===''||(!isNaN(v)&&v>=10&&v<=100))setProfile(p=>({...p,age:e.target.value}))}}/></div>
+                      <div className="f"><label className="fl">Age (years)</label><input type="number" className="fi" placeholder="e.g. 24" min="10" max="100" value={profile.age||""} onChange={e=>setProfile(p=>({...p,age:e.target.value}))}/></div>
                       <div className="f"><label className="fl">Sport</label>
-                        <select className="fi" value={profile.sport} onChange={e=>setProfile(p=>({...p,sport:e.target.value,position:""}))}>
+                        <select className="fi" value={profile.sport||""} onChange={e=>setProfile(p=>({...p,sport:e.target.value,position:""}))}>
                           {Object.entries(SPORTS).map(([k,s])=><option key={k} value={k}> {s.label}</option>)}
                         </select>
                       </div>
                       {profile.sport && <div className="f"><label className="fl">Position</label>
-                        <select className="fi" value={profile.position} onChange={e=>{setProfile(p=>({...p,position:e.target.value}));setSelInj([]);}}>
+                        <select className="fi" value={profile.position||""} onChange={e=>{setProfile(p=>({...p,position:e.target.value}));setSelInj([]);}}>
                           <option value="">Select Position</option>
                           {SPORTS[profile.sport].positions.map(pos=><option key={pos}>{pos}</option>)}
                         </select>
                       </div>}
+                      <div className="f"><label className="fl">Goal</label>
+                        <select className="fi" value={profile.goal||"Weight Maintenance"} onChange={e=>{
+                          const g=e.target.value;
+                          setProfile(p=>({...p,goal:g}));
+                          setMealType(g==="Weight Gain"?"Weight Gain":g==="Weight Loss"?"Weight Loss":"Weight Maintenance");
+                        }}>
+                          <option value="Weight Maintenance">Weight Maintenance</option>
+                          <option value="Weight Gain">Weight Gain</option>
+                          <option value="Weight Loss">Weight Loss</option>
+                        </select>
+                      </div>
+                      {(profile.goal==="Weight Gain"||profile.goal==="Weight Loss") && (
+                        <div className="f">
+                          <label className="fl">Target Weight (lbs)</label>
+                          <input type="number" className="fi" min="50" max="500" placeholder={profile.goal==="Weight Gain"?"e.g. 210":"e.g. 175"}
+                            value={profile.targetWeight||""}
+                            onChange={e=>setProfile(p=>({...p,targetWeight:e.target.value}))}/>
+                          {profile.targetWeight && profile.weight && (
+                            <div style={{fontSize:"0.75rem",color:"var(--gold)",marginTop:"0.35rem",letterSpacing:"0.5px"}}>
+                              {profile.goal==="Weight Gain"?"+" : "-"}{Math.abs(parseFloat(profile.targetWeight||0)-parseFloat(profile.weight||0)).toFixed(1)} lbs to goal
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <button className="bg" style={{width:"100%",padding:"0.78rem"}} onClick={async()=>{
                         try{
                           if(authUser?.id) await saveProfile(authUser.id, profile);
@@ -10171,12 +10418,12 @@ ${recruitingNote}`:null,
                           {subscription?.plan_name||"Elite Membership"}
                         </div>
                         <div style={{color:"var(--muted)",fontSize:"0.78rem",marginTop:"0.2rem"}}>
-                          {subscription?.price||"$69"}/month · Renews {subscription?.renewal_date||"March 1, 2026"}
+                          {isBeta?"Beta Access ◆ No charge during beta period":"$" + (subscription?.price||"69") + "/month ◆ Renews " + (subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : "?")}
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div style={{display:"flex",flexDirection:"column",gap:"0.6rem"}}>
+                      <div style={{display:"flex",flexDirection:"column",gap:"0.6rem",alignSelf:"stretch",height:"100%"}}>
                         <button className="bg" style={{width:"100%",padding:"0.75rem"}}
                           onClick={()=>setScreen("pricing")}>
                           Upgrade / Change Plan
@@ -10193,11 +10440,202 @@ ${recruitingNote}`:null,
 
       {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} userId={authUser?.id} couponCode={payModal?.couponCode} onClose={()=>setPayModal(null)}
         onSuccess={()=>{setPayModal(null);shout("Subscription activated! Welcome to Elite.","◆");loadUserData(authUser?.id);}}/>}
-      {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id);setScreen("dashboard");shout(`Welcome, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);}}/>}
+      {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user, betaCode, isNew)=>{setAuthUser(user);loadUserData(user.id, !!isNew);setScreen("dashboard");if(!isNew) shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);}}/>}
+
+      {/* ── ONBOARDING FLOATER ──────────────────────────────── */}
+      {showOnboarding && (
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:9999,background:"rgba(0,0,0,0.93)",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"1rem",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+          <div style={{width:"100%",maxWidth:"480px",background:"var(--card)",border:"1px solid rgba(191,161,106,0.25)",borderRadius:"16px",padding:"2rem 1.75rem",boxShadow:"0 0 80px rgba(168,130,42,0.15)",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+
+            {/* Logo + Title */}
+            <div style={{textAlign:"center",marginBottom:"1.75rem"}}>
+              <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"0.6rem",letterSpacing:"5px",textTransform:"uppercase",color:"var(--gold)",marginBottom:"0.4rem"}}>ELITE ATHLETE</div>
+              <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.55rem",fontWeight:700,color:"var(--ivory)",lineHeight:1.2}}>
+                {obStep===1 && <>Welcome, <em style={{color:"var(--gold)"}}>Champion</em></>}
+                {obStep===2 && <>Your <em style={{color:"var(--gold)"}}>Sport</em></>}
+                {obStep===3 && <>Your <em style={{color:"var(--gold)"}}>Goal</em></>}
+              </div>
+              <div style={{fontSize:"0.75rem",color:"var(--muted)",marginTop:"0.4rem",letterSpacing:"0.5px"}}>
+                {obStep===1 && "Tell us about yourself to personalize your experience"}
+                {obStep===2 && "Select your sport and playing position"}
+                {obStep===3 && "Set your performance goal and target"}
+              </div>
+            </div>
+
+            {/* Step Progress */}
+            <div style={{display:"flex",gap:"6px",marginBottom:"1.75rem",justifyContent:"center"}}>
+              {[1,2,3].map(s=>(
+                <div key={s} style={{height:"3px",flex:1,borderRadius:"99px",background:s<=obStep?"var(--gold)":"rgba(255,255,255,0.1)",transition:"background 0.3s"}}/>
+              ))}
+            </div>
+
+            {/* ── STEP 1: Personal Info ── */}
+            {obStep===1 && (
+              <div style={{display:"flex",flexDirection:"column",gap:"1rem"}}>
+                <div className="f">
+                  <label className="fl">Full Name <span style={{color:"var(--gold)"}}>*</span></label>
+                  <input className="fi" placeholder="e.g. Marcus Johnson" value={profile.name||""} onChange={e=>setProfile(p=>({...p,name:e.target.value}))}/>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
+                  <div className="f">
+                    <label className="fl">Age</label>
+                    <input type="number" className="fi" placeholder="e.g. 22" min="10" max="100" value={profile.age||""} onChange={e=>setProfile(p=>({...p,age:e.target.value}))}/>
+                  </div>
+                  <div className="f">
+                    <label className="fl">Weight (lbs)</label>
+                    <input type="number" className="fi" placeholder="e.g. 195" min="50" max="500" value={profile.weight||""} onChange={e=>setProfile(p=>({...p,weight:e.target.value}))}/>
+                  </div>
+                </div>
+                <div className="f">
+                  <label className="fl">Height (inches) <span style={{fontSize:"0.7rem",color:"var(--muted)"}}>— e.g. 73 for 6'1"</span></label>
+                  <input type="number" className="fi" placeholder="e.g. 73" min="36" max="96" value={profile.height||""} onChange={e=>setProfile(p=>({...p,height:e.target.value}))}/>
+                  {profile.height && parseFloat(profile.height)>=36 && (
+                    <div style={{fontSize:"0.72rem",color:"var(--gold)",marginTop:"0.3rem"}}>
+                      = {Math.floor(parseFloat(profile.height)/12)}'{Math.round(parseFloat(profile.height)%12)}"
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 2: Sport & Position ── */}
+            {obStep===2 && (
+              <div style={{display:"flex",flexDirection:"column",gap:"1rem"}}>
+                <div className="f">
+                  <label className="fl">Sport <span style={{color:"var(--gold)"}}>*</span></label>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.6rem"}}>
+                    {Object.entries(SPORTS).map(([k,s])=>(
+                      <button key={k} onClick={()=>setProfile(p=>({...p,sport:k,position:""}))}
+                        style={{padding:"0.85rem 0.5rem",borderRadius:"var(--r)",border:`1px solid ${profile.sport===k?"var(--gold)":"rgba(255,255,255,0.1)"}`,
+                          background:profile.sport===k?"rgba(168,130,42,0.15)":"rgba(255,255,255,0.03)",
+                          color:profile.sport===k?"var(--gold)":"var(--muted)",cursor:"pointer",
+                          fontFamily:"'DM Sans',sans-serif",fontSize:"0.82rem",fontWeight:profile.sport===k?600:400,
+                          letterSpacing:"1px",transition:"all 0.2s"}}>
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {profile.sport && (
+                  <div className="f">
+                    <label className="fl">Position <span style={{color:"var(--gold)"}}>*</span></label>
+                    <select className="fi" value={profile.position||""} onChange={e=>setProfile(p=>({...p,position:e.target.value}))}>
+                      <option value="">Select your position</option>
+                      {SPORTS[profile.sport].positions.map(pos=><option key={pos}>{pos}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── STEP 3: Goal ── */}
+            {obStep===3 && (
+              <div style={{display:"flex",flexDirection:"column",gap:"1rem"}}>
+                <div className="f">
+                  <label className="fl">Performance Goal <span style={{color:"var(--gold)"}}>*</span></label>
+                  <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
+                    {["Weight Maintenance","Weight Gain","Weight Loss"].map(g=>(
+                      <button key={g} onClick={()=>{setProfile(p=>({...p,goal:g}));setMealType(g==="Weight Gain"?"Weight Gain":g==="Weight Loss"?"Weight Loss":"Weight Maintenance");}}
+                        style={{padding:"0.9rem 1rem",borderRadius:"var(--r)",border:`1px solid ${profile.goal===g?"var(--gold)":"rgba(255,255,255,0.1)"}`,
+                          background:profile.goal===g?"rgba(168,130,42,0.15)":"rgba(255,255,255,0.03)",
+                          color:profile.goal===g?"var(--gold)":"var(--muted)",cursor:"pointer",textAlign:"left",
+                          fontFamily:"'DM Sans',sans-serif",fontSize:"0.85rem",fontWeight:profile.goal===g?600:400,transition:"all 0.2s"}}>
+                        <span style={{marginRight:"0.6rem"}}>{g==="Weight Maintenance"?"⚖️":g==="Weight Gain"?"📈":"📉"}</span>{g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {(profile.goal==="Weight Gain"||profile.goal==="Weight Loss") && (
+                  <div className="f">
+                    <label className="fl">Target Weight (lbs)</label>
+                    <input type="number" className="fi" min="50" max="500"
+                      placeholder={profile.goal==="Weight Gain"?"e.g. 215":"e.g. 175"}
+                      value={profile.targetWeight||""}
+                      onChange={e=>setProfile(p=>({...p,targetWeight:e.target.value}))}/>
+                    {profile.targetWeight && profile.weight && (
+                      <div style={{fontSize:"0.72rem",color:"var(--gold)",marginTop:"0.3rem"}}>
+                        {profile.goal==="Weight Gain"?"+":"-"}{Math.abs(parseFloat(profile.targetWeight||0)-parseFloat(profile.weight||0)).toFixed(1)} lbs to goal
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Summary card */}
+                <div style={{marginTop:"0.5rem",padding:"1rem",background:"rgba(168,130,42,0.07)",border:"1px solid rgba(191,161,106,0.2)",borderRadius:"var(--r)"}}>
+                  <div style={{fontSize:"0.6rem",letterSpacing:"3px",textTransform:"uppercase",color:"var(--gold)",marginBottom:"0.6rem"}}>Profile Summary</div>
+                  {[
+                    ["Athlete", profile.name||"—"],
+                    ["Sport", profile.sport ? SPORTS[profile.sport]?.label : "—"],
+                    ["Position", profile.position||"—"],
+                    ["Goal", profile.goal||"—"],
+                  ].map(([l,v])=>(
+                    <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:"0.78rem",padding:"0.25rem 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                      <span style={{color:"var(--muted)"}}>{l}</span>
+                      <span style={{color:"var(--ivory)",fontWeight:500}}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div style={{display:"flex",gap:"0.75rem",marginTop:"1.75rem"}}>
+              {obStep>1 && (
+                <button onClick={()=>setObStep(s=>s-1)}
+                  style={{flex:"0 0 auto",padding:"0.8rem 1.25rem",borderRadius:"var(--r)",border:"1px solid rgba(255,255,255,0.12)",background:"transparent",color:"var(--muted)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:"0.8rem",letterSpacing:"1px"}}>
+                  ← Back
+                </button>
+              )}
+              {obStep<3 && (
+                <button onClick={()=>{
+                  if(obStep===1 && !profile.name?.trim()){shout("Please enter your name","!");return;}
+                  if(obStep===2 && !profile.sport){shout("Please select a sport","!");return;}
+                  if(obStep===2 && !profile.position){shout("Please select your position","!");return;}
+                  setObStep(s=>s+1);
+                }}
+                  style={{flex:1,padding:"0.85rem",borderRadius:"var(--r)",border:"1px solid var(--gold)",background:"rgba(168,130,42,0.15)",color:"var(--gold)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:"0.82rem",fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",transition:"all 0.2s"}}>
+                  Next →
+                </button>
+              )}
+              {obStep===3 && (
+                <button disabled={obSaving} onClick={async()=>{
+                  if(!profile.name?.trim()){shout("Please enter your name","!");setObStep(1);return;}
+                  if(!profile.sport){shout("Please select a sport","!");setObStep(2);return;}
+                  if(!profile.position){shout("Please select your position","!");setObStep(2);return;}
+                  if(!profile.goal){shout("Please select a goal","!");return;}
+                  setObSaving(true);
+                  try{
+                    if(authUser?.id) await saveProfile(authUser.id, profile);
+                    setShowOnboarding(false);
+                    window.scrollTo({top:0, behavior:'instant'});
+                    shout(`Welcome, ${profile.name.split(' ')[0]}. Your journey begins now.`,"◆");
+                  }catch(e){
+                    shout("Save failed — please try again","!");
+                  }finally{
+                    setObSaving(false);
+                  }
+                }}
+                  style={{flex:1,padding:"0.85rem",borderRadius:"var(--r)",border:"none",background:obSaving?"rgba(168,130,42,0.3)":"linear-gradient(135deg,#BFA16A,#8B6520)",color:"#0D0D0D",cursor:obSaving?"not-allowed":"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:"0.82rem",fontWeight:700,letterSpacing:"2px",textTransform:"uppercase",transition:"all 0.2s"}}>
+                  {obSaving ? "Saving…" : "Start My Journey ◆"}
+                </button>
+              )}
+            </div>
+
+            {/* Skip link — only for users who already have partial data */}
+            {(profile.name && profile.sport) && (
+              <div style={{textAlign:"center",marginTop:"1rem"}}>
+                <button onClick={()=>setShowOnboarding(false)}
+                  style={{background:"none",border:"none",color:"var(--muted)",fontSize:"0.7rem",cursor:"pointer",letterSpacing:"1px",textDecoration:"underline"}}>
+                  Skip for now
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── IN-APP CAMERA MODAL ─────────────────────────────── */}
       {cameraModal && (
-        <div style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(0,0,0,0.97)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:9000,background:"rgba(0,0,0,0.97)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
           <div style={{position:"absolute",top:0,left:0,right:0,padding:"1rem 1.5rem",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
             <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"0.7rem",fontWeight:700,letterSpacing:"3px",textTransform:"uppercase",color:"var(--ivory2)"}}>
               {cameraModal==='progress' ? 'Progress Photo' : cameraModal==='profile-before' ? 'Before Photo' : 'Current Photo'}
@@ -10266,7 +10704,7 @@ ${recruitingNote}`:null,
         }}/>}
       {/* ══ EXERCISE LIBRARY MODAL ═══════════════════════════ */}
       {showExLib && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:1000,display:"flex",alignItems:"stretch",justifyContent:"flex-end"}} onClick={e=>{if(e.target===e.currentTarget){setShowExLib(false);setExLibSelected(null);}}}>
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.85)",zIndex:1000,display:"flex",alignItems:"stretch",justifyContent:"flex-end"}} onClick={e=>{if(e.target===e.currentTarget){setShowExLib(false);setExLibSelected(null);}}}>
           <div style={{width:"min(860px,100vw)",background:"#0E0D0B",borderLeft:"1px solid rgba(191,161,106,0.2)",display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
 
             {/* Header */}
@@ -10297,10 +10735,10 @@ ${recruitingNote}`:null,
             </div>
 
             {/* Body: list + detail */}
-            <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+            <div style={{display:"flex",flex:1,overflow:"hidden",flexDirection:"column"}}>
 
               {/* Exercise list */}
-              <div style={{width:exLibSelected?"280px":"100%",flexShrink:0,overflowY:"auto",borderRight:exLibSelected?"1px solid rgba(255,255,255,0.06)":"none"}}>
+              <div style={{width:"100%",flex:1,overflowY:"auto"}}>
                 {(()=>{
                   const q=exLibQuery.toLowerCase();
                   const filtered=EXERCISE_LIBRARY.filter(e=>(exLibMuscle==="All"||e.muscle===exLibMuscle)&&(exLibCat==="All"||e.cat===exLibCat)&&(!q||e.name.toLowerCase().includes(q)||e.muscles.toLowerCase().includes(q)));
@@ -10326,7 +10764,7 @@ ${recruitingNote}`:null,
 
               {/* Detail panel */}
               {exLibSelected && (
-                <div style={{flex:1,overflowY:"auto",padding:"1.25rem"}}>
+                <div style={{position:"absolute",inset:0,background:"#0E0D0B",zIndex:10,overflowY:"auto",padding:"1.25rem",display:exLibSelected?"flex":"none",flexDirection:"column"}}><button onClick={()=>setExLibSelected(null)} style={{background:"none",border:"none",color:"var(--gold)",fontSize:"0.75rem",letterSpacing:"1.5px",cursor:"pointer",marginBottom:"1rem",padding:0,display:"flex",alignItems:"center",gap:"0.4rem",fontFamily:"Inter,sans-serif",fontWeight:600}}>BACK TO LIST</button>
                   <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.35rem",fontWeight:600,color:"var(--ivory)",marginBottom:"0.2rem"}}>{exLibSelected.name}</div>
                   <div style={{display:"flex",gap:"0.5rem",marginBottom:"1rem",flexWrap:"wrap"}}>
                     <span style={{fontSize:"0.7rem",background:"rgba(255,255,255,0.05)",color:"var(--gold)",padding:"2px 8px",borderRadius:"3px",fontWeight:600}}>{exLibSelected.muscle}</span>
@@ -10394,7 +10832,7 @@ ${recruitingNote}`:null,
 // Free · Athlete ($29/mo·$199/yr) · Elite ($69/mo·$529/yr) · Coach Pro ($99/mo+$4.99/ath)
 // ─────────────────────────────────────────────────────────────
 function PricingSection({ setPayModal }) {
-  const [billing, setBilling] = useState('annual');
+  const [billing, setBilling] = useState('monthly');
 
   const TIERS = [
     {
@@ -10420,7 +10858,7 @@ function PricingSection({ setPayModal }) {
       tier: 'Foundation',
       name: 'Athlete',
       monthly: { price: '$29', label: '/month · billed monthly' },
-      annual:  { price: '$199', moEquiv: '$16.58/mo', save: 'Save $149/yr', label: '/year · billed annually' },
+      annual:  { price: '$16.58', moEquiv: '$199/yr', save: 'Save $149/yr', label: '/mo · billed $199/yr' },
       feats: [
         'Full position-specific meal plans',
         'Complete workout program',
@@ -10440,7 +10878,7 @@ function PricingSection({ setPayModal }) {
       tier: 'Champion',
       name: 'Elite',
       monthly: { price: '$69', label: '/month · billed monthly' },
-      annual:  { price: '$529', moEquiv: '$44.08/mo', save: 'Save $299/yr', label: '/year · billed annually' },
+      annual:  { price: '$44.08', moEquiv: '$529/yr', save: 'Save $299/yr', label: '/mo · billed $529/yr' },
       feats: [
         'Everything in Athlete',
         'AI Coach — unlimited, daily briefs',
@@ -10460,7 +10898,7 @@ function PricingSection({ setPayModal }) {
       tier: 'Professional',
       name: 'Coach Pro',
       monthly: { price: '$99', extra: '+ $4.99/athlete/mo', label: '/month base + per athlete' },
-      annual:  { price: '$899', extra: '+ $39.99/ath/yr', moEquiv: '$74.92/mo', save: 'Save ~$280/yr', label: '/year base' },
+      annual:  { price: '$74.92', extra: '+ $3.33/ath/mo', moEquiv: '$899/yr', save: 'Save ~$280/yr', label: '/mo · billed $899/yr base' },
       feats: [
         'Everything in Elite',
         'Coach dashboard — roster + readiness',
@@ -10482,6 +10920,15 @@ function PricingSection({ setPayModal }) {
       {/* Billing toggle */}
       <div style={{display:'flex',justifyContent:'center',marginBottom:'3rem'}}>
         <div style={{display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:'var(--r)',padding:'4px',gap:'4px'}}>
+          <button onClick={()=>setBilling('monthly')} style={{
+            padding:'0.55rem 1.75rem',fontSize:'0.72rem',letterSpacing:'1.5px',
+            borderRadius:'calc(var(--r) - 2px)',border:'none',cursor:'pointer',transition:'all 0.2s',
+            background: billing==='monthly'?'rgba(255,255,255,0.08)':'transparent',
+            color:       billing==='monthly'?'var(--ivory)':'var(--muted)',
+            fontWeight:  billing==='monthly'?700:400,
+          }}>
+            MONTHLY
+          </button>
           <button onClick={()=>setBilling('annual')} style={{
             padding:'0.55rem 1.75rem',fontSize:'0.72rem',letterSpacing:'1.5px',
             borderRadius:'calc(var(--r) - 2px)',border:'none',cursor:'pointer',transition:'all 0.2s',
@@ -10491,19 +10938,11 @@ function PricingSection({ setPayModal }) {
           }}>
             ANNUAL <span style={{fontSize:'0.62rem',marginLeft:'6px',opacity:0.85}}>SAVE UP TO 43%</span>
           </button>
-          <button onClick={()=>setBilling('monthly')} style={{
-            padding:'0.55rem 1.75rem',fontSize:'0.72rem',letterSpacing:'1.5px',
-            borderRadius:'calc(var(--r) - 2px)',border:'none',cursor:'pointer',transition:'all 0.2s',
-            background: billing==='monthly'?'rgba(255,255,255,0.08)':'transparent',
-            color:       billing==='monthly'?'var(--ivory)':'var(--muted)',
-          }}>
-            MONTHLY
-          </button>
         </div>
       </div>
 
       {/* 4-column price grid */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'2px',
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:'2px',
         background:'rgba(191,161,106,0.07)',border:'1px solid rgba(191,161,106,0.07)',
         borderRadius:'var(--r-xl)',overflow:'hidden'}}>
         {TIERS.map(t => {
@@ -10558,7 +10997,7 @@ function PricingSection({ setPayModal }) {
       {/* Value anchor */}
       <p style={{textAlign:'center',fontSize:'0.78rem',color:'var(--muted)',marginTop:'2rem',fontWeight:300,fontStyle:'italic'}}>
         Private sports nutritionist $200–500/mo + strength coach $300–800/mo = $500–1,300/mo.
-        Elite Athlete = $44/month.
+        Elite Athlete = $29/month.
       </p>
     </div>
   );
@@ -10583,7 +11022,7 @@ function EmailModal({ emailModal, authUser, isPremium, onSend, onClose, setPayMo
   };
 
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.85)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
       <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--r)",padding:"2rem",width:"100%",maxWidth:"440px"}}>
         <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.5rem",fontWeight:600,marginBottom:"0.3rem"}}>
           Email <em style={{color:"var(--gold)"}}>{emailModal?.label}</em>
@@ -10792,7 +11231,8 @@ function CalView({shout, meals, mealType, mealFreq, wkType, wkFocus, totalCals, 
         </div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:selD?"minmax(0,1fr) 300px":"1fr",gap:"1rem",alignItems:"start",overflow:"hidden"}}>
+      <div className="cal-layout" style={{display:"grid",gridTemplateColumns:selD?"minmax(0,1fr) 300px":"1fr",gap:"1rem",alignItems:"start",overflow:"hidden"}}>
+
         {/* Calendar grid */}
         <div style={{minWidth:0,overflow:"hidden"}}>
           {/* Month nav */}
@@ -10864,7 +11304,7 @@ function CalView({shout, meals, mealType, mealFreq, wkType, wkFocus, totalCals, 
 
         {/* Day detail panel */}
         {selD && (
-          <div style={{background:"var(--smoke)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:"var(--r-lg)",padding:"1rem",position:"sticky",top:"1rem"}}>
+          <div className="cal-detail-panel" style={{background:"var(--smoke)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:"var(--r-lg)",padding:"1rem",position:"sticky",top:"1rem"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.85rem"}}>
               <div>
                 <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.2rem",fontWeight:600,color:"var(--gold)"}}>{MN[mo]} {selD}</div>
@@ -10925,6 +11365,83 @@ function CalView({shout, meals, mealType, mealFreq, wkType, wkFocus, totalCals, 
                 {selInj.map(inj=><div key={inj} style={{fontSize:"0.76rem",color:"var(--ivory2)"}}>{inj}</div>)}
               </div>
             )}
+
+            {/* Planned meal breakdown (from synced calendar) */}
+            {selD && (()=>{
+              const dow = new Date(yr, mo, selD).getDay();
+              const altTypes = mealType==="Weight Gain"
+                ? ["Weight Gain","Weight Gain","Weight Maintenance","Weight Gain","Weight Gain","Weight Maintenance","Weight Gain"]
+                : mealType==="Weight Loss"
+                ? ["Weight Loss","Weight Loss","Weight Maintenance","Weight Loss","Weight Loss","Weight Maintenance","Weight Loss"]
+                : ["Weight Maintenance","Weight Maintenance","Weight Gain","Weight Maintenance","Weight Maintenance","Weight Loss","Weight Maintenance"];
+              const dayMealType = altTypes[dow];
+              const dayMeals = MEAL_PLANS?.[dayMealType]?.[mealFreq] || meals || [];
+              const hasSyncedMeal = (evs[selKey]||[]).some(e=>e.startsWith("◆"));
+              if(!hasSyncedMeal || !dayMeals.length) return null;
+              const totalCal = dayMeals.reduce((s,m)=>s+m.items.reduce((ss,it)=>ss+it.cal,0),0);
+              return (
+                <div style={{marginBottom:"0.75rem",padding:"0.6rem 0.75rem",background:"rgba(75,174,113,0.06)",borderRadius:"var(--r)",border:"1px solid rgba(75,174,113,0.15)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.5rem"}}>
+                    <div style={{fontSize:"0.66rem",letterSpacing:"2px",color:"#4BAE71",textTransform:"uppercase",fontWeight:600}}>🥗 Meal Plan</div>
+                    <div style={{fontSize:"0.7rem",color:"#4BAE71",fontWeight:600}}>{totalCal.toLocaleString()} kcal</div>
+                  </div>
+                  {dayMeals.map((meal,i)=>{
+                    const mealCal = meal.items.reduce((s,it)=>s+it.cal,0);
+                    return (
+                      <div key={i} style={{marginBottom:"0.45rem",paddingBottom:"0.35rem",borderBottom:"1px solid rgba(75,174,113,0.1)"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.72rem",fontWeight:600,color:"var(--ivory)",marginBottom:"0.15rem"}}>
+                          <span>{meal.emoji} {meal.label}</span>
+                          <span style={{color:"#4BAE71",fontSize:"0.68rem"}}>{mealCal} kcal</span>
+                        </div>
+                        {meal.items.map((it,j)=>(
+                          <div key={j} style={{fontSize:"0.68rem",color:"var(--muted)",paddingLeft:"0.5rem",lineHeight:1.6}}>
+                            • {it.name} <span style={{color:"rgba(75,174,113,0.7)"}}>{it.cal} kcal</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {/* Planned workout breakdown (from synced calendar) */}
+            {selD && (()=>{
+              const dow = new Date(yr, mo, selD).getDay();
+              const wkTypes = ["Rest","Strength Training","Strength Training","Cardio","Strength Training","Cardio","Active Recovery"];
+              const wkFocuses = ["Rest","Full Body","Upper Body","Lower Body","Upper Body","Full Body","Full Body"];
+              const dayWkType = wkTypes[dow];
+              const dayWkFocus = wkFocuses[dow];
+              const hasSyncedWk = (evs[selKey]||[]).some(e=>e.startsWith("") || e.startsWith("😴"));
+              if(!hasSyncedWk) return null;
+              if(dayWkType==="Rest") return (
+                <div style={{marginBottom:"0.75rem",padding:"0.6rem 0.75rem",background:"rgba(107,159,212,0.04)",borderRadius:"var(--r)",border:"1px solid rgba(107,159,212,0.12)"}}>
+                  <div style={{fontSize:"0.66rem",letterSpacing:"2px",color:"#6B9FD4",textTransform:"uppercase",fontWeight:600,marginBottom:"0.3rem"}}> Workout Plan</div>
+                  <div style={{fontSize:"0.78rem",color:"var(--ivory2)"}}>😴 Rest Day — Active recovery recommended</div>
+                </div>
+              );
+              const exs = WORKOUTS?.[dayWkType]?.[dayWkFocus] || [];
+              if(!exs.length) return null;
+              return (
+                <div style={{marginBottom:"0.75rem",padding:"0.6rem 0.75rem",background:"rgba(107,159,212,0.06)",borderRadius:"var(--r)",border:"1px solid rgba(107,159,212,0.15)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.5rem"}}>
+                    <div style={{fontSize:"0.66rem",letterSpacing:"2px",color:"#6B9FD4",textTransform:"uppercase",fontWeight:600}}> {dayWkType}</div>
+                    <div style={{fontSize:"0.68rem",color:"#6B9FD4"}}>{dayWkFocus}</div>
+                  </div>
+                  {exs.map((ex,i)=>{
+                    const name = typeof ex==="string" ? ex.replace(/[\d]+×[\d]+/,"").trim() : ex.name||"";
+                    const sets = typeof ex==="string" ? (ex.match(/[\d]+×[\d]+/)?.[0]||"") : `${ex.sets||3}×${ex.reps||8}`;
+                    const load = typeof ex==="object" ? ex.load||"" : "";
+                    return (
+                      <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.25rem 0",borderBottom:"1px solid rgba(107,159,212,0.08)",fontSize:"0.72rem"}}>
+                        <span style={{color:"var(--ivory2)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</span>
+                        <span style={{color:"#6B9FD4",flexShrink:0,marginLeft:"0.5rem",fontWeight:600,fontSize:"0.68rem"}}>{sets}{load?` · ${load}`:""}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
             {/* Manual events */}
             {selManual.length>0 && (
@@ -10987,15 +11504,116 @@ function SuccessScreen() {
   );
 }
 
+function BetaSignupSection({ onSignup }) {
+  const [stats, setStats] = useState({ total:0, max:500, remaining:500, beta_full:false });
+  const [waitEmail, setWaitEmail] = useState('');
+  const [waitMsg, setWaitMsg] = useState(null);
+  const [waitBusy, setWaitBusy] = useState(false);
+
+  useEffect(() => {
+    fetch('/.netlify/functions/beta-stats')
+      .then(r => r.json())
+      .then(d => setStats(d))
+      .catch(() => {});
+  }, []);
+
+  async function joinWaitlist(e) {
+    e.preventDefault();
+    if (!waitEmail) return;
+    setWaitBusy(true);
+    try {
+      const res = await fetch('/.netlify/functions/coach-waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: waitEmail, source: 'beta_full_waitlist' }),
+      });
+      setWaitMsg(res.ok ? 'success' : 'error');
+    } catch { setWaitMsg('error'); }
+    finally { setWaitBusy(false); }
+  }
+
+  const DISPLAY_MAX = 500;
+  const pct = Math.min(100, Math.round((stats.total / DISPLAY_MAX) * 100));
+
+  return (
+    <div id="landing-beta" style={{padding:"4rem 1.5rem",textAlign:"center",borderTop:"1px solid rgba(201,168,76,0.1)",background:"rgba(201,168,76,0.02)"}}>
+      <div style={{display:"inline-block",fontSize:"0.58rem",letterSpacing:"4px",color:"var(--gold)",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:"20px",padding:"4px 14px",marginBottom:"1.25rem"}}>
+        {stats.beta_full ? 'BETA FULL' : 'FREE BETA ACCESS — LIMITED SPOTS'}
+      </div>
+      <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"clamp(1.8rem,4vw,2.8rem)",fontWeight:700,letterSpacing:"2px",color:"var(--ivory)",marginBottom:"1rem",lineHeight:1.2}}>
+        {stats.beta_full ? 'Beta is Full.' : <>30 Days Free for Athletes.<br/>45 Days for Coaches.</>}
+      </div>
+
+      {/* Live counter */}
+      <div style={{maxWidth:400,margin:"0 auto 2rem"}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.7rem",color:"var(--muted)",marginBottom:"6px",letterSpacing:"1px"}}>
+          <span style={{color:"var(--gold)",fontWeight:700}}>{Math.max(0, DISPLAY_MAX - stats.total)} spots remaining</span>
+          <span>{stats.total} of {DISPLAY_MAX} claimed</span>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:4,height:6,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(90deg,#C9A227,#e6b830)",height:"100%",width:`${pct}%`,transition:"width 1s ease",borderRadius:4}}/>
+        </div>
+      </div>
+
+      {!stats.beta_full ? (
+        <>
+          <div style={{fontSize:"0.85rem",color:"var(--muted)",maxWidth:"540px",margin:"0 auto 2.5rem",lineHeight:1.75}}>
+            Limited beta — {Math.max(0, DISPLAY_MAX - stats.total)} spots left. Get full access to every feature free — AI Coach, nutrition, workout programming, performance tracking, injury recovery.
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"1.5rem",marginBottom:"2.5rem"}}>
+            {[["🏈","Athletes","Full position-specific programming, AI coaching, supplement stacks — built for your sport. 30 days free.","ATHLETE2026"],
+              ["📋","Coaches","Get early access to Coach Pro. Manage your roster from one dashboard. 45 days free.","COACH2026"]].map(([icon,title,desc,code])=>(
+              <div key={code} style={{background:"#111",border:"1px solid rgba(201,168,76,0.2)",borderRadius:12,padding:"24px",maxWidth:280,textAlign:"left"}}>
+                <div style={{fontSize:"1.8rem",marginBottom:"0.75rem"}}>{icon}</div>
+                <div style={{fontSize:"0.7rem",letterSpacing:"2px",color:"var(--gold)",marginBottom:"6px",textTransform:"uppercase"}}>{title}</div>
+                <div style={{fontSize:"0.8rem",color:"var(--muted)",lineHeight:1.6,marginBottom:"1rem"}}>{desc}</div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{background:"rgba(0,0,0,0.4)",border:"1px solid rgba(201,168,76,0.3)",borderRadius:6,padding:"6px 12px",fontFamily:"monospace",fontSize:"0.85rem",letterSpacing:"3px",color:"var(--gold)"}}>{code}</div>
+                  <button onClick={()=>navigator.clipboard?.writeText(code)} style={{background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:"0.7rem",letterSpacing:"1px"}}>copy</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button onClick={onSignup} style={{background:"var(--gold)",color:"#0a0908",border:"none",borderRadius:8,padding:"14px 36px",fontSize:"0.75rem",fontWeight:800,letterSpacing:"2.5px",cursor:"pointer",display:"block",margin:"0 auto 12px"}}>
+            CLAIM FREE BETA ACCESS →
+          </button>
+          <div style={{fontSize:"0.65rem",color:"var(--muted)",marginTop:"12px",letterSpacing:"1px"}}>
+            Sign up → enter your code → get instant access · No payment required
+          </div>
+        </>
+      ) : (
+        /* Beta full — waitlist */
+        <div style={{maxWidth:440,margin:"0 auto"}}>
+          <div style={{fontSize:"0.9rem",color:"var(--muted)",marginBottom:"2rem",lineHeight:1.75}}>
+            All 500 beta spots have been claimed. Join the waitlist and we'll notify you when a spot opens or when we launch publicly.
+          </div>
+          {waitMsg === 'success' ? (
+            <div style={{color:"#4BAE71",fontSize:"0.9rem",letterSpacing:"1px"}}>✓ You're on the list — we'll be in touch.</div>
+          ) : (
+            <form onSubmit={joinWaitlist} style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+              <input value={waitEmail} onChange={e=>setWaitEmail(e.target.value)} type="email" placeholder="your@email.com" required
+                style={{background:"#111",border:"1px solid rgba(201,168,76,0.3)",borderRadius:6,color:"#fff",padding:"12px 16px",fontSize:"0.85rem",minWidth:240,fontFamily:"inherit"}} />
+              <button type="submit" disabled={waitBusy} style={{background:"var(--gold)",color:"#0a0908",border:"none",borderRadius:6,padding:"12px 24px",fontSize:"0.75rem",fontWeight:800,letterSpacing:"2px",cursor:"pointer"}}>
+                {waitBusy ? '…' : 'JOIN WAITLIST'}
+              </button>
+            </form>
+          )}
+          {waitMsg === 'error' && <div style={{color:"#e74c3c",fontSize:"0.8rem",marginTop:8}}>Something went wrong — email support@elite-athlete.app directly.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BetaConversionModal({ onClose, onUpgrade }) {
   return (
-    <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:9999,background:'rgba(0,0,0,0.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
       <div style={{background:'#111',border:'1px solid rgba(201,168,76,0.3)',borderRadius:16,maxWidth:480,width:'100%',padding:'40px 36px',textAlign:'center',position:'relative'}}>
         <button onClick={onClose} style={{position:'absolute',top:16,right:16,background:'none',border:'none',color:'#555',fontSize:'1.4rem',cursor:'pointer'}}>×</button>
         <div style={{fontSize:48,marginBottom:16}}>⏱</div>
         <div style={{fontSize:'0.6rem',letterSpacing:4,color:'var(--gold)',textTransform:'uppercase',marginBottom:8}}>Beta Period Ended</div>
         <div style={{fontFamily:"'Cormorant SC',serif",fontSize:'1.8rem',fontWeight:600,color:'#fff',marginBottom:12,letterSpacing:2}}>
-          Your 90 Days Are Up
+          Your Beta Access Has Ended
         </div>
         <div style={{fontSize:'0.85rem',color:'#888',lineHeight:1.7,marginBottom:28}}>
           You've had full Elite access during the beta. As a founding member, you get <span style={{color:'var(--gold)',fontWeight:700}}>50% off your first year</span> — locked in forever as long as you stay subscribed.
@@ -11006,7 +11624,7 @@ function BetaConversionModal({ onClose, onUpgrade }) {
             <span style={{fontFamily:"'Cormorant SC',serif",fontSize:'2.2rem',color:'var(--gold)',fontWeight:700}}>$264.50</span>
             <span style={{fontSize:'0.75rem',color:'#888'}}>/first year</span>
           </div>
-          <div style={{fontSize:'0.65rem',color:'#888',letterSpacing:1,marginTop:4}}>Code BETAFOUNDER auto-applied · Then $529/yr</div>
+          <div style={{fontSize:'0.65rem',color:'#888',letterSpacing:1,marginTop:4}}>Code XJeqHLLx auto-applied · Then $529/yr</div>
         </div>
         <button onClick={onUpgrade} style={{width:'100%',background:'var(--gold)',color:'#0a0908',border:'none',borderRadius:8,padding:'14px',fontSize:'0.75rem',fontWeight:800,letterSpacing:'2px',cursor:'pointer',marginBottom:12}}>
           CONVERT TO ELITE — 50% OFF →
@@ -11052,7 +11670,7 @@ function BetaFeedbackModal({ onClose, authUser, getSession }) {
   };
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'flex-end',justifyContent:'flex-end',padding:'20px'}}>
+    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:9999,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'flex-end',justifyContent:'flex-end',padding:'20px'}}>
       <div style={{background:'#111',border:'1px solid rgba(201,168,76,0.2)',borderRadius:14,width:'min(440px,95vw)',padding:'28px',position:'relative',marginBottom:0}}>
         <button onClick={onClose} style={{position:'absolute',top:14,right:16,background:'none',border:'none',color:'#444',fontSize:'1.2rem',cursor:'pointer'}}>×</button>
         {done ? (

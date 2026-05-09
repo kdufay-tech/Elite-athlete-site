@@ -9,7 +9,7 @@ const ALLOWED_ORIGINS = [
 ];
 
 // EmailJS credentials
-const EJ_SERVICE  = 'service_y9mu20h';
+const EJ_SERVICE  = 'service_g2x2onm';
 const EJ_PUBLIC   = 'k01H630sJxtDTafHK';
 const EJ_PRIVATE  = process.env.EMAILJS_PRIVATE_KEY;  // set in Netlify env vars
 const EJ_TEMPLATE = 'template_waitlist'; // Auto-Reply template
@@ -31,7 +31,7 @@ export default async (req) => {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
 
   const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY;
 
   if (!supabaseUrl || !supabaseKey)
     return new Response(JSON.stringify({ error: 'Server not configured' }), { status: 500, headers });

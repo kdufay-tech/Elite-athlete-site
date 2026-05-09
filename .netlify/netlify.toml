@@ -1,8 +1,8 @@
 functionsDirectory = "C:\\Users\\kdufa\\App Development\\Elite Athlete\\elite-athlete-v3\\netlify\\functions"
 functionsDirectoryOrigin = "config-v1"
+headersOrigin = "config"
 redirectsOrigin = "config"
 plugins = []
-headers = []
 
 [build]
 publish = "C:\\Users\\kdufa\\App Development\\Elite Athlete\\elite-athlete-v3\\dist"
@@ -27,8 +27,47 @@ functions = "C:\\Users\\kdufa\\App Development\\Elite Athlete\\elite-athlete-v3\
 
 [functions]
 
+[functions.beta-followup]
+schedule = "0 9 * * *"
+timeout = 26.0
+
+[functions.beta-expiry-reminder]
+schedule = "0 10 * * *"
+timeout = 26.0
+
+[functions.send-beta-invite]
+timeout = 26.0
+
+[functions.marketing-blast]
+timeout = 26.0
+
+[functions.marketing-broadcast]
+timeout = 26.0
+
 [functions."*"]
 node_bundler = "esbuild"
+
+[[headers]]
+for = "/*"
+
+[headers.values]
+X-Frame-Options = "DENY"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+Permissions-Policy = "camera=(self), microphone=(), geolocation=(self), payment=(self)"
+Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://*.stripe.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stripe.com https://*.stripe.network https://api.emailjs.com https://api.anthropic.com; frame-src https://*.stripe.com https://www.youtube.com https://youtube.com; object-src 'none'; base-uri 'self';"
+
+[[headers]]
+for = "/*"
+
+[headers.values]
+Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+X-Frame-Options = "DENY"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
+Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.unsplash.com https://*.supabase.co; connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.emailjs.com https://*.anthropic.com; frame-src https://js.stripe.com; media-src 'self' blob:;"
 
 [[redirects]]
 from = "/report-bug.html"

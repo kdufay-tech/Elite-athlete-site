@@ -53,12 +53,23 @@ export function onAuthChange(callback) {
 // ── PROFILE ───────────────────────────────────────────────────
 
 export async function saveProfile(userId, profile) {
+  // Explicitly map to known DB columns (camelCase → snake_case where needed)
+  // Spreading the full profile object causes errors when unknown keys are present
+  const payload = {
+    user_id:      userId,
+    name:         profile.name         || null,
+    weight:       profile.weight       || null,
+    height:       profile.height       || null,
+    age:          profile.age          || null,
+    sport:        profile.sport        || null,
+    position:     profile.position     || null,
+    goal:         profile.goal         || null,
+    target_weight: profile.targetWeight ? parseFloat(profile.targetWeight) : (profile.target_weight ? parseFloat(profile.target_weight) : null),
+    updated_at:   new Date().toISOString(),
+  };
   const { error } = await supabase
     .from('profiles')
-    .upsert(
-      { user_id: userId, ...profile, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    );
+    .upsert(payload, { onConflict: 'user_id' });
   if (error) throw error;
 }
 

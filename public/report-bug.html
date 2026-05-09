@@ -47,6 +47,18 @@
   .success h2{font-family:'Cormorant SC',serif;font-size:1.8rem;color:var(--gold);margin-bottom:0.75rem;}
   .success p{color:var(--ivory2);font-weight:300;line-height:1.7;}
   @media(max-width:600px){.two{grid-template-columns:1fr;}.severity-grid{grid-template-columns:repeat(2,1fr);}}
+  .screenshot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-top:0.5rem;}
+  .screenshot-slot{position:relative;aspect-ratio:16/10;border:1.5px dashed rgba(191,161,106,0.3);border-radius:var(--r);background:rgba(255,255,255,0.02);cursor:pointer;overflow:hidden;transition:border-color 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .screenshot-slot:hover{border-color:var(--gold);}
+  .screenshot-slot.has-img{border-style:solid;border-color:rgba(191,161,106,0.5);}
+  .screenshot-slot img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+  .screenshot-slot .slot-label{font-size:0.62rem;letter-spacing:2px;color:var(--muted);text-align:center;line-height:1.6;z-index:1;}
+  .screenshot-slot .slot-icon{font-size:1.4rem;margin-bottom:0.3rem;z-index:1;}
+  .screenshot-slot .remove-btn{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:0.7rem;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:2;}
+  .screenshot-slot.has-img .remove-btn{display:flex;}
+  .screenshot-slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:3;}
+  .screenshot-slot.has-img input[type=file]{display:none;}
+  @media(max-width:600px){.screenshot-grid{grid-template-columns:repeat(3,1fr);gap:0.5rem;}}
 </style>
 </head>
 <body>
@@ -80,7 +92,7 @@
       <div class="two">
         <div class="field">
           <label for="email">Email Address</label>
-          <input type="email" id="email" name="email" placeholder="you@email.com" required maxlength="254"/>
+          <input type="email" id="email" name="email" placeholder="your@email.com" required maxlength="254"/>
         </div>
         <div class="field">
           <label for="module">App Module</label>
@@ -179,6 +191,33 @@
       </div>
     </div>
 
+    <div class="card">
+      <div class="field" style="margin-bottom:0;">
+        <label>Screenshots <span style="color:var(--muted);font-size:0.62rem;letter-spacing:1px;">(OPTIONAL — UP TO 3)</span></label>
+        <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem;font-weight:300;">Attach up to 3 screenshots to help us understand the issue faster.</p>
+        <div class="screenshot-grid">
+          <div class="screenshot-slot" id="slot0">
+            <span class="slot-icon">📎</span>
+            <span class="slot-label">Screenshot 1<br/>Tap to upload</span>
+            <input type="file" accept="image/*" onchange="handleImg(0,this)"/>
+            <button type="button" class="remove-btn" onclick="removeImg(0)">✕</button>
+          </div>
+          <div class="screenshot-slot" id="slot1">
+            <span class="slot-icon">📎</span>
+            <span class="slot-label">Screenshot 2<br/>Tap to upload</span>
+            <input type="file" accept="image/*" onchange="handleImg(1,this)"/>
+            <button type="button" class="remove-btn" onclick="removeImg(1)">✕</button>
+          </div>
+          <div class="screenshot-slot" id="slot2">
+            <span class="slot-icon">📎</span>
+            <span class="slot-label">Screenshot 3<br/>Tap to upload</span>
+            <input type="file" accept="image/*" onchange="handleImg(2,this)"/>
+            <button type="button" class="remove-btn" onclick="removeImg(2)">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <button type="submit" class="submit-btn" id="submitBtn">SUBMIT BUG REPORT</button>
   </form>
 
@@ -190,17 +229,113 @@
   </div>
 </div>
 
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
+  (function(){ emailjs.init({ publicKey: "k01H630sJxtDTafHK" }); })();
+
+  // ── SCREENSHOT HANDLING ──────────────────────────────────────
+  const screenshots = [null, null, null];
+
+  function handleImg(idx, input) {
+    const file = input.files[0];
+    if (!file) return;
+    // Max 4MB per image
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Image ' + (idx+1) + ' is too large. Max 4MB per screenshot.');
+      input.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      screenshots[idx] = e.target.result; // base64
+      const slot = document.getElementById('slot' + idx);
+      // Remove existing preview if any
+      const existing = slot.querySelector('img');
+      if (existing) existing.remove();
+      // Add preview
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      slot.insertBefore(img, slot.firstChild);
+      slot.classList.add('has-img');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeImg(idx) {
+    screenshots[idx] = null;
+    const slot = document.getElementById('slot' + idx);
+    const img = slot.querySelector('img');
+    if (img) img.remove();
+    slot.classList.remove('has-img');
+    // Reset file input by replacing it
+    const oldInput = slot.querySelector('input[type=file]');
+    const newInput = oldInput.cloneNode(true);
+    newInput.onchange = function() { handleImg(idx, this); };
+    oldInput.parentNode.replaceChild(newInput, oldInput);
+    slot.style.display = '';
+  }
+
   document.getElementById('bugForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
     btn.disabled = true; btn.textContent = 'SUBMITTING…';
+
+    const data = new FormData(this);
+    // Build screenshot HTML — inline base64 images viewable directly in email
+    const shotCount = screenshots.filter(Boolean).length;
+    const shotHTML = screenshots.map((s, i) => s
+      ? '<div style="margin:8px 0;"><p style="font-size:12px;color:#888;margin-bottom:4px;">Screenshot ' + (i+1) + ':</p><img src="' + s + '" style="max-width:100%;max-height:400px;border-radius:6px;border:1px solid #333;" /></div>'
+      : ''
+    ).join('');
+
+    const params = {
+      to_email:   'support@elite-athlete.app',
+      reply_to:   data.get('email'),
+      subject:    '[BUG REPORT] ' + data.get('severity') + ' — ' + data.get('summary'),
+      message:
+        'NAME: ' + data.get('name') + '\n' +
+        'EMAIL: ' + data.get('email') + '\n' +
+        'MODULE: ' + data.get('module') + '\n' +
+        'SEVERITY: ' + data.get('severity') + '\n\n' +
+        'SUMMARY:\n' + data.get('summary') + '\n\n' +
+        'STEPS TO REPRODUCE:\n' + data.get('steps') + '\n\n' +
+        'EXPECTED:\n' + (data.get('expected')||'N/A') + '\n\n' +
+        'ACTUAL:\n' + (data.get('actual')||'N/A') + '\n\n' +
+        'BROWSER: ' + (data.get('browser')||'N/A') + '\n' +
+        'DEVICE: ' + (data.get('device')||'N/A'),
+    };
+
     try {
-      const formData = new FormData(this);
-      await fetch('/', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams(formData).toString() });
+      // 1. Submit to Netlify Forms (text only)
+      await fetch('/', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: new URLSearchParams(data).toString()
+      });
+
+      // 2. Send main bug report email (text only — fast, always works)
+      await emailjs.send('service_g2x2onm', 'template_0zyrmni', params);
+
+      // 3. Send screenshots as separate emails if attached (fire and forget)
+      const attached = screenshots.filter(Boolean);
+      for (let i = 0; i < attached.length; i++) {
+        try {
+          await emailjs.send('service_g2x2onm', 'template_0zyrmni', {
+            to_email: 'support@elite-athlete.app',
+            reply_to: data.get('email'),
+            subject: '[SCREENSHOT ' + (i+1) + '/' + attached.length + '] ' + data.get('severity') + ' — ' + data.get('summary'),
+            message: '<img src="' + attached[i] + '" style="max-width:100%;border-radius:6px;" />'
+          });
+        } catch(imgErr) {
+          console.warn('Screenshot ' + (i+1) + ' failed to send:', imgErr);
+        }
+      }
+
       document.getElementById('formWrap').classList.add('submitted');
     } catch(err) {
-      btn.disabled = false; btn.textContent = 'SUBMIT BUG REPORT';
+      console.error('Bug report error:', err);
+      btn.disabled = false;
+      btn.textContent = 'SUBMIT BUG REPORT';
       alert('Submission failed. Please try again.');
     }
   });

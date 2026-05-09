@@ -4,6 +4,8 @@
 // ESM format required — project uses node_bundler = esbuild
 
 const ALLOWED_ORIGINS = [
+  'https://elite-athlete.app',
+  'https://www.elite-athlete.app',
   'https://the-elite-athlete.netlify.app',
   'http://localhost:5173',
   'http://localhost:8888',
@@ -22,8 +24,8 @@ const VALID_PLAN_NAMES = [
 ];
 
 export default async (req) => {
-  const origin = req.headers.get('origin') || '';
-  const isAllowed = !origin || ALLOWED_ORIGINS.includes(origin) || origin.includes('netlify.app');
+  const origin = req.headers.get('origin') || req.headers.get('referer') || '';
+  const isAllowed = !origin || ALLOWED_ORIGINS.some(o => origin.startsWith(o)) || origin.includes('netlify.app') || origin.includes('elite-athlete');
   const corsOrigin = origin || ALLOWED_ORIGINS[0];
 
   const headers = {
@@ -78,7 +80,7 @@ export default async (req) => {
     subscription_data: { metadata: { plan_name: safePlanName } },
   };
   if (hasCoupon) {
-    payload.discounts = [{ coupon: body.couponCode.trim().toUpperCase() }];
+    payload.discounts = [{ coupon: body.couponCode.trim() }];
   } else {
     payload.allow_promotion_codes = true;
   }

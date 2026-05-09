@@ -45,22 +45,25 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
         const trimmedCode = betaCode.trim().toUpperCase();
         if (trimmedCode) localStorage.setItem('pending_beta_code', trimmedCode);
         if (data.user && !data.session) {
-          // Email confirmation required — code is saved, will redeem on next sign-in
+          // Email confirmation required — mark as new user so floater shows after confirmation
+          localStorage.setItem('pending_new_user', 'true');
           setSuccess('Account created! Check your email for a confirmation link, then sign in — your beta access will activate automatically.');
         } else if (data.session) {
           // Auto-confirmed (email confirmation disabled) — redeem immediately
           localStorage.removeItem('pending_beta_code');
-          onAuth(data.session.user, trimmedCode || null);
+          onAuth(data.session.user, trimmedCode || null, true); // true = isNewSignup → triggers onboarding floater
           onClose();
         }
       } else {
         const data = await signIn(email, password);
-        // On sign-in, pass any beta code from the field OR from localStorage
         const trimmedCode = betaCode.trim().toUpperCase();
         const storedCode  = localStorage.getItem('pending_beta_code') || '';
         const codeToUse   = trimmedCode || storedCode;
         if (codeToUse) localStorage.removeItem('pending_beta_code');
-        onAuth(data.user, codeToUse || null);
+        // Check if this is a new user returning after email confirmation
+        const isNewUser = localStorage.getItem('pending_new_user') === 'true';
+        if (isNewUser) localStorage.removeItem('pending_new_user');
+        onAuth(data.user, codeToUse || null, isNewUser);
         onClose();
       }
     } catch (err) {

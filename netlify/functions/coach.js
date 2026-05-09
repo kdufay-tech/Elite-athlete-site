@@ -1,10 +1,13 @@
 // AI Coach — Netlify Functions v2 (export default)
 // Required: "type":"module" in package.json → v1 handler format causes 404
-// Env var: ANTHROPIC_API_KEY
+// Env var: ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+// Auth: Supabase JWT verified server-side — beta_elite and elite+ only
 // Reliability: AbortController on Anthropic fetch, empty-message filtering, full error handling
 
 const ALLOWED_ORIGINS = [
   'https://the-elite-athlete.netlify.app',
+  'https://elite-athlete.app',
+  'https://www.elite-athlete.app',
   'http://localhost:5173',
   'http://localhost:8888',
 ];
@@ -27,13 +30,72 @@ function checkRateLimit(ip) {
   return entry.count > RATE_LIMIT;
 }
 
+// Verify JWT and check subscription tier via Supabase
+// Returns { allowed: bool, reason: string }
+async function verifySubscription(authHeader) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // If Supabase env vars not configured, skip server-side check (dev fallback)
+  if (!supabaseUrl || !serviceKey) {
+    console.warn('⚠️  SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing — skipping server-side auth');
+    return { allowed: true, reason: 'dev_bypass' };
+  }
+
+  const token = authHeader?.replace('Bearer ', '').trim();
+  if (!token) return { allowed: false, reason: 'No auth token provided' };
+
+  try {
+    // Get user from JWT token
+    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': serviceKey,
+      },
+    });
+    if (!userRes.ok) return { allowed: false, reason: 'Invalid or expired session' };
+    const { id: userId } = await userRes.json();
+    if (!userId) return { allowed: false, reason: 'Could not identify user' };
+
+    // Look up subscription
+    const subRes = await fetch(`${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}&select=plan_name,status`, {
+      headers: {
+        'Authorization': `Bearer ${serviceKey}`,
+        'apikey': serviceKey,
+      },
+    });
+    if (!subRes.ok) return { allowed: false, reason: 'Could not verify subscription' };
+    const subs = await subRes.json();
+    const sub = subs?.[0];
+
+    if (!sub) return { allowed: false, reason: 'No subscription found — upgrade to Elite to use AI Coach' };
+
+    const plan = (sub.plan_name || '').toLowerCase();
+    // Allow: elite, beta_elite, beta_athlete (full beta), coach, or any active legacy paid
+    const isElitePlus = plan.includes('elite') || plan.includes('coach') || plan.includes('beta');
+    const isActiveLegacy = sub.status === 'active' && !plan.includes('free');
+
+    if (isElitePlus || isActiveLegacy) {
+      return { allowed: true, reason: plan };
+    }
+
+    return { allowed: false, reason: 'AI Coach requires Elite or higher — upgrade to unlock' };
+
+  } catch (err) {
+    console.error('Auth check error:', err.message);
+    // On auth check failure, allow through rather than blocking paying users
+    // (rate limiting still applies as a backstop)
+    return { allowed: true, reason: 'auth_check_failed_fallback' };
+  }
+}
+
 export default async (req) => {
   const origin = req.headers.get('origin') || '';
   const isAllowed = !origin || ALLOWED_ORIGINS.includes(origin) || origin.includes('netlify.app');
   const corsOrigin = origin || ALLOWED_ORIGINS[0];
   const cors = {
     'Access-Control-Allow-Origin': corsOrigin,
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
   };
@@ -47,6 +109,16 @@ export default async (req) => {
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   if (checkRateLimit(clientIp))
     return new Response(JSON.stringify({ error: 'Too many requests — please wait a moment.' }), { status: 429, headers: cors });
+
+  // ── SERVER-SIDE SUBSCRIPTION GATE ────────────────────────────
+  const authHeader = req.headers.get('authorization') || '';
+  const { allowed, reason } = await verifySubscription(authHeader);
+  if (!allowed) {
+    return new Response(
+      JSON.stringify({ error: reason || 'AI Coach requires an Elite subscription.' }),
+      { status: 403, headers: cors }
+    );
+  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey)
@@ -73,20 +145,17 @@ export default async (req) => {
   if (!messages || !Array.isArray(messages) || messages.length === 0)
     return new Response(JSON.stringify({ error: 'messages array required.' }), { status: 400, headers: cors });
 
-  // Critical: Anthropic rejects any message with empty string content — filter them out
   const safeMsgs = messages
     .slice(-20)
     .map(m => ({
       role: m.role === 'user' ? 'user' : 'assistant',
       content: (typeof m.content === 'string' ? m.content.trim() : '').slice(0, 4000),
     }))
-    .filter(m => m.content.length > 0);  // ← KEY: drop empty messages
+    .filter(m => m.content.length > 0);
 
   if (safeMsgs.length === 0)
     return new Response(JSON.stringify({ error: 'All messages were empty.' }), { status: 400, headers: cors });
 
-  // Ensure messages alternate correctly (Anthropic requires user/assistant alternation)
-  // If last message is assistant, Anthropic will error — guard against this
   if (safeMsgs[safeMsgs.length - 1].role !== 'user') {
     return new Response(JSON.stringify({ error: 'Last message must be from user.' }), { status: 400, headers: cors });
   }
@@ -94,7 +163,6 @@ export default async (req) => {
   const safeSystem = (typeof system === 'string' ? system.trim() : '')
     .slice(0, 8000) || 'You are an elite athletic performance coach.';
 
-  // AbortController: kill Anthropic fetch if it takes > 28s
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 28000);
 
