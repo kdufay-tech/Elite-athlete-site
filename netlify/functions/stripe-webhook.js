@@ -67,7 +67,7 @@ async function onCheckout(session, stripeSecret, supabaseUrl, supabaseKey) {
     plan_name: planName,
     status: sub.status,
     billing_interval: sub.items?.data?.[0]?.price?.recurring?.interval || 'month',
-    current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+    current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : new Date(Date.now() + 30*24*60*60*1000).toISOString(),
   });
   console.log(`Subscription saved: user=${userId} plan=${planName}`);
 }
@@ -76,7 +76,7 @@ async function onSubUpdated(sub, supabaseUrl, supabaseKey) {
   const planName = sub.metadata?.plan_name || sub.items?.data?.[0]?.price?.nickname || 'elite';
   await patchSubById(supabaseUrl, supabaseKey, sub.id, {
     plan_name: planName, status: sub.status,
-    current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+    current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : new Date(Date.now() + 30*24*60*60*1000).toISOString(),
   });
 }
 
@@ -125,7 +125,7 @@ async function findUser(email, supabaseUrl, supabaseKey) {
 }
 
 async function upsertSub(supabaseUrl, supabaseKey, data) {
-  const res = await fetch(`${supabaseUrl}/rest/v1/subscriptions`, {
+  const res = await fetch(`${supabaseUrl}/rest/v1/subscriptions?on_conflict=user_id`, {
     method: 'POST',
     headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`,
       'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },

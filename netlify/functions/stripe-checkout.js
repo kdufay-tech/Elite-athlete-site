@@ -71,6 +71,26 @@ export default async (req) => {
   const safeEmail = userEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)
     ? userEmail.slice(0, 254) : undefined;
 
+  // Reuse existing Stripe customer if one exists — prevents duplicate customers on upgrade
+  let existingCustomerId = null;
+  if (body.userId) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+      );
+      const { data: subRow } = await supabase
+        .from('subscriptions')
+        .select('stripe_customer_id')
+        .eq('user_id', body.userId)
+        .single();
+      if (subRow?.stripe_customer_id && !subRow.stripe_customer_id.startsWith('beta_')) {
+        existingCustomerId = subRow.stripe_customer_id;
+      }
+    } catch(e) { /* non-fatal — proceed without customer ID */ }
+  }
+
   const payload = {
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
@@ -84,7 +104,11 @@ export default async (req) => {
   } else {
     payload.allow_promotion_codes = true;
   }
-  if (safeEmail) payload.customer_email = safeEmail;
+  if (existingCustomerId) {
+    payload.customer = existingCustomerId; // reuse existing Stripe customer
+  } else if (safeEmail) {
+    payload.customer_email = safeEmail;   // new customer — prefill email
+  }
   if (body.userId) payload.client_reference_id = String(body.userId).slice(0, 200);
 
   try {

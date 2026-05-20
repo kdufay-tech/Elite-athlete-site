@@ -4133,12 +4133,15 @@ export default function App() {
   const [dash, setDash] = useState("nutrition");
   const [toast, setToast] = useState(null);
   const [payModal, setPayModal] = useState(null);
+  const [upgradeConfirm, setUpgradeConfirm] = useState(null);
+  const [pendingPlan, setPendingPlan] = useState(null);
   const [payTab, setPayTab] = useState("card");
   const [success, setSuccess] = useState(false);
 
   // ── AUTH STATE ───────────────────────────────────────────────
   const [authUser,    setAuthUser]    = useState(null);
   const [authModal,   setAuthModal]   = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('signin');
   const [subscription, setSubscription] = useState(null);
   const [dbLoading,   setDbLoading]   = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
@@ -4568,15 +4571,14 @@ export default function App() {
         setAuthLoading(false);
       } else if (session?.user) {
         setAuthUser(session.user);
-        // Only reload user data on actual sign-in, not on silent token refreshes.
-        // TOKEN_REFRESHED fires every ~60 min and would overwrite in-progress edits.
-        if (event !== 'TOKEN_REFRESHED') {
-          if (!dataLoadedRef.current) {
-            dataLoadedRef.current = true;
-            loadUserData(session.user.id);
-          } else {
-            dataLoadedRef.current = false;
-          }
+        // TOKEN_REFRESHED fires every ~60 min — ignore entirely, no state changes needed.
+        if (event === 'TOKEN_REFRESHED') return;
+        // Only reload user data on actual sign-in events.
+        if (!dataLoadedRef.current) {
+          dataLoadedRef.current = true;
+          loadUserData(session.user.id);
+        } else {
+          dataLoadedRef.current = false;
         }
         setScreen("dashboard");
         setAuthLoading(false);
@@ -5177,8 +5179,8 @@ COACHING GUIDELINES:
           ))}
         </div>
         <div className="nav-r">
-          <button className="bgh" onClick={()=>setAuthModal(true)}>Sign In</button>
-          <button className="bg" onClick={()=>setScreen("setup")}>Begin Journey</button>
+          <button className="bgh" onClick={()=>{setAuthModal(true);setAuthModalMode("signin");}}>Sign In</button>
+          <button className="bg" onClick={()=>{setAuthModal(true);setAuthModalMode("signup");}}>Begin Journey</button>
         </div>
       </nav>
 
@@ -5194,7 +5196,7 @@ COACHING GUIDELINES:
           <h1 className="hero-h1">Unlock Your<br/><em>True Potential</em></h1>
           <p className="hero-sub">Precision nutrition, elite training protocols, and accelerated recovery — curated for the athlete who accepts nothing less than extraordinary.</p>
           <div className="hero-ctas">
-            <button className="bg" style={{padding:"0.85rem 2.5rem",fontSize:"0.9rem",letterSpacing:"3px"}} onClick={()=>setScreen("setup")}>Start Free Trial</button>
+            <button className="bg" style={{padding:"0.85rem 2.5rem",fontSize:"0.9rem",letterSpacing:"3px"}} onClick={()=>{setAuthModal(true);setAuthModalMode("signup");}}>Start Free Trial</button>
             <button className="bgh" style={{padding:"0.85rem 2rem"}} onClick={()=>{
               // Open a YouTube embed modal with an elite athlete promo film
               const modal = document.createElement('div');
@@ -5231,7 +5233,7 @@ COACHING GUIDELINES:
           <div className="sport-grid">
             {Object.entries(SPORTS).map(([key,s])=>(
               <div key={key} className={`stile${profile.sport===key?" sel":""}`}
-                onClick={()=>{setProfile(p=>({...p,sport:key,position:""}));setScreen("setup");}}>
+                onClick={()=>{setProfile(p=>({...p,sport:key,position:""}));setAuthModal(true);setAuthModalMode("signup");}}>
                 <div className="stile-img" style={{backgroundImage:`url(${s.img})`}}/>
                 <div className="stile-ov"/>
                 <div className="stile-ck">{profile.sport===key?"✓":""}</div>
@@ -5262,7 +5264,7 @@ COACHING GUIDELINES:
               {cls:"bt-e",img:"https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=600&q=80",num:"05",title:"Training Calendar",desc:"Intelligent scheduling for all facets of your program."},
               {cls:"bt-f",img:"https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&q=80",num:"06",title:"Athlete Journal",desc:"Private journal — shareable and exportable."},
             ].map(f=>(
-              <div key={f.num} className={`bt ${f.cls}`} onClick={()=>setScreen("setup")}>
+              <div key={f.num} className={`bt ${f.cls}`} onClick={()=>{setAuthModal(true);setAuthModalMode("signup");}}>
                 <div className="bt-img" style={{backgroundImage:`url(${f.img})`}}/>
                 <div className="bt-ov"/>
                 <div className="bt-arr">→</div>
@@ -5288,7 +5290,7 @@ COACHING GUIDELINES:
             </p>
           </div>
 
-          <PricingSection setPayModal={setPayModal} />
+          <PricingSection setPayModal={setPayModal} authUser={authUser} setAuthModal={setAuthModal} setPendingPlan={setPendingPlan} />
 
           {/* ── BETA / FREE TRIAL SECTION — expires June 30 2026 ── */}
           {new Date() < new Date("2026-06-30") && <BetaSignupSection onSignup={()=>setBetaModal(true)} />}
@@ -5308,7 +5310,13 @@ COACHING GUIDELINES:
 
       {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} userId={authUser?.id} couponCode={payModal?.couponCode} onClose={()=>setPayModal(null)}
         onSuccess={()=>{setPayModal(null);setSuccess(true);setTimeout(()=>{setSuccess(false);setScreen("dashboard");},2500);}}/>}
-      {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user, betaCode, isNew)=>{setAuthUser(user);loadUserData(user.id, !!isNew);setScreen("dashboard");if(!isNew) shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);}}/>}
+      {authModal && <AuthModal initialMode={authModalMode} onClose={()=>{setAuthModal(false);setAuthModalMode('signin');}} onAuth={(user, betaCode, isNew)=>{setAuthUser(user);loadUserData(user.id, !!isNew);setScreen("dashboard");if(!isNew) shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);if(pendingPlan){setPayModal(pendingPlan);setPendingPlan(null);}}}/>}
+      {upgradeConfirm && (
+        <div style={{position:"fixed",top:"1.5rem",left:"50%",transform:"translateX(-50%)",zIndex:9999,background:"linear-gradient(135deg,#1a3a2a,#0a1a10)",border:"1px solid #C9A84C",borderRadius:"12px",padding:"1.2rem 2rem",textAlign:"center",boxShadow:"0 8px 32px rgba(0,0,0,0.6)",minWidth:"320px"}}>
+          <div style={{color:"#C9A84C",fontSize:"1.1rem",fontWeight:700,letterSpacing:"2px",marginBottom:"0.4rem"}}>✦ UPGRADE COMPLETE</div>
+          <div style={{color:"#e8e8e8",fontSize:"0.85rem",letterSpacing:"1px"}}>Welcome to {upgradeConfirm} — all your data carried over.</div>
+        </div>
+      )}
       {betaModal && <AuthModal onClose={()=>setBetaModal(false)} initialMode="signup" onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id, true);setScreen("dashboard");if(betaCode) redeemBetaCode(user.id, betaCode); else shout(`Welcome, ${user.email?.split('@')[0]}!`,"◆");}} />}
       {success && <SuccessScreen/>}
       {conversionModal && <BetaConversionModal onClose={()=>setConversionModal(false)} onUpgrade={()=>{setConversionModal(false);setPayModal({tierKey:'elite',billing:'annual',couponCode:'XJeqHLLx'});}} />}
@@ -5503,11 +5511,11 @@ COACHING GUIDELINES:
               Annual plans save up to 43% · Cancel anytime
             </p>
           </div>
-          <PricingSection setPayModal={setPayModal}/>
+          <PricingSection setPayModal={setPayModal} authUser={authUser} setAuthModal={setAuthModal} setPendingPlan={setPendingPlan}/>
         </div>
       </div>
       {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} onClose={()=>setPayModal(null)}
-        onSuccess={()=>{setPayModal(null);shout("Subscription activated! Welcome to Elite.","◆");setScreen("dashboard");}}/>}
+        onSuccess={(planName)=>{setPayModal(null);setUpgradeConfirm(planName||"Elite");setTimeout(()=>setUpgradeConfirm(null),5000);setScreen("dashboard");}}/>}
       {toast && <Toast t={toast}/>}
     </>
   );
@@ -5713,7 +5721,49 @@ COACHING GUIDELINES:
           </div>
 
           {/* NUTRITION */}
-          {dash==="nutrition" && (
+          {dash==="nutrition" && !canAccess('athlete') && (
+            <div>
+              <div className="panel" style={{marginBottom:"1.5rem"}}>
+                <div className="ph"><div className="pt">Day 1 <em>Meal Preview</em></div><span style={{fontSize:"0.74rem",color:"var(--gold)"}}>FREE PREVIEW</span></div>
+                <div className="pb">
+                  <div style={{fontSize:"0.84rem",color:"var(--ivory2)",lineHeight:1.7,marginBottom:"1rem"}}>
+                    Here's a sample of what your {profile.sport||"sport"}-specific nutrition plan looks like. Upgrade to Athlete to unlock your full daily, weekly, and monthly meal plans with macro tracking, grocery lists, and PDF downloads.
+                  </div>
+                  {meals && [meals[0],meals[2],meals[4]].filter(Boolean).map((meal,i)=>{
+                    const totCal=meal.items?.reduce((s,it)=>s+it.cal,0)||0;
+                    const totP=meal.items?.reduce((s,it)=>s+it.p,0)||0;
+                    const totC=meal.items?.reduce((s,it)=>s+it.c,0)||0;
+                    const totF=meal.items?.reduce((s,it)=>s+it.f,0)||0;
+                    return (
+                      <div key={i} style={{background:"var(--smoke)",border:"1px solid var(--border)",borderRadius:"var(--r)",padding:"0.85rem 1rem",marginBottom:"0.5rem"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.4rem"}}>
+                          <div style={{fontSize:"0.72rem",fontWeight:700,color:"var(--gold)",letterSpacing:"2px"}}>{meal.emoji} {meal.label}</div>
+                          <div style={{fontSize:"0.68rem",color:"var(--muted)"}}>{meal.time}</div>
+                        </div>
+                        <div style={{fontSize:"0.78rem",color:"var(--ivory2)",marginBottom:"0.5rem"}}>{meal.items?.map(it=>it.name).join(" · ")}</div>
+                        <div style={{display:"flex",gap:"1rem",fontSize:"0.7rem",fontWeight:600}}>
+                          <span style={{color:"var(--gold)"}}>{totCal} kcal</span>
+                          <span style={{color:"#4BAE71"}}>{totP}g protein</span>
+                          <span style={{color:"#6AAEDF"}}>{totC}g carbs</span>
+                          <span style={{color:"#E0A840"}}>{totF}g fat</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{filter:"blur(5px)",pointerEvents:"none",opacity:0.4}}>
+                    {meals && [meals[1],meals[3],meals[5]].filter(Boolean).map((meal,i)=>(
+                      <div key={i} style={{background:"var(--smoke)",border:"1px solid var(--border)",borderRadius:"var(--r)",padding:"0.85rem 1rem",marginBottom:"0.5rem"}}>
+                        <div style={{fontSize:"0.72rem",fontWeight:700,color:"var(--gold)",letterSpacing:"2px",marginBottom:"0.3rem"}}>{meal.emoji} {meal.label}</div>
+                        <div style={{fontSize:"0.78rem",color:"var(--ivory2)"}}>{meal.items?.map(it=>it.name).join(" · ")}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <UpgradePrompt feature="Full Nutrition Plans" desc="Unlock position-specific meal plans, macro tracking, daily/weekly/monthly views, grocery lists, and PDF downloads." onUpgrade={()=>setScreen("pricing")}/>
+            </div>
+          )}
+          {dash==="nutrition" && canAccess('athlete') && (
             <div>
               {/* Header */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"2rem"}}>
@@ -6249,7 +6299,37 @@ COACHING GUIDELINES:
 
 
           {/* WORKOUT */}
-          {dash==="workout" && (
+          {dash==="workout" && !canAccess('athlete') && (
+            <div>
+              <div className="panel" style={{marginBottom:"1.5rem"}}>
+                <div className="ph"><div className="pt">Sample <em>Workout</em></div><span style={{fontSize:"0.74rem",color:"var(--gold)"}}>FREE PREVIEW</span></div>
+                <div className="pb">
+                  <div style={{fontSize:"0.84rem",color:"var(--ivory2)",lineHeight:1.7,marginBottom:"1rem"}}>
+                    Here's a sample of your {profile.sport||"sport"}{profile.position?` ${profile.position}`:""} training program. Upgrade to Athlete to unlock your full workout plan, session logger, PR tracking, Exercise Library, and 16-week periodization plan.
+                  </div>
+                  {workout && workout.slice(0,3).map((ex,i)=>(
+                    <div key={i} style={{background:"var(--smoke)",border:"1px solid var(--border)",borderRadius:"var(--r)",padding:"0.85rem 1rem",marginBottom:"0.5rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:"0.82rem",fontWeight:600,color:"var(--ivory)"}}>{ex.name}</div>
+                        <div style={{fontSize:"0.72rem",color:"var(--muted)",marginTop:"0.2rem"}}>{ex.sets} sets · {ex.reps} reps</div>
+                      </div>
+                      <div style={{fontSize:"0.72rem",color:"var(--gold)",fontWeight:600}}>{ex.load||"Bodyweight"}</div>
+                    </div>
+                  ))}
+                  <div style={{filter:"blur(4px)",pointerEvents:"none",opacity:0.5}}>
+                    {workout && workout.slice(3,6).map((ex,i)=>(
+                      <div key={i} style={{background:"var(--smoke)",border:"1px solid var(--border)",borderRadius:"var(--r)",padding:"0.85rem 1rem",marginBottom:"0.5rem",display:"flex",justifyContent:"space-between"}}>
+                        <div style={{fontSize:"0.82rem",color:"var(--ivory)"}}>{ex.name}</div>
+                        <div style={{fontSize:"0.72rem",color:"var(--gold)"}}>{ex.sets}×{ex.reps}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <UpgradePrompt feature="Full Workout Plans" desc="Unlock your complete training program, session logger, PR detection, Exercise Library, and 16-week periodization plan." onUpgrade={()=>setScreen("pricing")}/>
+            </div>
+          )}
+          {dash==="workout" && canAccess('athlete') && (
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"1.25rem",flexWrap:"wrap",gap:"0.5rem"}}>
                 <div><div className="eyebrow">Training</div><h2 className="sh2">Workout <em>Plan</em></h2></div>
@@ -6466,14 +6546,14 @@ COACHING GUIDELINES:
                         <div style={{fontSize:"0.72rem",fontWeight:600,color:"var(--gold)",marginBottom:"0.3rem"}}>{day.day}</div>
                         {editSchedule ? (
                           <div style={{background:"var(--smoke)",borderRadius:"var(--r)",padding:"0.4rem 0.3rem"}}>
-                            <select style={{width:"100%",background:"transparent",border:"none",color:"var(--fg)",fontSize:"0.65rem",marginBottom:"0.3rem"}}
+                            <select style={{width:"100%",background:"#1a1a1a",border:"none",color:"#e8e8e8",fontSize:"0.65rem",marginBottom:"0.3rem"}}
                               value={day.wkType} onChange={e=>setWeekSchedule(s=>s.map((d,i)=>i===di?{...d,wkType:e.target.value,active:!!e.target.value,label:""}:d))}>
-                              <option value="">Rest</option>
-                              {Object.keys(WORKOUTS).map(t=><option key={t} value={t}>{t}</option>)}
+                              <option value="" style={{background:"#1a1a1a",color:"#e8e8e8"}}>Rest</option>
+                              {Object.keys(WORKOUTS).map(t=><option key={t} value={t} style={{background:"#1a1a1a",color:"#e8e8e8"}}>{t}</option>)}
                             </select>
-                            <select style={{width:"100%",background:"transparent",border:"none",color:"var(--muted)",fontSize:"0.65rem"}}
+                            <select style={{width:"100%",background:"#1a1a1a",border:"none",color:"#C9A84C",fontSize:"0.65rem"}}
                               value={day.wkFocus} onChange={e=>setWeekSchedule(s=>s.map((d,i)=>i===di?{...d,wkFocus:e.target.value}:d))}>
-                              {["Full Body","Upper Body","Lower Body"].map(f=><option key={f}>{f}</option>)}
+                              {["Full Body","Upper Body","Lower Body"].map(f=><option key={f} style={{background:"#1a1a1a",color:"#C9A84C"}}>{f}</option>)}
                             </select>
                           </div>
                         ) : (
@@ -7199,7 +7279,7 @@ COACHING GUIDELINES:
               {/* Header */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"1.5rem"}}>
                 <div><div className="eyebrow">Analytics</div><h2 className="sh2">Progress <em>Tracking</em></h2></div>
-                <div style={{display:"flex",gap:"0.45rem"}}>
+                {canAccess('athlete') && <div style={{display:"flex",gap:"0.45rem"}}>
                   <button className="bsm" onClick={()=>setEmailModal({type:"progress",label:"Progress Report",data:{...profile,totalCals,mealType,mealFreq}})}>✉ Email</button>
                   <button className="bsm" onClick={handleDownloadProgress}>⬇ Report</button>
                   <button className="bg" style={{padding:"0.45rem 1rem",fontSize:"0.76rem"}} onClick={()=>{
@@ -7208,7 +7288,7 @@ COACHING GUIDELINES:
                       shout("Athlete Report Card downloaded","◆");
                     } catch(e) { shout("PDF failed: "+e.message,"!"); console.error(e); }
                   }}>◆ Report Card</button>
-                </div>
+                </div>}
               </div>
 
               {/* Progress Sub-Nav — cinematic tile standard */}
@@ -8089,7 +8169,8 @@ COACHING GUIDELINES:
               )}
 
               {/* ══ BODY TRACKING ═════════════════════════════════ */}
-              {progressTab==="body" && (
+              {progressTab==="body" && !canAccess('athlete') && <UpgradePrompt feature="Body Tracker" desc="Track weight, body fat, and measurements over time. Visualize your body composition trends." onUpgrade={()=>setScreen("pricing")}/>}
+              {progressTab==="body" && canAccess('athlete') && (
                 <div>
                   <div className="two" style={{marginBottom:"1.25rem"}}>
                     {/* Log weight */}
@@ -8290,7 +8371,8 @@ COACHING GUIDELINES:
               )}
 
               {/* ══ NUTRITION LOG ═════════════════════════════════ */}
-              {progressTab==="nutrition" && (()=>{
+              {progressTab==="nutrition" && !canAccess('athlete') && <UpgradePrompt feature="Nutrition Log" desc="Log your daily calories, macros, and hydration. See trends over time." onUpgrade={()=>setScreen("pricing")}/>}
+              {progressTab==="nutrition" && canAccess('athlete') && (()=>{
                 // Sum today's food log
                 const logCals = Math.round(foodLog.reduce((s,f)=>s+(f.cal||0),0));
                 const logProt = Math.round(foodLog.reduce((s,f)=>s+(f.p||0),0));
@@ -8853,7 +8935,95 @@ COACHING GUIDELINES:
               )}
 
               {/* ══ PROGRESS PHOTOS ═══════════════════════════════ */}
-              {progressTab==="photos" && !canAccess('elite') && <UpgradePrompt feature="Progress Photos" desc="Capture your physique transformation week by week with the in-app camera." onUpgrade={()=>setScreen("pricing")}/>}
+              {progressTab==="photos" && !canAccess('elite') && (
+                <div>
+                  <div className="panel" style={{marginBottom:"1.5rem"}}>
+                    <div className="ph">
+                      <div className="pt">Before <em>Photo</em></div>
+                      <span style={{fontSize:"0.74rem",color:"var(--muted)"}}>Capture your Day 1 — upgrade to Elite to unlock full progress tracking</span>
+                    </div>
+                    <div className="pb">
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:"1rem",marginBottom:"1.25rem"}}>
+                        <div style={{display:"flex",flexDirection:"column",gap:"0.6rem"}}>
+                          <input type="file" accept="image/*" id="before-file-inp" style={{display:"none"}}
+                            onChange={e=>{
+                              const file=e.target.files?.[0]; if(!file) return;
+                              const reader=new FileReader();
+                              reader.onload=ev=>{
+                                const date=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+                                const meta={label:"Before",weight:photoWeight,note:"Day 1",date};
+                                setProgressPhotos(prev=>{
+                                  const filtered=prev.filter(p=>p.label!=="Before");
+                                  return [{id:Date.now().toString(),date,dataUrl:ev.target.result,...meta},...filtered];
+                                });
+                                if(authUser?.id) uploadProgressPhoto(authUser.id, ev.target.result, meta).catch(()=>{});
+                                shout("Before photo saved","◆");
+                                document.getElementById("before-file-inp").value="";
+                              };
+                              reader.readAsDataURL(file);
+                            }}/>
+                          <input type="file" accept="image/*" capture="environment" id="before-cam-inp" style={{display:"none"}}
+                            onChange={e=>{
+                              const file=e.target.files?.[0]; if(!file) return;
+                              const reader=new FileReader();
+                              reader.onload=ev=>{
+                                const date=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+                                const meta={label:"Before",weight:photoWeight,note:"Day 1",date};
+                                setProgressPhotos(prev=>{
+                                  const filtered=prev.filter(p=>p.label!=="Before");
+                                  return [{id:Date.now().toString(),date,dataUrl:ev.target.result,...meta},...filtered];
+                                });
+                                if(authUser?.id) uploadProgressPhoto(authUser.id, ev.target.result, meta).catch(()=>{});
+                                shout("Before photo captured","◆");
+                                document.getElementById("before-cam-inp").value="";
+                              };
+                              reader.readAsDataURL(file);
+                            }}/>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
+                            <label htmlFor="before-file-inp" style={{display:"block",cursor:"pointer"}}>
+                              <div style={{background:"linear-gradient(160deg,#1a1208 0%,#0D0D0D 100%)",border:"1px solid rgba(191,161,106,0.35)",borderRadius:"16px",padding:"1.75rem 1rem",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.65rem"}}>
+                                <div style={{width:"48px",height:"48px",borderRadius:"12px",background:"rgba(191,161,106,0.15)",border:"1px solid rgba(255,255,255,0.09)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#BFA16A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                  </svg>
+                                </div>
+                                <div style={{fontSize:"0.72rem",fontWeight:700,color:"var(--gold)",letterSpacing:"3px",textTransform:"uppercase"}}>UPLOAD</div>
+                              </div>
+                            </label>
+                            <div onClick={()=>openCamera('progress')} style={{cursor:"pointer"}}>
+                              <div style={{background:"linear-gradient(160deg,#1a1208 0%,#0D0D0D 100%)",border:"1px solid rgba(191,161,106,0.35)",borderRadius:"16px",padding:"1.75rem 1rem",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.65rem"}}>
+                                <div style={{width:"48px",height:"48px",borderRadius:"12px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ivory2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                                  </svg>
+                                </div>
+                                <div style={{fontSize:"0.72rem",fontWeight:700,color:"var(--ivory)",letterSpacing:"3px",textTransform:"uppercase"}}>CAMERA</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{border:"1px solid rgba(191,161,106,0.2)",borderRadius:"var(--r-lg)",aspectRatio:"4/3",background:"#0D0D0D",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                            {progressPhotos.find(p=>p.label==="Before")?.dataUrl ? (
+                              <img src={progressPhotos.find(p=>p.label==="Before").dataUrl} alt="Before" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                            ) : (
+                              <div style={{textAlign:"center",padding:"1rem"}}>
+                                <div style={{fontSize:"1.5rem",opacity:0.3,marginBottom:"0.3rem"}}>📸</div>
+                                <div style={{fontSize:"0.72rem",color:"var(--muted)",fontStyle:"italic"}}>Your Day 1 photo appears here</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{display:"flex",flexDirection:"column",gap:"1rem",justifyContent:"center"}}>
+                          <div style={{background:"rgba(191,161,106,0.06)",border:"1px solid rgba(191,161,106,0.15)",borderRadius:"12px",padding:"1.25rem"}}>
+                            <div style={{fontSize:"0.7rem",fontWeight:700,color:"var(--gold)",letterSpacing:"2px",marginBottom:"0.5rem"}}>WHY CAPTURE DAY 1?</div>
+                            <div style={{fontSize:"0.8rem",color:"var(--ivory2)",lineHeight:1.6,fontWeight:300}}>Your transformation starts with a baseline. Elite members unlock weekly progress photos, body composition tracking, and side-by-side comparisons.</div>
+                          </div>
+                          <UpgradePrompt feature="Full Progress Photos" desc="Unlock weekly check-ins, body composition tracking, and your complete visual transformation timeline." onUpgrade={()=>setScreen("pricing")}/>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               {progressTab==="photos" && canAccess('elite') && (
                 <div>
                   <div className="panel" style={{marginBottom:"1.5rem"}}>
@@ -9356,7 +9526,8 @@ ${recruitingNote}`:null,
               })()}
 
               {/* ══ COACH CONNECT ══════════════════════════════════ */}
-              {progressTab==="coachconnect" && (()=>{
+              {progressTab==="coachconnect" && !canAccess('athlete') && <UpgradePrompt feature="Coach Connect" desc="Email your workout plans, nutrition reports, and progress data directly to your coach." onUpgrade={()=>setScreen("pricing")}/>}
+              {progressTab==="coachconnect" && canAccess('athlete') && (()=>{
                 // Build report content based on selected sections
                 const buildReport = (coach) => {
                   const date = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
@@ -10015,7 +10186,8 @@ ${recruitingNote}`:null,
               })()}
 
               {/* ══ HISTORY ════════════════════════════════════════ */}
-              {progressTab==="history" && (()=>{
+              {progressTab==="history" && !canAccess('athlete') && <UpgradePrompt feature="Training History" desc="Access your full 30-day training and nutrition history timeline." onUpgrade={()=>setScreen("pricing")}/>}
+              {progressTab==="history" && canAccess('athlete') && (()=>{
                 const now = new Date();
                 const cutoff = new Date(now); cutoff.setDate(cutoff.getDate()-90);
                 const safeDate = (v) => { try { const d=new Date(v); return (!v||isNaN(d.getTime()))?null:d; } catch(e){return null;} };
@@ -10440,7 +10612,13 @@ ${recruitingNote}`:null,
 
       {payModal && <PayModal plan={payModal} tab={payTab} setTab={setPayTab} userEmail={authUser?.email} userId={authUser?.id} couponCode={payModal?.couponCode} onClose={()=>setPayModal(null)}
         onSuccess={()=>{setPayModal(null);shout("Subscription activated! Welcome to Elite.","◆");loadUserData(authUser?.id);}}/>}
-      {authModal && <AuthModal onClose={()=>setAuthModal(false)} onAuth={(user, betaCode, isNew)=>{setAuthUser(user);loadUserData(user.id, !!isNew);setScreen("dashboard");if(!isNew) shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);}}/>}
+      {authModal && <AuthModal initialMode={authModalMode} onClose={()=>{setAuthModal(false);setAuthModalMode('signin');}} onAuth={(user, betaCode, isNew)=>{setAuthUser(user);loadUserData(user.id, !!isNew);setScreen("dashboard");if(!isNew) shout(`Welcome back, ${user.email?.split('@')[0]}!`,"◆");if(betaCode) redeemBetaCode(user.id, betaCode);if(pendingPlan){setPayModal(pendingPlan);setPendingPlan(null);}}}/>}
+      {upgradeConfirm && (
+        <div style={{position:"fixed",top:"1.5rem",left:"50%",transform:"translateX(-50%)",zIndex:9999,background:"linear-gradient(135deg,#1a3a2a,#0a1a10)",border:"1px solid #C9A84C",borderRadius:"12px",padding:"1.2rem 2rem",textAlign:"center",boxShadow:"0 8px 32px rgba(0,0,0,0.6)",minWidth:"320px"}}>
+          <div style={{color:"#C9A84C",fontSize:"1.1rem",fontWeight:700,letterSpacing:"2px",marginBottom:"0.4rem"}}>✦ UPGRADE COMPLETE</div>
+          <div style={{color:"#e8e8e8",fontSize:"0.85rem",letterSpacing:"1px"}}>Welcome to {upgradeConfirm} — all your data carried over.</div>
+        </div>
+      )}
 
       {/* ── ONBOARDING FLOATER ──────────────────────────────── */}
       {showOnboarding && (
@@ -10831,7 +11009,7 @@ ${recruitingNote}`:null,
 // PRICING SECTION — 4-Tier with annual/monthly toggle
 // Free · Athlete ($29/mo·$199/yr) · Elite ($69/mo·$529/yr) · Coach Pro ($99/mo+$4.99/ath)
 // ─────────────────────────────────────────────────────────────
-function PricingSection({ setPayModal }) {
+function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan }) {
   const [billing, setBilling] = useState('monthly');
 
   const TIERS = [
@@ -10986,7 +11164,10 @@ function PricingSection({ setPayModal }) {
               <button
                 className={t.ctaClass}
                 style={{width:'100%',padding:'0.85rem'}}
-                onClick={() => setPayModal({ tierKey: t.tierKey, billing })}>
+                onClick={() => {
+                  if (!authUser) { setAuthModal(true); setPendingPlan({ tierKey: t.tierKey, billing }); return; }
+                  setPayModal({ tierKey: t.tierKey, billing });
+                }}>
                 {t.cta}
               </button>
             </div>

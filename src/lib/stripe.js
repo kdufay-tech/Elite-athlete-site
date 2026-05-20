@@ -130,7 +130,7 @@ const _links = {
 };
 
 // ── REDIRECT TO CHECKOUT ─────────────────────────────────────
-export async function redirectToCheckout({ priceKey, planName, userEmail, successUrl, cancelUrl, couponCode }) {
+export async function redirectToCheckout({ priceKey, planName, userEmail, userId, successUrl, cancelUrl, couponCode }) {
   const priceId = STRIPE_PRICES[priceKey];
   if (!priceId) {
     throw new Error(
@@ -144,7 +144,8 @@ export async function redirectToCheckout({ priceKey, planName, userEmail, succes
   if (link && link.startsWith('https://')) {
     const p = new URLSearchParams();
     if (userEmail) p.set('prefilled_email', userEmail);
-    if (planName)  p.set('client_reference_id', planName);
+    if (userId)    p.set('client_reference_id', userId);
+    else if (planName) p.set('client_reference_id', planName);
     window.location.href = link + (p.toString() ? '?' + p.toString() : '');
     return;
   }
@@ -153,7 +154,7 @@ export async function redirectToCheckout({ priceKey, planName, userEmail, succes
   const res = await fetch('/.netlify/functions/stripe-checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ priceId, planName, userEmail, successUrl, cancelUrl, couponCode }),
+    body: JSON.stringify({ priceId, planName, userEmail, userId, successUrl, cancelUrl, couponCode }),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
