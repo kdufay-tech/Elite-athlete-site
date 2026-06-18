@@ -14,3 +14,7 @@ ios/
 android/
 Assets/
 .netlify/
+.env.local
+ios/App/Pods/
+ios/App/build/
+android/app/build/
