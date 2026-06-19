@@ -9,6 +9,8 @@ const ALLOWED_ORIGINS = [
   'https://elite-athlete.app',
   'https://www.elite-athlete.app',
   'http://localhost:5173',
+  'capacitor://localhost',
+  'ionic://localhost',
   'http://localhost:8888',
 ];
 

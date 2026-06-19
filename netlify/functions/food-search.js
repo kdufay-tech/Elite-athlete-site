@@ -6,6 +6,8 @@
 const ALLOWED_ORIGINS = [
   'https://the-elite-athlete.netlify.app',
   'http://localhost:5173',
+  'capacitor://localhost',
+  'ionic://localhost',
   'http://localhost:8888',
 ];
 
