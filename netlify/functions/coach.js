@@ -102,7 +102,7 @@ export default async (req) => {
     'Content-Type': 'application/json',
   };
 
-  if (req.method === 'OPTIONS') return new Response('', { status: 204, headers: cors });
+  if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: cors });
   if (req.method !== 'POST')
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: cors });
   if (!isAllowed)

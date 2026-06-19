@@ -34,7 +34,7 @@ export default async (req) => {
     'Content-Type': 'application/json',
   };
 
-  if (req.method === 'OPTIONS') return new Response('', { status: 204, headers: cors });
+  if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: cors });
 
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   if (checkRateLimit(clientIp))
