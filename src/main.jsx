@@ -2,6 +2,16 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 
+// RevenueCat init (iOS native only — no-op on web/Android)
+import { Capacitor } from '@capacitor/core';
+import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
+
+if (Capacitor.getPlatform() === 'ios') {
+  Purchases.setLogLevel({ level: LOG_LEVEL.WARN });
+  Purchases.configure({ apiKey: import.meta.env.VITE_REVENUECAT_APPLE_KEY })
+    .catch(err => console.warn('RevenueCat configure failed:', err));
+}
+
 // Register service worker for PWA install (Android + iOS)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

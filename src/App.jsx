@@ -7,7 +7,7 @@ import { getSession, onAuthChange, signOut, saveProfile, loadProfile,
 import { downloadMealPlanPDF, downloadWorkoutPDF, downloadProgressReportPDF, downloadJournalPDF, downloadRecoveryPDF, downloadAthleteReportCard } from "./lib/pdf";
 import { emailMealPlan, emailProgressReport, emailInjuryProtocol, emailWorkoutPlan, emailRecoveryNutrition, sendEmail } from "./lib/email";
 import AuthModal from "./components/AuthModal";
-import PayModal from "./components/PayModal";
+import PayModal from "./components/CheckoutModal";
 import { getUserTier, canAccess as tierCanAccess, TIER_INFO } from "./lib/stripe";
 import { uploadProgressPhoto, loadProgressPhotos, deleteProgressPhoto } from "./lib/supabase";
 import AdminDashboard from "./AdminDashboard";
@@ -5167,7 +5167,7 @@ COACHING GUIDELINES:
       <div className="noise"/>
       <nav className="nav">
         <div className="nav-wm">
-          <span className="nav-wm-top">The Premier Athletic Platform</span>
+          <span className="nav-wm-top">Excellence · Performance · Legacy</span>
           <span className="nav-wm-main">Elite Athlete</span>
         </div>
         <div className="nav-pills">
@@ -5207,7 +5207,7 @@ COACHING GUIDELINES:
                   <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;background:#0a0908;"><div style="font-family:Inter,sans-serif;font-size:0.58rem;font-weight:600;letter-spacing:6px;text-transform:uppercase;color:rgba(201,168,76,0.6);">T\u00e1raDome Films \u00d7 Elite Athlete</div><div style="font-family:DM Sans,sans-serif;font-size:clamp(1.8rem,4vw,3.2rem);font-weight:800;letter-spacing:4px;text-transform:uppercase;color:#fff;text-align:center;line-height:1.1;">Our Story<br/><span style=color:rgba(201,168,76,0.85);font-weight:300;font-size:0.6em;letter-spacing:6px;>Coming Soon</span></div><div style="width:48px;height:1px;background:rgba(201,168,76,0.4);"></div><div style="font-family:Inter,sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.3);letter-spacing:2px;">A film about the pursuit of greatness</div></div>
                 </div>
                 <div style="margin-top:1.5rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem;">
-                  <div style="font-family:'Inter',sans-serif;font-size:0.58rem;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:rgba(168,130,42,0.7);">The Premier Athletic Platform</div>
+                  <div style="font-family:'Inter',sans-serif;font-size:0.58rem;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:rgba(168,130,42,0.7);">Excellence · Performance · Legacy</div>
                   <button onclick="document.getElementById('film-modal').remove()" style="font-family:'Inter',sans-serif;font-size:0.6rem;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;background:transparent;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.45);padding:0.5rem 1.5rem;border-radius:3px;cursor:pointer;margin-top:0.5rem;">Close</button>
                 </div>`;
               modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
@@ -5298,9 +5298,10 @@ COACHING GUIDELINES:
           {/* LANDING FOOTER */}
           <div id="landing-about" style={{borderTop:"1px solid rgba(191,161,106,0.1)",marginTop:"4rem",paddingTop:"2rem",paddingBottom:"3rem",textAlign:"center"}}>
             <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"0.9rem",fontWeight:700,letterSpacing:"6px",color:"var(--ivory)",marginBottom:"0.75rem"}}>ELITE ATHLETE</div>
-            <div style={{fontSize:"0.68rem",color:"var(--muted)",letterSpacing:"1px",marginBottom:"1rem"}}>The Premier Athletic Platform</div>
+            <div style={{fontSize:"0.68rem",color:"var(--muted)",letterSpacing:"1px",marginBottom:"1rem"}}>Excellence · Performance · Legacy</div>
             <div style={{display:"flex",justifyContent:"center",gap:"2rem",flexWrap:"wrap"}}>
               <a href="/privacy-policy.html" style={{fontSize:"0.68rem",color:"var(--muted)",letterSpacing:"1px",textDecoration:"none"}} onMouseOver={e=>e.target.style.color="var(--gold)"} onMouseOut={e=>e.target.style.color="var(--muted)"}>Privacy Policy</a>
+              <a href="/terms-of-service.html" style={{fontSize:"0.68rem",color:"var(--muted)",letterSpacing:"1px",textDecoration:"none"}} onMouseOver={e=>e.target.style.color="var(--gold)"} onMouseOut={e=>e.target.style.color="var(--muted)"}>Terms of Service</a>
               <a href="/report-bug.html" style={{fontSize:"0.68rem",color:"var(--muted)",letterSpacing:"1px",textDecoration:"none"}} onMouseOver={e=>e.target.style.color="var(--gold)"} onMouseOut={e=>e.target.style.color="var(--muted)"}>Report a Bug</a>
               <span style={{fontSize:"0.68rem",color:"var(--muted)",letterSpacing:"1px"}}>© {new Date().getFullYear()} Elite Athlete</span>
             </div>
@@ -5348,7 +5349,7 @@ COACHING GUIDELINES:
       <div className="noise"/>
       <nav className="nav">
         <div className="nav-wm">
-          <span className="nav-wm-top">The Premier Athletic Platform</span>
+          <span className="nav-wm-top">Excellence · Performance · Legacy</span>
           <span className="nav-wm-main">Elite Athlete</span>
         </div>
         <div className="nav-r">
@@ -5495,7 +5496,7 @@ COACHING GUIDELINES:
       <div className="noise"/>
       <nav className="nav">
         <div className="nav-wm">
-          <span className="nav-wm-top">The Premier Athletic Platform</span>
+          <span className="nav-wm-top">Excellence · Performance · Legacy</span>
           <span className="nav-wm-main">Elite Athlete</span>
         </div>
         <div className="nav-r">
@@ -5583,7 +5584,7 @@ COACHING GUIDELINES:
       <div className="noise"/>
       <nav className="nav">
         <div className="nav-wm">
-          <span className="nav-wm-top">The Premier Athletic Platform</span>
+          <span className="nav-wm-top">Excellence · Performance · Legacy</span>
           <span className="nav-wm-main">Elite Athlete</span>
         </div>
         <div className="nav-pills">

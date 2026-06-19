@@ -17,4 +17,6 @@ Assets/
 .env.local
 ios/App/Pods/
 ios/App/build/
-android/app/build/
+android/app/build/.env.local.save
+.env*.save
+.DS_Store
