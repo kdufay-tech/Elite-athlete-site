@@ -8,6 +8,8 @@ import { downloadMealPlanPDF, downloadWorkoutPDF, downloadProgressReportPDF, dow
 import { emailMealPlan, emailProgressReport, emailInjuryProtocol, emailWorkoutPlan, emailRecoveryNutrition, sendEmail } from "./lib/email";
 import AuthModal from "./components/AuthModal";
 import PayModal from "./components/CheckoutModal";
+import { Capacitor } from "@capacitor/core";
+const API_BASE = Capacitor.getPlatform() === "web" ? "" : "https://elite-athlete.app";
 import { getUserTier, canAccess as tierCanAccess, TIER_INFO } from "./lib/stripe";
 import { uploadProgressPhoto, loadProgressPhotos, deleteProgressPhoto } from "./lib/supabase";
 import AdminDashboard from "./AdminDashboard";
@@ -4163,7 +4165,7 @@ export default function App() {
       const session = await getSession();
       const tok = session?.access_token;
       if (!tok) return;
-      const res = await fetch('/.netlify/functions/beta-signup', {
+      const res = await fetch(`${API_BASE}/.netlify/functions/beta-signup`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
@@ -4184,7 +4186,7 @@ export default function App() {
       const session = await getSession();
       const tok = session?.access_token;
       if (!tok) return;
-      const res = await fetch('/.netlify/functions/accept-beta-invite', {
+      const res = await fetch(`${API_BASE}/.netlify/functions/accept-beta-invite`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
@@ -4938,7 +4940,7 @@ COACHING GUIDELINES:
     try {
       const context = buildAthleteContext();
       const today = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-      const res = await fetch("/.netlify/functions/coach", {
+      const res = await fetch(`${API_BASE}/.netlify/functions/coach`, {
         method: "POST",
         headers: {"Content-Type":"application/json","Authorization":"Bearer "+((await getSession())?.access_token||"")},
         body: JSON.stringify({
@@ -4980,7 +4982,7 @@ COACHING GUIDELINES:
       const apiMessages = newMessages
         .map(m=>({role:m.role, content:typeof m.content==='string'?m.content.trim():''}))
         .filter(m=>m.content.length>0);
-      const res = await fetch("/.netlify/functions/coach", {
+      const res = await fetch(`${API_BASE}/.netlify/functions/coach`, {
         method: "POST",
         headers: {"Content-Type":"application/json","Authorization":"Bearer "+((await getSession())?.access_token||"")},
         body: JSON.stringify({ system: context, messages: apiMessages }),
@@ -7427,7 +7429,7 @@ COACHING GUIDELINES:
                           setCoachLoading(true);
                           const ctx=buildAthleteContext();
                           const _tok=((await getSession())?.access_token)||"";
-                          fetch("/.netlify/functions/coach",{
+                          fetch(`${API_BASE}/.netlify/functions/coach`,{
                             method:"POST",
                             headers:{"Content-Type":"application/json","Authorization":"Bearer "+_tok},
                             body:JSON.stringify({
@@ -8392,7 +8394,7 @@ COACHING GUIDELINES:
                   const timeoutId = setTimeout(() => ctrl.abort(), 15000);
                   try {
                     const r = await fetch(
-                      `/.netlify/functions/food-search?query=${encodeURIComponent(foodQuery)}`,
+                      `${API_BASE}/.netlify/functions/food-search?query=${encodeURIComponent(foodQuery)}`,
                       { signal: ctrl.signal }
                     );
                     clearTimeout(timeoutId);
@@ -11693,7 +11695,7 @@ function BetaSignupSection({ onSignup }) {
   const [waitBusy, setWaitBusy] = useState(false);
 
   useEffect(() => {
-    fetch('/.netlify/functions/beta-stats')
+    fetch(`${API_BASE}/.netlify/functions/beta-stats`)
       .then(r => r.json())
       .then(d => setStats(d))
       .catch(() => {});
@@ -11704,7 +11706,7 @@ function BetaSignupSection({ onSignup }) {
     if (!waitEmail) return;
     setWaitBusy(true);
     try {
-      const res = await fetch('/.netlify/functions/coach-waitlist', {
+      const res = await fetch(`${API_BASE}/.netlify/functions/coach-waitlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: waitEmail, source: 'beta_full_waitlist' }),
@@ -11840,7 +11842,7 @@ function BetaFeedbackModal({ onClose, authUser, getSession }) {
     setBusy(true); setErr('');
     try {
       const session = await getSession();
-      const res = await fetch('/.netlify/functions/beta-feedback', {
+      const res = await fetch(`${API_BASE}/.netlify/functions/beta-feedback`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ category, rating: rating || null, message, page: window.location.pathname }),
