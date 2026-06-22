@@ -69,8 +69,7 @@ export const TIER_INFO = {
   athlete: {
     label: 'Athlete', tier: 'Foundation',
     monthly: { price: '$29', display: '$29/mo',  key: 'athlete_monthly', planName: 'athlete' },
-    annual:  { price: '$199', display: '$199/yr', key: 'athlete_annual',  planName: 'athlete_annual',
-               moEquiv: '$16.58/mo', save: 'Save $149/yr — 43% off' },
+    annual:  { price: '$199', display: '$199/yr', key: 'athlete_annual',  planName: 'athlete_annual' },
     features: [
       'Full position-specific meal plans',
       'Complete workout program + session logger',
@@ -85,8 +84,7 @@ export const TIER_INFO = {
   elite: {
     label: 'Elite', tier: 'Champion', featured: true,
     monthly: { price: '$69', display: '$69/mo',  key: 'elite_monthly', planName: 'elite' },
-    annual:  { price: '$529', display: '$529/yr', key: 'elite_annual',  planName: 'elite_annual',
-               moEquiv: '$44.08/mo', save: 'Save $299/yr — 35% off' },
+    annual:  { price: '$529', display: '$529/yr', key: 'elite_annual',  planName: 'elite_annual' },
     features: [
       'Everything in Athlete',
       'AI Coach — unlimited, data-contextual',
@@ -102,8 +100,7 @@ export const TIER_INFO = {
   coach: {
     label: 'Coach Pro', tier: 'Professional', waitlist: true,
     monthly: { price: '$99', display: '$99/mo',  key: 'coach_monthly', planName: 'coach' },
-    annual:  { price: '$899', display: '$899/yr', key: 'coach_annual',  planName: 'coach_annual',
-               moEquiv: '$74.92/mo', save: 'Save ~$280/yr base' },
+    annual:  { price: '$899', display: '$899/yr', key: 'coach_annual',  planName: 'coach_annual' },
     perAthlete: '+ $4.99/athlete/month',
     features: [
       'Everything in Elite',

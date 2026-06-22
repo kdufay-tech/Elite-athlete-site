@@ -147,7 +147,6 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
                   fontWeight:  billing==='annual' ? 700          : 400,
                 }}>
                   Annual
-                  {billing==='annual' && <span style={{fontSize:'0.58rem',marginLeft:'5px',opacity:0.85}}> · {info.annual.save}</span>}
                 </button>
                 <button onClick={() => setBilling('monthly')} style={{
                   flex:1,padding:'0.55rem',fontSize:'0.7rem',letterSpacing:'1px',
@@ -167,11 +166,7 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
                 <div style={{fontSize:'0.65rem',color:'var(--muted)',letterSpacing:'1px',marginTop:'3px'}}>
                   {billing==='annual' ? 'billed annually' : 'billed monthly'}
                 </div>
-                {billing==='annual' && (
-                  <div style={{fontSize:'0.65rem',color:'var(--gold-lt)',marginTop:'2px'}}>
-                    {info.annual.moEquiv} · {info.annual.save}
-                  </div>
-                )}
+
               </div>
 
               {/* ── PAYMENT TABS ── */}

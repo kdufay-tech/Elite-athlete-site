@@ -4118,7 +4118,7 @@ function UpgradePrompt({ feature, desc, onUpgrade }) {
       <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.15rem",fontWeight:700,color:"var(--ivory)",marginBottom:"0.5rem",letterSpacing:"1px"}}>{feature}</div>
       <div style={{fontSize:"0.84rem",color:"var(--muted)",maxWidth:"380px",margin:"0 auto 1.5rem",lineHeight:1.6}}>{desc}</div>
       <button className="bg" style={{padding:"0.85rem 2.5rem",fontSize:"0.72rem",letterSpacing:"2px"}} onClick={onUpgrade}>Upgrade to Elite — $69/mo</button>
-      <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/yr billed annually · Save 35%</div>
+      <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/yr billed annually</div>
     </div>
   );
 }
@@ -7363,7 +7363,7 @@ COACHING GUIDELINES:
                       onClick={()=>setScreen("pricing")}>
                       Upgrade to Elite — $69/mo
                     </button>
-                    <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/yr billed annually · Save 35%</div>
+                    <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/yr billed annually</div>
                   </div>
                 ) : (<>
                   {/* Coach header */}
@@ -11039,7 +11039,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
       tier: 'Foundation',
       name: 'Athlete',
       monthly: { price: '$29', label: '/month · billed monthly' },
-      annual:  { price: '$16.58', moEquiv: '$199/yr', save: 'Save $149/yr', label: '/mo · billed $199/yr' },
+      annual:  { price: '$199', label: '/yr · billed annually' },
       feats: [
         'Full position-specific meal plans',
         'Complete workout program',
@@ -11059,7 +11059,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
       tier: 'Champion',
       name: 'Elite',
       monthly: { price: '$69', label: '/month · billed monthly' },
-      annual:  { price: '$44.08', moEquiv: '$529/yr', save: 'Save $299/yr', label: '/mo · billed $529/yr' },
+      annual:  { price: '$529', label: '/yr · billed annually' },
       feats: [
         'Everything in Athlete',
         'AI Coach — unlimited, daily briefs',
@@ -11079,7 +11079,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
       tier: 'Professional',
       name: 'Coach Pro',
       monthly: { price: '$99', extra: '+ $4.99/athlete/mo', label: '/month base + per athlete' },
-      annual:  { price: '$74.92', extra: '+ $3.33/ath/mo', moEquiv: '$899/yr', save: 'Save ~$280/yr', label: '/mo · billed $899/yr base' },
+      annual:  { price: '$899', extra: '+ $3.33/ath/mo', label: '/yr base · billed annually' },
       feats: [
         'Everything in Elite',
         'Coach dashboard — roster + readiness',
