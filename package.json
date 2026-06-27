@@ -19,6 +19,7 @@
     "@capacitor/status-bar": "^8.0.2",
     "@emailjs/browser": "^4.3.2",
     "@revenuecat/purchases-capacitor": "^13.1.7",
+    "@revenuecat/purchases-capacitor-ui": "^13.1.7",
     "@stripe/stripe-js": "^3.0.0",
     "@supabase/supabase-js": "^2.39.0",
     "jspdf": "^2.5.1",

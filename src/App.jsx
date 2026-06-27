@@ -7,9 +7,11 @@ import { getSession, onAuthChange, signOut, saveProfile, loadProfile,
 import { downloadMealPlanPDF, downloadWorkoutPDF, downloadProgressReportPDF, downloadJournalPDF, downloadRecoveryPDF, downloadAthleteReportCard } from "./lib/pdf";
 import { emailMealPlan, emailProgressReport, emailInjuryProtocol, emailWorkoutPlan, emailRecoveryNutrition, sendEmail } from "./lib/email";
 import AuthModal from "./components/AuthModal";
+import DeleteAccountModal from "./components/DeleteAccountModal";
 import PayModal from "./components/CheckoutModal";
 import { Capacitor } from "@capacitor/core";
 const API_BASE = Capacitor.getPlatform() === "web" ? "" : "https://elite-athlete.app";
+const IS_IOS = Capacitor.getPlatform() === "ios";
 import { getUserTier, canAccess as tierCanAccess, TIER_INFO } from "./lib/stripe";
 import { uploadProgressPhoto, loadProgressPhotos, deleteProgressPhoto } from "./lib/supabase";
 import AdminDashboard from "./AdminDashboard";
@@ -3658,6 +3660,13 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .npill.on{background:rgba(255,255,255,0.05);color:var(--ivory);}
 
 .nav-r{display:flex;align-items:center;gap:0.75rem;}
+/* Tablet (iPad): reflow nav so Sign Out / nav-r stays visible */
+@media(min-width:601px) and (max-width:1024px){
+  .nav{flex-wrap:wrap;height:auto;min-height:64px;padding:0.4rem 1.5rem;align-items:center;}
+  .nav-wm{order:1;}
+  .nav-r{order:2;margin-left:auto;}
+  .nav-pills{order:3;width:100%;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-top:1px solid rgba(255,255,255,0.05);padding:0.3rem 0;margin-top:0.35rem;}
+}
 @media(max-width:640px){
   /* Totals bar 2x2 */
   .totals-bar{grid-template-columns:repeat(2,1fr)!important;}
@@ -4149,6 +4158,30 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [emailModal,  setEmailModal]  = useState(null);
 
+  // ── ACCOUNT DELETION (App Store Guideline 5.1.1v) ──
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const deleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const session = await getSession();
+      const tok = session?.access_token;
+      const res = await fetch(`${API_BASE}/.netlify/functions/delete-account`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+      });
+      const json = await res.json();
+      if (res.ok) {
+        await signOut();
+        setAuthUser(null); setSubscription(null);
+        setDeleteConfirm(false); setScreen('landing');
+        shout('Your account has been deleted', '◆');
+      } else {
+        shout(json.error || 'Delete failed', '!'); setDeleting(false);
+      }
+    } catch (e) { shout('Delete failed — try again', '!'); setDeleting(false); }
+  };
+
   // ── BETA STATE ────────────────────────────────────────────────
   const [betaModal,        setBetaModal]        = useState(false);
   const [conversionModal,  setConversionModal]  = useState(false);
@@ -4160,6 +4193,7 @@ export default function App() {
     ? Math.max(0, Math.ceil((betaExpiry - new Date()) / (1000*60*60*24))) : null;
 
   const redeemBetaCode = async (userId, code) => {
+    if (IS_IOS) return;
     if (!code || !userId) return;
     try {
       const session = await getSession();
@@ -5295,7 +5329,7 @@ COACHING GUIDELINES:
           <PricingSection setPayModal={setPayModal} authUser={authUser} setAuthModal={setAuthModal} setPendingPlan={setPendingPlan} />
 
           {/* ── BETA / FREE TRIAL SECTION — expires June 30 2026 ── */}
-          {new Date() < new Date("2026-06-30") && <BetaSignupSection onSignup={()=>setBetaModal(true)} />}
+          {!IS_IOS && new Date() < new Date("2026-06-30") && <BetaSignupSection onSignup={()=>setBetaModal(true)} />}
 
           {/* LANDING FOOTER */}
           <div id="landing-about" style={{borderTop:"1px solid rgba(191,161,106,0.1)",marginTop:"4rem",paddingTop:"2rem",paddingBottom:"3rem",textAlign:"center"}}>
@@ -10603,6 +10637,11 @@ ${recruitingNote}`:null,
                           onClick={()=>setScreen("pricing")}>
                           Upgrade / Change Plan
                         </button>
+                        <button style={{width:"100%",padding:"0.7rem",background:"none",border:"1px solid rgba(200,60,60,0.4)",borderRadius:8,color:"#c84444",fontSize:"0.7rem",letterSpacing:"1.5px",cursor:"pointer",marginTop:"0.4rem"}}
+                          onClick={()=>setDeleteConfirm(true)}>
+                          Delete Account
+                        </button>
+                        {deleteConfirm && <DeleteAccountModal deleting={deleting} onCancel={()=>setDeleteConfirm(false)} onConfirm={deleteAccount} />}
                       </div>
                     </div>
                   </div>

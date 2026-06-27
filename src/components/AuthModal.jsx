@@ -4,6 +4,8 @@
 // ─────────────────────────────────────────────────────────────
 import { useState } from 'react';
 import { signIn, signUp, supabase } from '../lib/supabase';
+import { Capacitor } from '@capacitor/core';
+const IS_IOS = Capacitor.getPlatform() === 'ios';
 
 export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCode }) {
   const [mode, setMode]           = useState(initialMode || 'signin');
@@ -168,7 +170,7 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
             pwField('Confirm Password', confirm, setConfirm, showConf, setShowConf, 'Re-enter password', 'conf')}
 
           {/* Beta code field — shown on signup or when toggled */}
-          {(mode === 'signup' || mode === 'signin') && (
+          {!IS_IOS && (mode === 'signup' || mode === 'signin') && (
             <div className="f">
               {showBeta ? (
                 <>
