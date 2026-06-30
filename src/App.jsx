@@ -3511,7 +3511,7 @@ const CSS = `
   /* ── Text: crisp, not creamy ── */
   --ivory:     #F8F5F0;
   --ivory2:    #9A948C;
-  --muted:     #4A4540;
+  --muted:     #A29B8E;
   --fg:        #F8F5F0;
   /* ── Borders: barely visible — "Luxury is Quiet" ── */
   --border:    rgba(255,255,255,0.06);
@@ -3545,7 +3545,7 @@ const CSS = `
   --card: #EEEAD8;
 }
 [data-theme="light"] body { background:#FAF7F2 !important; color:#2C2820 !important; }
-[data-theme="light"] .nav { background:rgba(250,247,242,0.95) !important; border-bottom:1px solid rgba(139,101,32,0.15); }
+[data-theme="light"] .nav { background:#FAF7F2 !important; border-bottom:1px solid rgba(139,101,32,0.15); }
 [data-theme="light"] .nav-wm-top { color:#8B6520; }
 [data-theme="light"] .nav-wm-main { color:#2C2820; background:none; -webkit-text-fill-color:#2C2820; }
 [data-theme="light"] .nav-pills { background:rgba(0,0,0,0.04); border-color:rgba(139,101,32,0.12); }
@@ -3646,16 +3646,16 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 /* NAV — matte, minimal */
 .nav{position:fixed;top:0;left:0;right:0;z-index:900;height:64px;
   display:flex;align-items:center;justify-content:space-between;padding:0 2.5rem;
-  background:rgba(6,5,4,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  background:#060504;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   border-bottom:1px solid rgba(255,255,255,0.05);}
 
 .nav-wm{display:flex;flex-direction:column;line-height:1;gap:2px;}
-.nav-wm-top{font-family:'Inter',sans-serif;font-size:0.54rem;font-weight:500;letter-spacing:5px;text-transform:uppercase;color:var(--gold);opacity:0.65;}
+.nav-wm-top{font-family:'Inter',sans-serif;font-size:0.54rem;font-weight:600;letter-spacing:5px;text-transform:uppercase;color:var(--gold);opacity:0.9;}
 .nav-wm-main{font-family:'DM Sans',sans-serif;font-size:1.1rem;font-weight:800;letter-spacing:8px;text-transform:uppercase;color:var(--ivory);}
 
 .nav-pills{display:flex;gap:0;background:transparent;border:1px solid rgba(255,255,255,0.06);border-radius:2px;padding:3px;}
-.npill{font-family:'Inter',sans-serif;font-size:0.62rem;font-weight:500;letter-spacing:2.5px;text-transform:uppercase;
-  color:var(--muted);background:none;border:none;cursor:pointer;padding:0.4rem 0.85rem;border-radius:1px;transition:all 0.15s;white-space:nowrap;}
+.npill{font-family:'Inter',sans-serif;font-size:0.62rem;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;
+  color:#B8B2A6;background:none;border:none;cursor:pointer;padding:0.4rem 0.85rem;border-radius:1px;transition:all 0.15s;white-space:nowrap;}
 .npill:hover{color:var(--ivory2);}
 .npill.on{background:rgba(255,255,255,0.05);color:var(--ivory);}
 
@@ -3883,7 +3883,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 
 /* INPUTS — clean underline */
 .f{margin-bottom:1.4rem;}
-.fl{display:block;font-family:'Inter',sans-serif;font-size:0.55rem;font-weight:600;letter-spacing:3.5px;text-transform:uppercase;color:var(--muted);margin-bottom:0.55rem;}
+.fl{display:block;font-family:'Inter',sans-serif;font-size:0.58rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--ivory2);margin-bottom:0.55rem;}
 .fi{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.1);border-radius:0;
   color:var(--ivory);font-family:'Inter',sans-serif;font-size:0.9rem;font-weight:400;
   padding:0.8rem 0.15rem;transition:border-color 0.15s;outline:none;-webkit-appearance:none;}
@@ -4174,8 +4174,11 @@ export default function App() {
       if (res.ok) {
         await signOut();
         setAuthUser(null); setSubscription(null);
+        setProfile({ name:"", weight:"", height:"", age:"", sport:"football", position:"", goal:"Weight Maintenance" });
+        setProfilePhotoBefore(null); setProfilePhotoAfter(null);
         setDeleteConfirm(false); setScreen('landing');
         shout('Your account has been deleted', '◆');
+        setTimeout(() => window.location.reload(), 800);
       } else {
         shout(json.error || 'Delete failed', '!'); setDeleting(false);
       }
@@ -5392,7 +5395,7 @@ COACHING GUIDELINES:
           <button className="bgh" onClick={()=>setScreen("landing")}>Back</button>
         </div>
       </nav>
-      <div style={{paddingTop:"68px",minHeight:"100dvh"}}>
+      <div style={{paddingTop:"88px",minHeight:"100dvh"}}>
         <div style={{height:"280px",position:"relative",backgroundImage:`url(${sport.img})`,backgroundSize:"cover",backgroundPosition:"center 22%"}}>
           <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(8,8,7,0.35)0%,rgba(8,8,7,0.97)100%)"}}/>
           <div className="wrap" style={{position:"relative",zIndex:1,paddingTop:"4rem"}}>
@@ -5600,7 +5603,7 @@ COACHING GUIDELINES:
               style={{width:"100%",background:"var(--gold)",color:"#0a0908",border:"none",borderRadius:8,padding:"14px",fontSize:"0.75rem",fontWeight:800,letterSpacing:"2px",cursor:"pointer",marginBottom:12}}>
               UPGRADE TO ELITE — 50% OFF
             </button>
-            <button onClick={async()=>{await signOut();setAuthUser(null);setSubscription(null);setScreen("landing");}}
+            <button onClick={async()=>{await signOut();setAuthUser(null);setSubscription(null);setProfile({ name:"", weight:"", height:"", age:"", sport:"football", position:"", goal:"Weight Maintenance" });setProfilePhotoBefore(null);setProfilePhotoAfter(null);setScreen("landing");}}
               style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:"0.7rem",letterSpacing:1}}>
               Sign out
             </button>
@@ -5643,7 +5646,7 @@ COACHING GUIDELINES:
               <span style={{fontSize:"0.74rem",color:"var(--gold)",letterSpacing:"1.5px",border:"1px solid rgba(255,255,255,0.07)",padding:"0.3rem 0.7rem",borderRadius:"var(--r)"}}>
                 ✓ {authUser.email?.split('@')[0]}
               </span>
-              <button className="bgh" onClick={()=>{signOut();setAuthUser(null);setScreen("landing");}} style={{fontSize:"0.8rem",padding:"0.5rem 1rem"}}>Sign Out</button>
+              <button className="bgh" onClick={()=>{signOut();setAuthUser(null);setSubscription(null);setProfile({ name:"", weight:"", height:"", age:"", sport:"football", position:"", goal:"Weight Maintenance" });setProfilePhotoBefore(null);setProfilePhotoAfter(null);setScreen("landing");}} style={{fontSize:"0.8rem",padding:"0.5rem 1rem"}}>Sign Out</button>
             </>
           ) : (
             <>
@@ -5654,7 +5657,7 @@ COACHING GUIDELINES:
         </div>
       </nav>
 
-      <div style={{paddingTop:"68px",minHeight:"100dvh"}}>
+      <div style={{paddingTop:"88px",minHeight:"100dvh"}}>
 
         {/* ── BETA COUNTDOWN BANNER ──────────────────────────── */}
         {isBeta && !betaExpired && betaDaysLeft !== null && (
@@ -5673,7 +5676,7 @@ COACHING GUIDELINES:
                 <span style={{fontSize:'0.72rem',fontWeight:700,letterSpacing:'1px',color:betaDaysLeft<=7?'#e74c3c':betaDaysLeft<=14?'#f39c12':'var(--gold)'}}>
                   BETA ACCESS — {betaDaysLeft} DAY{betaDaysLeft!==1?'S':''} REMAINING
                 </span>
-                <span style={{fontSize:'0.68rem',color:'var(--muted)',marginLeft:12}}>
+                <span style={{fontSize:'0.68rem',color:'#B8B2A6',marginLeft:12}}>
                   {betaDaysLeft<=14 ? 'Convert now to keep your access — 50% off as a founding member' : 'Full Elite access active · Share your feedback and help shape the app'}
                 </span>
               </div>
@@ -7775,7 +7778,7 @@ COACHING GUIDELINES:
                           <button className="bsm" style={{flexShrink:0}} onClick={()=>setProgressTab("checkin")}>Log Check-In →</button>
                         </div>
                       )}
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem",marginBottom:"0.75rem",opacity:noData?0.35:1,pointerEvents:noData?"none":"auto"}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem",marginBottom:"0.75rem",opacity:noData?0.6:1,pointerEvents:noData?"none":"auto"}}>
 
                           {/* Game-Day Readiness */}
                           <div style={{background:"rgba(8,7,5,0.8)",border:`1px solid ${readColor}30`,borderRadius:"var(--r-lg)",padding:"1.25rem 1.25rem 1rem",position:"relative",overflow:"hidden"}}>
@@ -10637,7 +10640,7 @@ ${recruitingNote}`:null,
                           onClick={()=>setScreen("pricing")}>
                           Upgrade / Change Plan
                         </button>
-                        <button style={{width:"100%",padding:"0.7rem",background:"none",border:"1px solid rgba(200,60,60,0.4)",borderRadius:8,color:"#c84444",fontSize:"0.7rem",letterSpacing:"1.5px",cursor:"pointer",marginTop:"0.4rem"}}
+                        <button style={{width:"100%",padding:"0.7rem",background:"rgba(200,60,60,0.12)",border:"1px solid rgba(220,80,80,0.7)",borderRadius:8,color:"#FF6B6B",fontWeight:600,fontSize:"0.72rem",letterSpacing:"1.5px",cursor:"pointer",marginTop:"0.4rem"}}
                           onClick={()=>setDeleteConfirm(true)}>
                           Delete Account
                         </button>

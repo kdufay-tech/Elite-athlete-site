@@ -222,7 +222,7 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
-            <span style={{ fontSize: '0.68rem', color: 'var(--muted)', fontWeight: 300 }}>Secured by Supabase · 256-bit encryption · Your data is private</span>
+            <span style={{ fontSize: '0.68rem', color: 'var(--muted)', fontWeight: 500 }}>Secured by Supabase · 256-bit encryption · Your data is private</span>
           </div>
         </div>
       </div>
