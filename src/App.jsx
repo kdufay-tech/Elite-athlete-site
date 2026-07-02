@@ -10,8 +10,32 @@ import AuthModal from "./components/AuthModal";
 import DeleteAccountModal from "./components/DeleteAccountModal";
 import PayModal from "./components/CheckoutModal";
 import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
+import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 const API_BASE = Capacitor.getPlatform() === "web" ? "" : "https://elite-athlete.app";
 const IS_IOS = Capacitor.getPlatform() === "ios";
+
+// Native share: opens the iOS share sheet on device; falls back to clipboard on web.
+async function nativeShare({ title, text, url }) {
+  try {
+    if (Capacitor.isNativePlatform()) {
+      await Share.share({ title, text, url, dialogTitle: title });
+      return true;
+    }
+  } catch (e) { return false; }
+  try { await navigator.clipboard.writeText([title, text, url].filter(Boolean).join("\n")); } catch(e){}
+  return false;
+}
+
+// Haptic feedback on native; no-op on web.
+async function haptic(kind = "impact") {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    if (kind === "success") await Haptics.notification({ type: NotificationType.Success });
+    else if (kind === "light") await Haptics.impact({ style: ImpactStyle.Light });
+    else await Haptics.impact({ style: ImpactStyle.Medium });
+  } catch (e) {}
+}
 import { getUserTier, canAccess as tierCanAccess, TIER_INFO } from "./lib/stripe";
 import { uploadProgressPhoto, loadProgressPhotos, deleteProgressPhoto } from "./lib/supabase";
 import AdminDashboard from "./AdminDashboard";
@@ -4178,7 +4202,7 @@ export default function App() {
         setProfilePhotoBefore(null); setProfilePhotoAfter(null);
         setDeleteConfirm(false); setScreen('landing');
         shout('Your account has been deleted', '◆');
-        setTimeout(() => window.location.reload(), 800);
+        if (API_BASE === '') setTimeout(() => window.location.reload(), 800);
       } else {
         shout(json.error || 'Delete failed', '!'); setDeleting(false);
       }
@@ -4546,6 +4570,16 @@ export default function App() {
     return () => clearInterval(interval);
   }, [restTimer, notifPermission]);
 
+  // Global light haptic on any button / nav-pill / link tap (native only)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const onTap = (e) => {
+      if (e.target.closest('button, .npill, .mtile, .stile, .freq-tile, .gc, .inj-tag, .bt, .ptile, [role="button"], a')) haptic('impact');
+    };
+    document.addEventListener('click', onTap, true);
+    return () => document.removeEventListener('click', onTap, true);
+  }, []);
+
   useEffect(() => {
     // Restore session on load — go straight to dashboard if already logged in
     getSession().then(session => {
@@ -4606,18 +4640,17 @@ export default function App() {
       if (event === 'SIGNED_OUT') {
         setAuthUser(null);
         setSubscription(null);
+        dataLoadedRef.current = false;
         setScreen("landing");
         setAuthLoading(false);
       } else if (session?.user) {
         setAuthUser(session.user);
-        // TOKEN_REFRESHED fires every ~60 min — ignore entirely, no state changes needed.
-        if (event === 'TOKEN_REFRESHED') return;
-        // Only reload user data on actual sign-in events.
+        // TOKEN_REFRESHED fires every ~60 min — keep session, no reload, stay put.
+        if (event === 'TOKEN_REFRESHED') { setAuthLoading(false); return; }
+        // Load user data once per authenticated session (guard against repeat events on iOS resume).
         if (!dataLoadedRef.current) {
           dataLoadedRef.current = true;
           loadUserData(session.user.id);
-        } else {
-          dataLoadedRef.current = false;
         }
         setScreen("dashboard");
         setAuthLoading(false);
@@ -7349,7 +7382,7 @@ COACHING GUIDELINES:
                 ].map(([id,label,sub,img])=>{
                   const isOn = progressTab===id;
                   return (
-                    <div key={id} onClick={()=>{
+                    <div key={id} className="ptile" onClick={()=>{
                       setProgressTab(id);
                       if(id==="coach"&&coachMessages.length===0){setTimeout(()=>triggerCoachGreeting(),100);}
                       setTimeout(()=>{
@@ -9286,6 +9319,7 @@ COACHING GUIDELINES:
                           onClick={()=>{
                             try {
                               downloadAthleteReportCard({profile,sport,totalCals,wkWeek,wkLog,benchmarks,weightLog,checkIns,nutritionLog,progressPhotos});
+                              haptic("success");
                               shout("Recruiting card downloaded","");
                             } catch(e){ shout("PDF failed — fill in more profile data","!"); }
                           }}>
@@ -9810,15 +9844,20 @@ ${recruitingNote}`:null,
 
                         {/* Send button */}
                         <button className="bg" style={{width:"100%",padding:"0.85rem",fontSize:"0.9rem",fontWeight:600}}
-                          onClick={()=>{
+                          onClick={async()=>{
                             if(!selectedCoach){shout("Select a coach first","!");return;}
                             const body=buildReport(selectedCoach);
                             const subject=`Athlete Progress Report — ${profile.name||"Athlete"} · ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
-                            const mailto=`mailto:${selectedCoach.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                            window.open(mailto);
+                            await haptic("success");
+                            if (Capacitor.isNativePlatform()) {
+                              await nativeShare({ title: subject, text: body });
+                            } else {
+                              const mailto=`mailto:${selectedCoach.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                              window.open(mailto);
+                            }
                             const record={coach:selectedCoach.name,email:selectedCoach.email,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}),sections:Object.values(reportSections).filter(Boolean).length};
                             setSentReports(prev=>[record,...prev].slice(0,20));
-                            shout(`Report sent to ${selectedCoach.name}`,"📡");
+                            shout(`Report shared for ${selectedCoach.name}`,"📡");
                           }}>
                           Send Progress Report to Coach
                         </button>

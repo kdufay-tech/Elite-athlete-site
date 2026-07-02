@@ -5,11 +5,15 @@ import App from './App.jsx'
 // RevenueCat init (iOS native only — no-op on web/Android)
 import { Capacitor } from '@capacitor/core';
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 if (Capacitor.getPlatform() === 'ios') {
   Purchases.setLogLevel({ level: LOG_LEVEL.WARN });
   Purchases.configure({ apiKey: import.meta.env.VITE_REVENUECAT_APPLE_KEY })
     .catch(err => console.warn('RevenueCat configure failed:', err));
+  // Native status bar: dark background, light text (matches black/gold theme)
+  StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+  StatusBar.setBackgroundColor({ color: '#060504' }).catch(() => {});
 }
 
 // Register service worker for PWA install (Android + iOS)
