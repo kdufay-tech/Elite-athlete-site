@@ -83,6 +83,14 @@ export async function loadProfile(userId) {
   return data;
 }
 
+export async function saveAIConsent(userId) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ ai_consent_at: new Date().toISOString() })
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
 // ── JOURNAL ENTRIES ───────────────────────────────────────────
 
 export async function saveJournalEntry(userId, entry) {

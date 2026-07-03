@@ -3,11 +3,12 @@ import { getSession, onAuthChange, signOut, saveProfile, loadProfile,
          saveJournalEntry, loadJournalEntries, deleteJournalEntry, saveProgressNote, loadProgressNotes,
          loadSubscription, saveCheckIn, loadCheckIns, saveWorkoutLog, loadWorkoutLogs,
          saveWeightEntry, loadWeightLogs, saveNutritionEntry, loadNutritionLogs,
-         saveBenchmark, loadBenchmarks } from "./lib/supabase";
+         saveBenchmark, loadBenchmarks, saveAIConsent } from "./lib/supabase";
 import { downloadMealPlanPDF, downloadWorkoutPDF, downloadProgressReportPDF, downloadJournalPDF, downloadRecoveryPDF, downloadAthleteReportCard } from "./lib/pdf";
 import { emailMealPlan, emailProgressReport, emailInjuryProtocol, emailWorkoutPlan, emailRecoveryNutrition, sendEmail } from "./lib/email";
 import AuthModal from "./components/AuthModal";
 import DeleteAccountModal from "./components/DeleteAccountModal";
+import AICoachConsentModal from "./components/AICoachConsentModal";
 import PayModal from "./components/CheckoutModal";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
@@ -4477,6 +4478,16 @@ export default function App() {
   const [selectedPhase, setSelectedPhase] = useState(null); // filter week grid by phase // overview | checkin | body | nutrition | performance | photos
   // AI Coach state
   const [coachMessages, setCoachMessages] = useState([]);
+  const [aiConsentModal, setAiConsentModal] = useState(false);
+  const [aiConsentSaving, setAiConsentSaving] = useState(false);
+  const hasAIConsent = () => !!profile.ai_consent_at;
+  const requireAIConsent = () => { if (hasAIConsent()) return true; setAiConsentModal(true); return false; };
+  const agreeAIConsent = async () => {
+    setAiConsentSaving(true);
+    try { if (authUser?.id) { await saveAIConsent(authUser.id); setProfile(p=>({...p, ai_consent_at:new Date().toISOString()})); } setAiConsentModal(false); }
+    catch(e){ shout("Could not save consent — try again","!"); }
+    finally { setAiConsentSaving(false); }
+  };
   const [coachInput, setCoachInput] = useState("");
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachReady, setCoachReady] = useState(false);
@@ -5004,6 +5015,7 @@ COACHING GUIDELINES:
 
   const triggerCoachGreeting = async () => {
     if (coachMessages.length > 0) return;
+    if (!requireAIConsent()) return;
     setCoachLoading(true);
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 35000);
@@ -5039,6 +5051,7 @@ COACHING GUIDELINES:
 
   const sendCoachMessage = async () => {
     if (!coachInput.trim() || coachLoading) return;
+    if (!requireAIConsent()) return;
     const userMsg = {role:"user", content:coachInput.trim(), ts:new Date()};
     const newMessages = [...coachMessages, userMsg];
     setCoachMessages(newMessages);
@@ -5394,6 +5407,7 @@ COACHING GUIDELINES:
       {success && <SuccessScreen/>}
       {conversionModal && <BetaConversionModal onClose={()=>setConversionModal(false)} onUpgrade={()=>{setConversionModal(false);setPayModal({tierKey:'elite',billing:'annual',couponCode:'XJeqHLLx'});}} />}
       {feedbackModal   && <BetaFeedbackModal   onClose={()=>setFeedbackModal(false)} authUser={authUser} getSession={getSession} />}
+      {aiConsentModal && <AICoachConsentModal onAgree={agreeAIConsent} onCancel={()=>setAiConsentModal(false)} saving={aiConsentSaving} />}
 
       {/* Floating beta feedback button */}
       {isBeta && !betaExpired && screen==='dashboard' && !feedbackModal && (
@@ -7384,7 +7398,7 @@ COACHING GUIDELINES:
                   return (
                     <div key={id} className="ptile" onClick={()=>{
                       setProgressTab(id);
-                      if(id==="coach"&&coachMessages.length===0){setTimeout(()=>triggerCoachGreeting(),100);}
+                      if(id==="coach"){ if(!hasAIConsent()){setAiConsentModal(true);} else if(coachMessages.length===0){setTimeout(()=>triggerCoachGreeting(),100);} }
                       setTimeout(()=>{
                         const el=document.getElementById('progress-tab-content');
                         if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
@@ -7434,6 +7448,10 @@ COACHING GUIDELINES:
                       Upgrade to Elite — $69/mo
                     </button>
                     <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/yr billed annually</div>
+                  </div>
+                ) : !hasAIConsent() ? (
+                  <div style={{minHeight:"200px"}}>
+                    {aiConsentModal && <AICoachConsentModal onAgree={agreeAIConsent} onCancel={()=>setAiConsentModal(false)} saving={aiConsentSaving} />}
                   </div>
                 ) : (<>
                   {/* Coach header */}
@@ -7490,6 +7508,7 @@ COACHING GUIDELINES:
                       "What's my biggest weakness right now?",
                     ].map(q=>(
                       <button key={q} onClick={async ()=>{
+                        if (!requireAIConsent()) return;
                         setCoachInput(q);
                         setTimeout(async ()=>{
                           setCoachInput("");
