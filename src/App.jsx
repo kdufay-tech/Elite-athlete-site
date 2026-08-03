@@ -5405,7 +5405,7 @@ COACHING GUIDELINES:
       )}
       {betaModal && <AuthModal onClose={()=>setBetaModal(false)} initialMode="signup" onAuth={(user, betaCode)=>{setAuthUser(user);loadUserData(user.id, true);setScreen("dashboard");if(betaCode) redeemBetaCode(user.id, betaCode); else shout(`Welcome, ${user.email?.split('@')[0]}!`,"◆");}} />}
       {success && <SuccessScreen/>}
-      {conversionModal && <BetaConversionModal onClose={()=>setConversionModal(false)} onUpgrade={()=>{setConversionModal(false);setPayModal({tierKey:'elite',billing:'annual',couponCode:'XJeqHLLx'});}} />}
+      {conversionModal && <BetaConversionModal onClose={()=>setConversionModal(false)} onUpgrade={()=>{setConversionModal(false);setPayModal({tierKey:'elite',billing:'annual'});}} />}
       {feedbackModal   && <BetaFeedbackModal   onClose={()=>setFeedbackModal(false)} authUser={authUser} getSession={getSession} />}
       {aiConsentModal && <AICoachConsentModal onAgree={agreeAIConsent} onCancel={()=>setAiConsentModal(false)} saving={aiConsentSaving} />}
 
@@ -5618,17 +5618,14 @@ COACHING GUIDELINES:
             <div style={{fontSize:"0.6rem",letterSpacing:4,color:"var(--gold)",textTransform:"uppercase",marginBottom:8}}>Beta Period Ended</div>
             <div style={{fontSize:"1.7rem",fontWeight:700,color:"#fff",marginBottom:12,letterSpacing:1}}>Your Beta Access Has Ended</div>
             <div style={{fontSize:"0.85rem",color:"#888",lineHeight:1.7,marginBottom:28}}>
-              {"You've had full Elite access during the beta. As a founding member, you get "}
-              <span style={{color:"var(--gold)",fontWeight:700}}>50% off your first year</span>
-              {" — locked in forever as long as you stay subscribed."}
+              {"You've had full Elite access during the beta. Subscribe now to keep your account and everything in it — your data, history, and progress stay exactly where they are."}
             </div>
             <div style={{background:"rgba(201,168,76,0.08)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:10,padding:"16px 20px",marginBottom:24}}>
               <div style={{display:"flex",justifyContent:"center",alignItems:"baseline",gap:8}}>
-                <span style={{fontSize:"0.8rem",color:"#555",textDecoration:"line-through"}}>$529/yr</span>
-                <span style={{fontSize:"2.2rem",color:"var(--gold)",fontWeight:700}}>$264.50</span>
-                <span style={{fontSize:"0.75rem",color:"#888"}}>/first year</span>
+                <span style={{fontSize:"2.2rem",color:"var(--gold)",fontWeight:700}}>$529</span>
+                <span style={{fontSize:"0.75rem",color:"#888"}}>/year</span>
               </div>
-              <div style={{fontSize:"0.65rem",color:"#888",letterSpacing:1,marginTop:4}}>Code XJeqHLLx auto-applied then $529/yr</div>
+              <div style={{fontSize:"0.65rem",color:"#888",letterSpacing:1,marginTop:4}}>Elite annual · billed yearly</div>
             </div>
             <button onClick={async()=>{
                 try {
@@ -5638,7 +5635,6 @@ COACHING GUIDELINES:
                     planName: 'elite_annual',
                     userEmail: authUser?.email,
                     userId: authUser?.id,
-                    couponCode: 'XJeqHLLx',
                     successUrl: `${window.location.origin}?payment=success&plan=elite_annual`,
                     cancelUrl: window.location.origin,
                   });
@@ -5648,7 +5644,7 @@ COACHING GUIDELINES:
                 }
               }}
               style={{width:"100%",background:"var(--gold)",color:"#0a0908",border:"none",borderRadius:8,padding:"14px",fontSize:"0.75rem",fontWeight:800,letterSpacing:"2px",cursor:"pointer",marginBottom:12}}>
-              UPGRADE TO ELITE — 50% OFF
+              UPGRADE TO ELITE
             </button>
             <button onClick={async()=>{await signOut();setAuthUser(null);setSubscription(null);setProfile({ name:"", weight:"", height:"", age:"", sport:"football", position:"", goal:"Weight Maintenance" });setProfilePhotoBefore(null);setProfilePhotoAfter(null);setScreen("landing");}}
               style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:"0.7rem",letterSpacing:1}}>
@@ -5724,7 +5720,7 @@ COACHING GUIDELINES:
                   BETA ACCESS — {betaDaysLeft} DAY{betaDaysLeft!==1?'S':''} REMAINING
                 </span>
                 <span style={{fontSize:'0.68rem',color:'#B8B2A6',marginLeft:12}}>
-                  {betaDaysLeft<=14 ? 'Convert now to keep your access — 50% off as a founding member' : 'Full Elite access active · Share your feedback and help shape the app'}
+                  {betaDaysLeft<=14 ? 'Convert now to keep your Elite access before your beta ends' : 'Full Elite access active · Share your feedback and help shape the app'}
                 </span>
               </div>
             </div>
@@ -5734,9 +5730,9 @@ COACHING GUIDELINES:
                 ✏ BETA FEEDBACK
               </a>
               {betaDaysLeft <= 14 && (
-                <button onClick={()=>setPayModal({tierKey:'elite',billing:'annual',couponCode:'XJeqHLLx'})}
+                <button onClick={()=>setPayModal({tierKey:'elite',billing:'annual'})}
                   style={{background:'var(--gold)',color:'#0a0908',border:'none',borderRadius:6,padding:'6px 16px',fontSize:'0.68rem',fontWeight:700,letterSpacing:'1.5px',cursor:'pointer',whiteSpace:'nowrap'}}>
-                  UPGRADE — 50% OFF →
+                  UPGRADE →
                 </button>
               )}
             </div>
@@ -11900,18 +11896,17 @@ function BetaConversionModal({ onClose, onUpgrade }) {
           Your Beta Access Has Ended
         </div>
         <div style={{fontSize:'0.85rem',color:'#888',lineHeight:1.7,marginBottom:28}}>
-          You've had full Elite access during the beta. As a founding member, you get <span style={{color:'var(--gold)',fontWeight:700}}>50% off your first year</span> — locked in forever as long as you stay subscribed.
+          You've had full Elite access during the beta. Subscribe now to keep your account and everything in it — your data, history, and progress stay exactly where they are.
         </div>
         <div style={{background:'rgba(201,168,76,0.08)',border:'1px solid rgba(201,168,76,0.2)',borderRadius:10,padding:'16px 20px',marginBottom:24}}>
           <div style={{display:'flex',justifyContent:'center',alignItems:'baseline',gap:8}}>
-            <span style={{fontSize:'0.8rem',color:'#555',textDecoration:'line-through'}}>$529/yr</span>
-            <span style={{fontFamily:"'Cormorant SC',serif",fontSize:'2.2rem',color:'var(--gold)',fontWeight:700}}>$264.50</span>
-            <span style={{fontSize:'0.75rem',color:'#888'}}>/first year</span>
+            <span style={{fontFamily:"'Cormorant SC',serif",fontSize:'2.2rem',color:'var(--gold)',fontWeight:700}}>$529</span>
+            <span style={{fontSize:'0.75rem',color:'#888'}}>/year</span>
           </div>
-          <div style={{fontSize:'0.65rem',color:'#888',letterSpacing:1,marginTop:4}}>Code XJeqHLLx auto-applied · Then $529/yr</div>
+          <div style={{fontSize:'0.65rem',color:'#888',letterSpacing:1,marginTop:4}}>Elite annual · billed yearly</div>
         </div>
         <button onClick={onUpgrade} style={{width:'100%',background:'var(--gold)',color:'#0a0908',border:'none',borderRadius:8,padding:'14px',fontSize:'0.75rem',fontWeight:800,letterSpacing:'2px',cursor:'pointer',marginBottom:12}}>
-          CONVERT TO ELITE — 50% OFF →
+          CONVERT TO ELITE →
         </button>
         <button onClick={onClose} style={{background:'none',border:'none',color:'#444',cursor:'pointer',fontSize:'0.7rem',letterSpacing:1}}>
           Not now — I'll lose access
