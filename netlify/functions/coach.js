@@ -9,9 +9,11 @@ const ALLOWED_ORIGINS = [
   'https://elite-athlete.app',
   'https://www.elite-athlete.app',
   'http://localhost:5173',
-  'capacitor://localhost',
-  'ionic://localhost',
   'http://localhost:8888',
+  'capacitor://localhost',   // iOS Capacitor WebView
+  'ionic://localhost',
+  'https://localhost',       // Android Capacitor WebView (androidScheme: 'https')
+  'http://localhost',        // Android Capacitor WebView (androidScheme: 'http')
 ];
 
 const rateLimitMap = new Map();
@@ -93,7 +95,17 @@ async function verifySubscription(authHeader) {
 
 export default async (req) => {
   const origin = req.headers.get('origin') || '';
-  const isAllowed = !origin || ALLOWED_ORIGINS.includes(origin) || origin.includes('netlify.app');
+  // Native Capacitor WebViews send origins like capacitor://localhost (iOS),
+  // ionic://localhost, or https://localhost (Android, androidScheme:'https') —
+  // and some native requests carry no Origin header at all. This endpoint is
+  // JWT-gated (verifySubscription), so accept any localhost-host origin, the
+  // explicit allowlist, or *.netlify.app. Never reject a native app on Origin alone.
+  const isLocalhostOrigin = /^(https?|capacitor|ionic):\/\/localhost(:\d+)?$/i.test(origin);
+  const isAllowed = !origin
+    || ALLOWED_ORIGINS.includes(origin)
+    || isLocalhostOrigin
+    || origin.includes('netlify.app')
+    || origin.includes('elite-athlete');
   const corsOrigin = origin || ALLOWED_ORIGINS[0];
   const cors = {
     'Access-Control-Allow-Origin': corsOrigin,

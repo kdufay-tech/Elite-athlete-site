@@ -4,10 +4,14 @@
 
 const ALLOWED_ORIGINS = [
   'https://the-elite-athlete.netlify.app',
+  'https://elite-athlete.app',
+  'https://www.elite-athlete.app',
   'http://localhost:5173',
-  'capacitor://localhost',
-  'ionic://localhost',
   'http://localhost:8888',
+  'capacitor://localhost',   // iOS Capacitor WebView
+  'ionic://localhost',
+  'https://localhost',       // Android Capacitor WebView (androidScheme: 'https')
+  'http://localhost',        // Android Capacitor WebView (androidScheme: 'http')
 ];
 
 // EmailJS credentials
@@ -18,8 +22,13 @@ const EJ_TEMPLATE = 'template_waitlist'; // Auto-Reply template
 
 export default async (req) => {
   const origin = req.headers.get('origin') || '';
-  const corsOrigin = ALLOWED_ORIGINS.includes(origin) || origin.includes('netlify.app')
-    ? origin : ALLOWED_ORIGINS[0];
+  // Native Capacitor WebViews send capacitor://localhost (iOS), ionic://localhost,
+  // or https://localhost (Android, androidScheme:'https'). Echo any localhost-host
+  // or allowlisted origin so the WebView doesn't block the response on a CORS mismatch.
+  const isLocalhostOrigin = /^(https?|capacitor|ionic):\/\/localhost(:\d+)?$/i.test(origin);
+  const corsOrigin =
+    (ALLOWED_ORIGINS.includes(origin) || isLocalhostOrigin || origin.includes('netlify.app') || origin.includes('elite-athlete'))
+      ? origin : ALLOWED_ORIGINS[0];
 
   const headers = {
     'Access-Control-Allow-Origin': corsOrigin,
