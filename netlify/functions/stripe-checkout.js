@@ -11,12 +11,6 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8888',
 ];
 
-const VALID_PRICE_KEYS = [
-  'athlete_monthly','athlete_annual',
-  'elite_monthly','elite_annual',
-  'coach_monthly','coach_annual',
-];
-
 const VALID_PLAN_NAMES = [
   'athlete','athlete_annual',
   'elite','elite_annual',
@@ -55,9 +49,12 @@ export default async (req) => {
 
   const { priceId, planName, userEmail } = body;
 
-  // If a coupon code is passed (e.g. BETAFOUNDER), apply it as a discount.
-  // Stripe disallows allow_promotion_codes when discounts is set.
-  const hasCoupon = body.couponCode && typeof body.couponCode === 'string';
+  // A coupon may be passed (beta founding-member codes). Those were created in
+  // TEST mode and don't exist in LIVE, so applying one blindly causes "No such
+  // coupon" and blocks checkout. Validate it below; skip if missing/expired.
+  const requestedCoupon = (body.couponCode && typeof body.couponCode === 'string')
+    ? body.couponCode.trim()
+    : null;
 
   if (!priceId || typeof priceId !== 'string' || priceId.length > 100)
     return new Response(JSON.stringify({ error: 'Invalid or missing priceId: ' + priceId }), { status: 400, headers });
@@ -71,7 +68,6 @@ export default async (req) => {
   const safeEmail = userEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)
     ? userEmail.slice(0, 254) : undefined;
 
-  // Reuse existing Stripe customer if one exists — prevents duplicate customers on upgrade
   let existingCustomerId = null;
   if (body.userId) {
     try {
@@ -88,7 +84,27 @@ export default async (req) => {
       if (subRow?.stripe_customer_id && !subRow.stripe_customer_id.startsWith('beta_')) {
         existingCustomerId = subRow.stripe_customer_id;
       }
-    } catch(e) { /* non-fatal — proceed without customer ID */ }
+    } catch(e) { /* non-fatal */ }
+  }
+
+  // Only apply a coupon that actually exists in the current Stripe mode.
+  let validCoupon = null;
+  if (requestedCoupon) {
+    try {
+      const couponRes = await fetch(
+        `https://api.stripe.com/v1/coupons/${encodeURIComponent(requestedCoupon)}`,
+        { headers: { 'Authorization': `Bearer ${secretKey}` } }
+      );
+      if (couponRes.ok) {
+        const coupon = await couponRes.json();
+        if (coupon && coupon.valid !== false) validCoupon = requestedCoupon;
+        else console.warn(`Coupon ${requestedCoupon} not valid — charging regular price`);
+      } else {
+        console.warn(`Coupon ${requestedCoupon} not found in ${isBeta ? 'test' : 'live'} — charging regular price`);
+      }
+    } catch (e) {
+      console.warn(`Coupon lookup failed (${requestedCoupon}): ${e.message} — charging regular price`);
+    }
   }
 
   const payload = {
@@ -99,15 +115,15 @@ export default async (req) => {
     billing_address_collection: 'auto',
     subscription_data: { metadata: { plan_name: safePlanName } },
   };
-  if (hasCoupon) {
-    payload.discounts = [{ coupon: body.couponCode.trim() }];
+  if (validCoupon) {
+    payload.discounts = [{ coupon: validCoupon }];
   } else {
     payload.allow_promotion_codes = true;
   }
   if (existingCustomerId) {
-    payload.customer = existingCustomerId; // reuse existing Stripe customer
+    payload.customer = existingCustomerId;
   } else if (safeEmail) {
-    payload.customer_email = safeEmail;   // new customer — prefill email
+    payload.customer_email = safeEmail;
   }
   if (body.userId) payload.client_reference_id = String(body.userId).slice(0, 200);
 
@@ -155,4 +171,3 @@ function flattenPayload(obj, prefix = '') {
   }
   return out;
 }
-
