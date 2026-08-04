@@ -3669,8 +3669,8 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 
 /* NAV — matte, minimal */
-.nav{position:fixed;top:0;left:0;right:0;z-index:900;height:64px;
-  display:flex;align-items:center;justify-content:space-between;padding:0 2.5rem;
+.nav{position:fixed;top:0;left:0;right:0;z-index:900;height:calc(64px + env(safe-area-inset-top, 0px));
+  display:flex;align-items:center;justify-content:space-between;padding:0 2.5rem;padding-top:env(safe-area-inset-top, 0px);
   background:#060504;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   border-bottom:1px solid rgba(255,255,255,0.05);}
 
@@ -3687,7 +3687,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 .nav-r{display:flex;align-items:center;gap:0.75rem;}
 /* Tablet (iPad): reflow nav so Sign Out / nav-r stays visible */
 @media(min-width:601px) and (max-width:1024px){
-  .nav{flex-wrap:wrap;height:auto;min-height:64px;padding:0.4rem 1.5rem;align-items:center;}
+  .nav{flex-wrap:wrap;height:auto;min-height:64px;padding:0.4rem 1.5rem;padding-top:calc(0.4rem + env(safe-area-inset-top, 0px));align-items:center;}
   .nav-wm{order:1;}
   .nav-r{order:2;margin-left:auto;}
   .nav-pills{order:3;width:100%;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-top:1px solid rgba(255,255,255,0.05);padding:0.3rem 0;margin-top:0.35rem;}
@@ -3709,7 +3709,7 @@ body{font-family:'Inter',sans-serif;background:var(--onyx);color:var(--ivory);mi
 
   /* Generic inline grid overrides via attribute selectors not possible - handled below */
 }
-@media(max-width:600px){.nav{padding:0 1rem;}.nav-pills{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;order:3;width:100%;border-top:1px solid rgba(255,255,255,0.05);padding:0.25rem 0;}.nav-wm-top{display:none;}.nav-wm-main{font-size:0.9rem;letter-spacing:4px;}}
+@media(max-width:600px){.nav{padding:0 1rem;padding-top:env(safe-area-inset-top, 0px);}.nav-pills{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;order:3;width:100%;border-top:1px solid rgba(255,255,255,0.05);padding:0.25rem 0;}.nav-wm-top{display:none;}.nav-wm-main{font-size:0.9rem;letter-spacing:4px;}}
 
 /* BUTTONS — flat, matte, no glow */
 .bg{font-family:'Inter',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:3.5px;text-transform:uppercase;
@@ -5442,7 +5442,7 @@ COACHING GUIDELINES:
           <button className="bgh" onClick={()=>setScreen("landing")}>Back</button>
         </div>
       </nav>
-      <div style={{paddingTop:"88px",minHeight:"100dvh"}}>
+      <div style={{paddingTop:"calc(88px + env(safe-area-inset-top, 0px))",minHeight:"100dvh",paddingBottom:"env(safe-area-inset-bottom, 0px)"}}>
         <div style={{height:"280px",position:"relative",backgroundImage:`url(${sport.img})`,backgroundSize:"cover",backgroundPosition:"center 22%"}}>
           <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(8,8,7,0.35)0%,rgba(8,8,7,0.97)100%)"}}/>
           <div className="wrap" style={{position:"relative",zIndex:1,paddingTop:"4rem"}}>
@@ -5700,7 +5700,7 @@ COACHING GUIDELINES:
         </div>
       </nav>
 
-      <div style={{paddingTop:"88px",minHeight:"100dvh"}}>
+      <div style={{paddingTop:"calc(88px + env(safe-area-inset-top, 0px))",minHeight:"100dvh",paddingBottom:"env(safe-area-inset-bottom, 0px)"}}>
 
         {/* ── BETA COUNTDOWN BANNER ──────────────────────────── */}
         {isBeta && !betaExpired && betaDaysLeft !== null && (
