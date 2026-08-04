@@ -9534,7 +9534,7 @@ COACHING GUIDELINES:
                           <div className="pb">
                             <div className="f">
                               <label className="fl">Coach or Scout Email</label>
-                              <input type="email" className="fi"
+                              <input type="email" className="fi" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} inputMode="email"
                                 placeholder="coach@university.edu"
                                 value={recruitingEmail}
                                 onChange={e=>setRecruitingEmail(e.target.value)}
@@ -11287,7 +11287,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
 // ─────────────────────────────────────────────────────────────
 function EmailModal({ emailModal, authUser, isPremium, onSend, onClose, setPayModal, shout }) {
   const [recipient, setRecipient] = useState("self");
-  const [coachEmail, setCoachEmail] = useState("");
+  const [coachEmail, setCoachEmail] = useState(()=>{ try{ return localStorage.getItem('ea_last_coach_email')||""; }catch(e){ return ""; } });
   const [sending, setSending] = useState(false);
 
   const handleSend = async () => {
@@ -11295,6 +11295,7 @@ function EmailModal({ emailModal, authUser, isPremium, onSend, onClose, setPayMo
     if (!toEmail || (recipient === "coach" && !coachEmail.includes("@"))) {
       shout("Enter a valid coach email", "!"); return;
     }
+    if (recipient === "coach") { try{ localStorage.setItem('ea_last_coach_email', coachEmail); }catch(e){} }
     setSending(true);
     await onSend(toEmail);
     setSending(false);
@@ -11339,7 +11340,7 @@ function EmailModal({ emailModal, authUser, isPremium, onSend, onClose, setPayMo
         {recipient === "coach" && isPremium && (
           <div style={{marginBottom:"1.25rem"}}>
             <label style={{fontSize:"0.84rem",letterSpacing:"2px",textTransform:"uppercase",color:"var(--muted)",display:"block",marginBottom:"0.4rem"}}>Coach Email</label>
-            <input className="fi" type="email" placeholder="coach@team.com" value={coachEmail} onChange={e=>setCoachEmail(e.target.value)}/>
+            <input className="fi" type="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} inputMode="email" placeholder="coach@team.com" value={coachEmail} onChange={e=>setCoachEmail(e.target.value)}/>
           </div>
         )}
 
