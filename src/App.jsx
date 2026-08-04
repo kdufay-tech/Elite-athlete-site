@@ -3,7 +3,7 @@ import { getSession, onAuthChange, signOut, saveProfile, loadProfile,
          saveJournalEntry, loadJournalEntries, deleteJournalEntry, saveProgressNote, loadProgressNotes,
          loadSubscription, saveCheckIn, loadCheckIns, saveWorkoutLog, loadWorkoutLogs,
          saveWeightEntry, loadWeightLogs, saveNutritionEntry, loadNutritionLogs,
-         saveBenchmark, loadBenchmarks, saveAIConsent } from "./lib/supabase";
+         saveBenchmark, loadBenchmarks, saveAIConsent, updatePassword } from "./lib/supabase";
 import { downloadMealPlanPDF, downloadWorkoutPDF, downloadProgressReportPDF, downloadJournalPDF, downloadRecoveryPDF, downloadAthleteReportCard } from "./lib/pdf";
 import { emailMealPlan, emailProgressReport, emailInjuryProtocol, emailWorkoutPlan, emailRecoveryNutrition, sendEmail } from "./lib/email";
 import AuthModal from "./components/AuthModal";
@@ -4444,6 +4444,8 @@ export default function App() {
   const [recruitingEmail, setRecruitingEmail] = useState("");
   const [recruitingNote, setRecruitingNote] = useState("");
   const [recruitingCardSent, setRecruitingCardSent] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
   // Coach Connect state
   // Push notification state
   const [notifPermission, setNotifPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'default');
@@ -10671,6 +10673,27 @@ ${recruitingNote}`:null,
                           shout("Profile saved","✦");
                         }catch(e){shout("Save failed","!");}
                       }}>Save Changes</button>
+                    </div>
+                  </div>
+                  <div className="panel">
+                    <div className="ph"><div className="pt">Account</div></div>
+                    <div className="pb">
+                      <div style={{marginBottom:"1.1rem"}}>
+                        <div style={{fontSize:"0.6rem",letterSpacing:"3px",textTransform:"uppercase",color:"var(--muted)",marginBottom:"0.35rem"}}>Signed in as</div>
+                        <div style={{fontSize:"0.95rem",color:"var(--ivory)",fontWeight:600,wordBreak:"break-all"}}>{authUser?.email||"—"}</div>
+                      </div>
+                      <div style={{fontSize:"0.6rem",letterSpacing:"3px",textTransform:"uppercase",color:"var(--muted)",marginBottom:"0.4rem"}}>Change Password</div>
+                      <input className="fi" type="password" autoComplete="new-password" placeholder="New password (min 6 characters)" value={newPassword} onChange={e=>setNewPassword(e.target.value)} style={{marginBottom:"0.6rem"}}/>
+                      <button className="bg" style={{width:"100%",padding:"0.72rem",opacity:pwSaving?0.6:1}} disabled={pwSaving}
+                        onClick={async()=>{
+                          if(newPassword.length<6){shout("Password must be at least 6 characters","!");return;}
+                          setPwSaving(true);
+                          try{ await updatePassword(newPassword); setNewPassword(""); shout("Password updated","✦"); }
+                          catch(err){ shout((err&&err.message)||"Could not update password","!"); }
+                          finally{ setPwSaving(false); }
+                        }}>
+                        {pwSaving?"Updating…":"Update Password"}
+                      </button>
                     </div>
                   </div>
                   <div className="panel">
