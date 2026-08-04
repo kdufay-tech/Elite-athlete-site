@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { getSession, onAuthChange, signOut, saveProfile, loadProfile,
+import { getSession, getFreshToken, onAuthChange, signOut, saveProfile, loadProfile,
          saveJournalEntry, loadJournalEntries, deleteJournalEntry, saveProgressNote, loadProgressNotes,
          loadSubscription, saveCheckIn, loadCheckIns, saveWorkoutLog, loadWorkoutLogs,
          saveWeightEntry, loadWeightLogs, saveNutritionEntry, loadNutritionLogs,
@@ -5026,7 +5026,7 @@ COACHING GUIDELINES:
       const today = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
       const res = await fetch(`${API_BASE}/.netlify/functions/coach`, {
         method: "POST",
-        headers: {"Content-Type":"application/json","Authorization":"Bearer "+((await getSession())?.access_token||"")},
+        headers: {"Content-Type":"application/json","Authorization":"Bearer "+(await getFreshToken())},
         body: JSON.stringify({
           system: context,
           messages: [{role:"user", content:`Today is ${today}. Give me my personalized coaching brief for today — what should I focus on, what does my data tell you, and what's your single most important recommendation right now?`}]
@@ -5069,7 +5069,7 @@ COACHING GUIDELINES:
         .filter(m=>m.content.length>0);
       const res = await fetch(`${API_BASE}/.netlify/functions/coach`, {
         method: "POST",
-        headers: {"Content-Type":"application/json","Authorization":"Bearer "+((await getSession())?.access_token||"")},
+        headers: {"Content-Type":"application/json","Authorization":"Bearer "+(await getFreshToken())},
         body: JSON.stringify({ system: context, messages: apiMessages }),
         signal: ctrl.signal,
       });
@@ -7452,7 +7452,7 @@ COACHING GUIDELINES:
                     {aiConsentModal && <AICoachConsentModal onAgree={agreeAIConsent} onCancel={()=>setAiConsentModal(false)} saving={aiConsentSaving} />}
                   </div>
                 ) : (<>
-                  {/* Coach header */}
+                  <button className="bgh" onClick={()=>setProgressTab("overview")} style={{fontSize:"0.68rem",letterSpacing:"2px",marginBottom:"0.9rem",padding:"0.45rem 1rem"}}>← Back</button>{/* Coach header */}
                   <div style={{
                     background:"linear-gradient(135deg,rgba(191,161,106,0.08) 0%,rgba(139,105,20,0.04) 100%)",
                     border:"1px solid rgba(255,255,255,0.07)",

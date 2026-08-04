@@ -382,3 +382,16 @@ export async function deleteProgressPhoto(userId, photoId, storagePath) {
     .delete().eq('id', photoId).eq('user_id', userId);
   if (error) throw error;
 }
+
+export async function getFreshToken() {
+  let { data: { session } } = await supabase.auth.getSession();
+  const nearExpiry = !session || !session.expires_at
+    || (session.expires_at * 1000 - Date.now() < 120000);
+  if (nearExpiry) {
+    try {
+      const { data } = await supabase.auth.refreshSession();
+      if (data?.session) session = data.session;
+    } catch (_) {}
+  }
+  return session?.access_token || '';
+}
