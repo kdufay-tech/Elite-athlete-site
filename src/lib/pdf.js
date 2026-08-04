@@ -4,6 +4,23 @@
 // ─────────────────────────────────────────────────────────────
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+
+// Save a jsPDF doc: browser download on web; write-to-file + native share sheet on iOS/Android.
+async function savePDF(doc, filename) {
+  if (!Capacitor.isNativePlatform()) { doc.save(filename); return; }
+  try {
+    const base64 = doc.output('datauristring').split('base64,').pop();
+    await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
+    const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
+    await Share.share({ title: filename, url: uri, dialogTitle: 'Save or share your PDF' });
+  } catch (e) {
+    console.error('savePDF native error:', e);
+    try { doc.save(filename); } catch (_) {}
+  }
+}
 
 const GOLD  = [191, 161, 106];
 const DARK  = [8,   8,   7  ];
@@ -144,7 +161,7 @@ export function downloadMealPlanPDF({ athleteName, sport, position, mealType, me
   });
 
   addFooter(doc);
-  doc.save(`Elite-Athlete-Meal-Plan-${mealType.replace(/\s/g,'-')}-${mealFreq}meals.pdf`);
+  savePDF(doc, `Elite-Athlete-Meal-Plan-${mealType.replace(/\s/g,'-')}-${mealFreq}meals.pdf`);
 }
 
 // ── WORKOUT PDF ───────────────────────────────────────────────
@@ -266,7 +283,7 @@ export function downloadWorkoutPDF({ athleteName, sport, position, wkType, wkFoc
   }
 
   addFooter(doc);
-  doc.save(`Elite-Athlete-Workout-${wkType.replace(/\s/g,'-')}-${date.replace(/,?\s/g,'-')}.pdf`);
+  savePDF(doc, `Elite-Athlete-Workout-${wkType.replace(/\s/g,'-')}-${date.replace(/,?\s/g,'-')}.pdf`);
 }
 
 // ── PROGRESS REPORT PDF ───────────────────────────────────────
@@ -454,7 +471,7 @@ export function downloadProgressReportPDF({ profile, notes, totalCals, mealType,
   }
 
   addFooter(doc);
-  doc.save(`Elite-Athlete-Report-${date.replace(/,?\s/g,'-')}.pdf`);
+  savePDF(doc, `Elite-Athlete-Report-${date.replace(/,?\s/g,'-')}.pdf`);
 }
 
 // ── JOURNAL PDF ───────────────────────────────────────────────
@@ -498,7 +515,7 @@ export function downloadJournalPDF({ athleteName, entries }) {
   });
 
   addFooter(doc);
-  doc.save(`Elite-Athlete-Journal-${new Date().toISOString().split('T')[0]}.pdf`);
+  savePDF(doc, `Elite-Athlete-Journal-${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // ── INJURY RECOVERY PDF ───────────────────────────────────────
@@ -539,7 +556,7 @@ export function downloadRecoveryPDF({ athleteName, sport, injury, phases }) {
   });
 
   addFooter(doc);
-  doc.save(`Elite-Athlete-Recovery-${(injury || 'Protocol').replace(/\s/g, '-')}.pdf`);
+  savePDF(doc, `Elite-Athlete-Recovery-${(injury || 'Protocol').replace(/\s/g, '-')}.pdf`);
 }
 
 // ── ATHLETE REPORT CARD PDF ───────────────────────────────────
@@ -762,5 +779,5 @@ export function downloadAthleteReportCard({ profile, sport, totalCals, wkWeek, w
   doc.setFont('helvetica', 'bold');
   doc.text('ELITE', 105, 180, { align: 'center', angle: 45 });
 
-  doc.save(`Elite-Athlete-Report-Card-${(profile.name || 'Athlete').replace(/\s/g, '-')}.pdf`);
+  savePDF(doc, `Elite-Athlete-Report-Card-${(profile.name || 'Athlete').replace(/\s/g, '-')}.pdf`);
 }
