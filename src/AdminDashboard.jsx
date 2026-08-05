@@ -2,9 +2,21 @@ import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 
 const ADMIN_EMAIL = 'kiszo@taratechent.com';
+const NAV = [
+  ['overview','Overview'],
+  ['subscribers','Subscribers'],
+  ['invites','Invites'],
+  ['betausers','Beta Users'],
+  ['betacodes','Beta Codes'],
+  ['waitlist','Waitlist'],
+  ['feedback','Feedback'],
+  ['marketing','Marketing'],
+  ['coachops','Coach Ops'],
+];
 
 export default function AdminDashboard({ user }) {
   const [data, setData]         = useState(null);
+  const [page, setPage] = useState('overview');
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState(null);
 
@@ -488,10 +500,16 @@ export default function AdminDashboard({ user }) {
         {pwdMsg && <span style={{fontSize:11,color:pwdMsg.ok?'#4ade80':'#e74c3c'}}>{pwdMsg.text}</span>}
       </div>
 
+      <div style={s.nav}>
+        {NAV.map(([id,label]) => (
+          <button key={id} onClick={()=>setPage(id)} style={page===id ? {...s.navBtn, ...s.navBtnOn} : s.navBtn}>{label}</button>
+        ))}
+      </div>
       <div style={s.inner}>
         {loading && <div style={s.center}>Loading...</div>}
         {error   && <div style={{ ...s.center, color: '#e74c3c' }}>{error}</div>}
         {data && <>
+          {page === 'overview' && (<>
           {/* Paid stats */}
           <div style={s.grid}>
             <StatCard label="MRR"           value={`$${data.mrr}`}        sub="monthly recurring revenue" gold />
@@ -500,6 +518,8 @@ export default function AdminDashboard({ user }) {
             <StatCard label="Waitlist"      value={data.waitlistCount}    sub="coach waitlist signups" />
           </div>
 
+          </>)}
+          {page === 'overview' && (<>
           {/* Beta stats */}
           <div style={{ ...s.grid, marginBottom:36 }}>
             <StatCard label="Beta Users"    value={data.betaCount}        sub="90-day free access" blue />
@@ -508,6 +528,8 @@ export default function AdminDashboard({ user }) {
             <StatCard label="Beta Codes"    value={data.betaCodes?.length || 0} sub="invite codes total" />
           </div>
 
+          </>)}
+          {page === 'invites' && (<>
           {/* ── INVITE SYSTEM ── */}
           <div style={{ marginBottom:24, background:'#111', border:'1px solid #C9A84C44', borderRadius:12, padding:'24px 28px' }}>
             <div style={{ fontSize:12, fontWeight:700, letterSpacing:3, textTransform:'uppercase', color:'#C9A84C', marginBottom:6 }}>
@@ -657,6 +679,8 @@ export default function AdminDashboard({ user }) {
             )}
           </div>
 
+          </>)}
+          {page === 'invites' && (<>
           {/* Pending Invites Table */}
           {data.betaInvites?.length > 0 && (
             <Section title="Beta Invites" count={data.betaInviteCount}>
@@ -748,7 +772,11 @@ export default function AdminDashboard({ user }) {
             </Section>
           )}
 
+          </>)}
+          {page === 'marketing' && (<>
                     <MarketingBlastSection getSession={getAdminSession} />
+          </>)}
+          {page === 'invites' && (<>
           {/* Day-N Follow-Up Panel */}
           <div style={{ ...s.card, border:'1px solid rgba(201,168,76,0.2)' }}>
             <div style={{ fontSize:11, color:'#C9A84C', letterSpacing:3, textTransform:'uppercase', marginBottom:6 }}>
@@ -784,6 +812,8 @@ export default function AdminDashboard({ user }) {
             )}
           </div>
 
+          </>)}
+          {page === 'invites' && (<>
           {/* Expiry Reminder Emails */}
           <div style={{ marginBottom:40, background:'#111', border:'1px solid rgba(201,168,76,0.2)', borderRadius:12, padding:'24px 28px' }}>
             <div style={{ fontSize:12, fontWeight:700, letterSpacing:3, textTransform:'uppercase', color:'#C9A84C', marginBottom:6 }}>◆ Beta Expiry Reminders</div>
@@ -802,6 +832,8 @@ export default function AdminDashboard({ user }) {
             )}
           </div>
 
+          </>)}
+          {page === 'betausers' && (<>
           {/* Add Beta Tester by Email */}
           <div style={{ marginBottom: 24, background: '#111', border: '1px solid #C9A84C33', borderRadius: 12, padding: '24px 28px' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom:6 }}>
@@ -941,6 +973,8 @@ export default function AdminDashboard({ user }) {
             )}
           </div>
 
+          </>)}
+          {page === 'betausers' && (<>
           {/* Test Access Panel */}
           <div style={{ marginBottom: 40, background: '#111', border: '1px solid #C9A84C22', borderRadius: 12, padding: '24px 28px' }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: '#C9A84C', marginBottom: 16 }}>
@@ -969,6 +1003,8 @@ export default function AdminDashboard({ user }) {
             </div>
           </div>
 
+          </>)}
+          {page === 'betausers' && (<>
           {/* Beta Users Table */}
           <Section title="Beta Users" count={data.betaCount}>
             {!data.betaUsers?.length ? <Empty text="No beta users yet." /> :
@@ -1106,6 +1142,8 @@ export default function AdminDashboard({ user }) {
             }
           </Section>
 
+          </>)}
+          {page === 'betacodes' && (<>
           {/* Beta Code Management */}
           <div style={{ marginBottom:40, background:'#111', border:'1px solid #ffffff08', borderRadius:12, padding:'24px 28px' }}>
             <div style={{ fontSize:12, fontWeight:700, letterSpacing:3, textTransform:'uppercase', color:'#C9A84C', marginBottom:20, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
@@ -1158,6 +1196,8 @@ export default function AdminDashboard({ user }) {
             </div>
           </div>
 
+          </>)}
+          {page === 'subscribers' && (<>
           <Section title="Active Subscribers" count={data.subscribers.length}>
             {data.subscribers.length === 0 ? <Empty text="No active subscribers yet." /> :
               <div style={{ overflowX: 'auto' }}>
@@ -1182,12 +1222,16 @@ export default function AdminDashboard({ user }) {
             }
           </Section>
 
+          </>)}
+          {page === 'waitlist' && (<>
           <Section title="Coach Waitlist" count={data.waitlist?.length || 0}>
             {!data.waitlist?.length ? <Empty text="No waitlist signups yet." /> :
               <WaitlistTable waitlist={data.waitlist} getSession={getAdminSession} onRefresh={fetchData} />
             }
           </Section>
 
+          </>)}
+          {page === 'feedback' && (<>
           {/* Beta Feedback */}
           <Section title="Beta Feedback" count={data.feedback?.length || 0}>
             {!data.feedback?.length ? <Empty text="No feedback submitted yet." /> :
@@ -1216,6 +1260,8 @@ export default function AdminDashboard({ user }) {
               </div>
             }
           </Section>
+          </>)}
+          {page === 'coachops' && <CoachOpsPanel getSession={getAdminSession} />}
         </>}
       </div>
     </div>
@@ -1463,7 +1509,101 @@ function MarketingBlastSection({ getSession }) {
   );
 }
 
+function CoachOpsPanel({ getSession }) {
+  const [d, setD] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [msg, setMsg] = useState(null);
+  async function load() {
+    setLoading(true);
+    try {
+      const session = await getSession();
+      const res = await fetch('/.netlify/functions/coach-ops-data', { headers: { Authorization: `Bearer ${session.access_token}` } });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      setD(json);
+    } catch (e) { setMsg({ ok:false, text:e.message }); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, []);
+  async function runNow() {
+    if (!window.confirm("Generate this week's growth digest now? This reads your KPIs and emails you the report. It sends nothing to users.")) return;
+    setRunning(true); setMsg(null);
+    try {
+      const session = await getSession();
+      const res = await fetch('/.netlify/functions/coach-ops-weekly', { method:'POST', headers:{ Authorization:`Bearer ${session.access_token}`, 'Content-Type':'application/json' }, body:'{}' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      setMsg({ ok:true, text:`Digest generated for week of ${json.weekStart} - email ${json.emailStatus}` });
+      await load();
+    } catch (e) { setMsg({ ok:false, text:e.message }); }
+    finally { setRunning(false); }
+  }
+  const latest = d?.latest;
+  const m = latest?.metrics || {};
+  const stat = (label, val) => (
+    <div style={{ background:'#0D0D0D', border:'1px solid #ffffff0f', borderRadius:10, padding:'14px 16px' }}>
+      <div style={{ fontSize:10, letterSpacing:2, color:'#555', textTransform:'uppercase', marginBottom:6 }}>{label}</div>
+      <div style={{ fontSize:22, fontWeight:700, color:'#fff' }}>{val}</div>
+    </div>
+  );
+  return (
+    <div style={{ marginBottom:40 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:16 }}>
+        <div>
+          <div style={{ fontSize:11, letterSpacing:3, color:'#B8962E', textTransform:'uppercase' }}>Coach Ops</div>
+          <div style={{ fontSize:20, fontWeight:700, color:'#fff' }}>Weekly Growth Digest</div>
+        </div>
+        <button onClick={runNow} disabled={running} style={{ background:'#C9A84C', border:'none', color:'#0D0D0D', fontWeight:700, padding:'10px 20px', borderRadius:8, cursor:running?'wait':'pointer', fontFamily:'inherit', letterSpacing:1, fontSize:13, opacity:running?0.6:1 }}>
+          {running ? 'Generating...' : 'Run digest now'}
+        </button>
+      </div>
+      <div style={{ fontSize:12, color:'#555', marginBottom:16, lineHeight:1.6 }}>
+        Read-only weekly report. Scheduled Mondays 13:00 UTC. Reads your KPIs, asks Claude for a prioritized growth digest, saves a snapshot, and emails it to you. Sends nothing to users.
+      </div>
+      {msg && <div style={{ marginBottom:16, fontSize:13, color: msg.ok ? '#4BAE71' : '#e74c3c' }}>{msg.ok ? 'OK' : 'x'} {msg.text}</div>}
+      {loading ? <div style={{ padding:32, textAlign:'center', color:'#333' }}>Loading...</div> :
+       !latest ? <div style={{ padding:32, textAlign:'center', color:'#555', background:'#111', borderRadius:12, border:'1px solid #ffffff08' }}>No digest yet. Click "Run digest now" to generate your first weekly report.</div> :
+       <>
+         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:10, marginBottom:20 }}>
+           {stat('MRR', '$' + (m.mrr ?? 0).toLocaleString())}
+           {stat('Paid subs', m.paidSubscribers ?? '-')}
+           {stat('New this week', m.newPaidThisWeek ?? '-')}
+           {stat('Beta active', m.betaActive ?? '-')}
+           {stat('Invites accepted', (m.invitesAccepted ?? 0) + ' (' + (m.inviteAcceptRate ?? 0) + '%)')}
+           {stat('Waitlist', m.waitlist ?? '-')}
+         </div>
+         <div style={{ background:'#111', border:'1px solid #C9A84C22', borderRadius:12, padding:'20px 24px', marginBottom:20 }}>
+           <div style={{ fontSize:10, letterSpacing:2, color:'#B8962E', textTransform:'uppercase', marginBottom:10 }}>Digest - Week of {latest.week_start}</div>
+           <div style={{ whiteSpace:'pre-line', color:'#ccc', fontSize:14, lineHeight:1.7 }}>{latest.digest}</div>
+         </div>
+         {d.snapshots?.length > 1 && (
+           <div style={{ background:'#111', border:'1px solid #ffffff08', borderRadius:12, overflowX:'auto' }}>
+             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+               <thead><tr>{['Week','MRR','Paid','New','Beta active','Waitlist'].map(h => <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, letterSpacing:2, color:'#333', textTransform:'uppercase', borderBottom:'1px solid #ffffff08' }}>{h}</th>)}</tr></thead>
+               <tbody>{d.snapshots.map((sn,i) => (
+                 <tr key={sn.id} style={{ background:i%2===0?'#0D0D0D':'#111' }}>
+                   <td style={{ padding:'10px 14px', color:'#C9A84C' }}>{sn.week_start}</td>
+                   <td style={{ padding:'10px 14px', color:'#bbb' }}>${(sn.metrics?.mrr ?? 0).toLocaleString()}</td>
+                   <td style={{ padding:'10px 14px', color:'#bbb' }}>{sn.metrics?.paidSubscribers ?? '-'}</td>
+                   <td style={{ padding:'10px 14px', color:'#bbb' }}>{sn.metrics?.newPaidThisWeek ?? '-'}</td>
+                   <td style={{ padding:'10px 14px', color:'#bbb' }}>{sn.metrics?.betaActive ?? '-'}</td>
+                   <td style={{ padding:'10px 14px', color:'#bbb' }}>{sn.metrics?.waitlist ?? '-'}</td>
+                 </tr>
+               ))}</tbody>
+             </table>
+           </div>
+         )}
+       </>
+      }
+    </div>
+  );
+}
+
 const s = {
+  nav:       { display:'flex', gap:6, flexWrap:'wrap', padding:'10px 16px', background:'#0D0D0D', borderBottom:'1px solid #C9A84C1a', position:'sticky', top:0, zIndex:5 },
+  navBtn:    { background:'transparent', border:'1px solid #ffffff12', color:'#888', padding:'7px 14px', borderRadius:8, cursor:'pointer', fontSize:12, letterSpacing:1, fontFamily:'inherit', textTransform:'uppercase', whiteSpace:'nowrap' },
+  navBtnOn:  { background:'rgba(201,168,76,0.12)', border:'1px solid #C9A84C88', color:'#C9A84C' },
   root:      { minHeight:'100vh', background:'#0D0D0D', color:'#fff', fontFamily:"'Rajdhani','Inter',sans-serif", paddingBottom:60, overflowX:'hidden' },
   loginWrap: { display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'16px' },
   loginBox:  { background:'#111', border:'1px solid #C9A84C22', borderRadius:16, padding:'40px 36px', width:'100%', maxWidth:360, textAlign:'center', boxSizing:'border-box' },

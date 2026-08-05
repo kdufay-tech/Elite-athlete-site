@@ -25,6 +25,9 @@
   timeout = 26
 [functions."marketing-broadcast"]
   timeout = 26
+[functions."coach-ops-weekly"]
+  schedule = "0 13 * * 1"
+  timeout = 26
 [[redirects]]
   from = "/report-bug.html"
   to = "/report-bug.html"
