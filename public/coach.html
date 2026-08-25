@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Coach Pro — Elite Athlete</title>
+<meta name="description" content="Run your whole program from one dashboard. Coach Pro brings roster readiness, program delivery, and team reporting to Elite Athlete. Get early access and founding-coach pricing."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Cormorant+SC:wght@600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root{--gold:#BFA16A;--gold-lt:#D4B97A;--ink:#080807;--charcoal:#111110;--slate:#1A1917;--ivory:#F0EBE1;--ivory2:#C8C0B0;--muted:#6B6560;--r:6px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--ink);color:var(--ivory);font-family:'Cormorant Garamond',serif;min-height:100vh;display:flex;flex-direction:column;line-height:1.5;}
+  a{color:inherit;}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 2.5rem;border-bottom:1px solid rgba(191,161,106,0.12);background:rgba(8,8,7,0.95);position:sticky;top:0;z-index:10;}
+  .nav-brand{font-family:'Cormorant SC',serif;font-size:1.25rem;letter-spacing:3px;color:var(--ivory);text-decoration:none;}
+  .nav-back{font-size:0.7rem;letter-spacing:2px;color:var(--gold);text-decoration:none;border:1px solid rgba(191,161,106,0.3);padding:0.4rem 0.9rem;border-radius:var(--r);transition:all 0.2s;}
+  .nav-back:hover{background:rgba(191,161,106,0.08);}
+  .wrap{max-width:820px;margin:0 auto;padding:0 1.5rem;width:100%;}
+  .hero{text-align:center;padding:3.5rem 1.5rem 2rem;}
+  .hero-logo{width:180px;max-width:56%;height:auto;display:block;margin:0 auto 1.75rem;border-radius:18px;border:1px solid rgba(191,161,106,0.18);box-shadow:0 12px 44px rgba(0,0,0,0.55);}
+  .eyebrow{font-size:0.65rem;letter-spacing:4px;color:var(--gold);text-transform:uppercase;margin-bottom:1.1rem;}
+  h1{font-family:'Cormorant SC',serif;font-size:3rem;font-weight:700;letter-spacing:2px;line-height:1.08;margin-bottom:1.1rem;}
+  h1 em{font-style:italic;color:var(--gold-lt);}
+  .sub{font-size:1.05rem;color:var(--ivory2);font-weight:300;line-height:1.7;max-width:600px;margin:0 auto;}
+  .section{padding:2.5rem 0;}
+  .section-label{font-family:'Cormorant SC',serif;font-size:0.72rem;letter-spacing:3px;color:var(--gold);text-transform:uppercase;text-align:center;margin-bottom:1.75rem;}
+  .features{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+  .feature{background:var(--charcoal);border:1px solid rgba(191,161,106,0.12);border-radius:12px;padding:1.5rem 1.6rem;}
+  .feature .icon{color:var(--gold);font-size:1.1rem;margin-bottom:0.55rem;}
+  .feature h3{font-family:'Cormorant SC',serif;font-size:0.95rem;letter-spacing:1px;color:var(--ivory);margin-bottom:0.4rem;font-weight:600;}
+  .feature p{font-size:0.92rem;color:var(--ivory2);font-weight:300;line-height:1.6;}
+  .price-card{background:linear-gradient(160deg,#14130f,#0c0b0a);border:1px solid rgba(191,161,106,0.28);border-radius:16px;padding:2.5rem 2rem;text-align:center;margin:0 auto;max-width:520px;}
+  .price-tier{font-family:'Cormorant SC',serif;font-size:0.72rem;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:0.8rem;}
+  .price-main{font-family:'Cormorant SC',serif;font-size:2.6rem;font-weight:700;color:var(--ivory);line-height:1;}
+  .price-main span{font-size:1rem;color:var(--muted);font-family:'Cormorant Garamond',serif;letter-spacing:0;}
+  .price-seat{font-size:1.05rem;color:var(--gold-lt);margin-top:0.5rem;}
+  .price-alt{font-size:0.9rem;color:var(--muted);margin-top:0.35rem;}
+  .price-note{font-size:0.9rem;color:var(--ivory2);font-weight:300;line-height:1.6;margin-top:1.2rem;border-top:1px solid rgba(191,161,106,0.14);padding-top:1.2rem;}
+  .athlete-tiers{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:1.5rem;}
+  .atier{flex:1 1 200px;background:var(--charcoal);border:1px solid rgba(191,161,106,0.12);border-radius:12px;padding:1.25rem 1.4rem;text-align:center;}
+  .atier .an{font-family:'Cormorant SC',serif;font-size:0.85rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:0.3rem;}
+  .atier .ap{font-size:1.4rem;color:var(--ivory);}
+  .atier .ap span{font-size:0.85rem;color:var(--muted);}
+  .atier .ad{font-size:0.85rem;color:var(--ivory2);font-weight:300;margin-top:0.35rem;line-height:1.5;}
+  .cta-block{text-align:center;padding:3rem 1.5rem 4rem;}
+  .form-card{background:var(--charcoal);border:1px solid rgba(191,161,106,0.18);border-radius:16px;padding:2.5rem 2rem;max-width:520px;margin:0 auto;}
+  .form-card h2{font-family:'Cormorant SC',serif;font-size:1.6rem;letter-spacing:1px;margin-bottom:0.5rem;}
+  .form-card p{font-size:0.95rem;color:var(--ivory2);font-weight:300;line-height:1.6;margin-bottom:1.5rem;}
+  .form-row{display:flex;gap:0.6rem;flex-wrap:wrap;}
+  input[type=email]{flex:1 1 220px;background:rgba(255,255,255,0.04);border:1px solid rgba(191,161,106,0.18);border-radius:var(--r);color:var(--ivory);font-family:'Cormorant Garamond',serif;font-size:1rem;padding:0.85rem 1rem;outline:none;transition:border-color 0.2s;}
+  input[type=email]:focus{border-color:var(--gold);}
+  .honeypot{position:absolute;left:-9999px;opacity:0;height:0;width:0;}
+  .submit-btn{padding:0.85rem 1.8rem;background:linear-gradient(135deg,#BFA16A,#8B6914);border:none;border-radius:var(--r);color:#0a0908;font-family:'Cormorant SC',serif;font-size:0.8rem;font-weight:700;letter-spacing:2px;cursor:pointer;transition:opacity 0.2s;white-space:nowrap;}
+  .submit-btn:hover{opacity:0.9;}
+  .submit-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .msg{font-size:0.9rem;margin-top:1rem;min-height:1.2rem;}
+  .msg.err{color:#d98c8c;}
+  .form-card.done .form-row,.form-card.done .fineprint{display:none;}
+  .success{display:none;text-align:center;}
+  .form-card.done .success{display:block;}
+  .form-card.done h2,.form-card.done>p{display:none;}
+  .success .sicon{font-size:2.4rem;color:var(--gold);margin-bottom:0.6rem;}
+  .success h3{font-family:'Cormorant SC',serif;font-size:1.5rem;color:var(--gold);margin-bottom:0.6rem;letter-spacing:1px;}
+  .success p{color:var(--ivory2);font-weight:300;line-height:1.7;font-size:0.95rem;}
+  .fineprint{font-size:0.78rem;color:var(--muted);margin-top:1rem;line-height:1.5;}
+  footer{border-top:1px solid rgba(191,161,106,0.12);padding:2rem 2.5rem;text-align:center;font-size:0.78rem;color:var(--muted);letter-spacing:1px;line-height:1.8;margin-top:auto;}
+  footer a{color:var(--gold);text-decoration:none;}
+  @media(max-width:640px){h1{font-size:2.3rem;}.features{grid-template-columns:1fr;}.nav{padding:1rem 1.25rem;}.wrap{padding:0 1.1rem;}}
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="https://elite-athlete.app" class="nav-brand">ELITE ATHLETE</a>
+    <a href="https://elite-athlete.app" class="nav-back">← Back to site</a>
+  </nav>
+
+  <div class="hero">
+    <img src="/ea-logo.jpg" alt="Elite Athlete" class="hero-logo"/>
+    <div class="eyebrow">For Coaches · Coach Pro</div>
+    <h1>Run your <em>whole program</em><br/>from one dashboard.</h1>
+    <p class="sub">Your athletes already train position-specific with Elite Athlete. Coach Pro puts the whole roster in your hands — readiness at a glance, programs pushed to every athlete, and reports that keep your season on track.</p>
+  </div>
+
+  <div class="wrap">
+    <div class="section">
+      <div class="section-label">What Coach Pro gives you</div>
+      <div class="features">
+        <div class="feature"><div class="icon">◆</div><h3>Coach Dashboard</h3><p>Live roster readiness at a glance — who's fresh, who's trending toward overtraining, before a hamstring goes.</p></div>
+        <div class="feature"><div class="icon">◆</div><h3>Roster &amp; Invites</h3><p>Invite your athletes, organize by squad and position, and manage the whole program in one place.</p></div>
+        <div class="feature"><div class="icon">◆</div><h3>Program Delivery</h3><p>Push position-specific workouts and plans to every athlete on your roster — no more one generic sheet.</p></div>
+        <div class="feature"><div class="icon">◆</div><h3>Team Wellness Feed</h3><p>Aggregated daily check-in data across the roster, so you coach the athlete in front of you today.</p></div>
+        <div class="feature"><div class="icon">◆</div><h3>Team Reports</h3><p>Progress and compliance reporting for your staff, your AD, and your program.</p></div>
+        <div class="feature"><div class="icon">◆</div><h3>Per-Athlete Billing</h3><p>You only pay for the athletes you put on it — add and remove seats as your roster changes.</p></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Coach Pro pricing</div>
+      <div class="price-card">
+        <div class="price-tier">Coach Pro · Professional</div>
+        <div class="price-main">$99<span>/month</span></div>
+        <div class="price-seat">+ $4.99 per athlete / month</div>
+        <div class="price-alt">or $899/year base</div>
+        <div class="price-note"><strong style="color:var(--gold-lt);">Founding-coach pricing</strong> is locked for waitlist members — early access before Coach Pro opens to the public, at the founding rate.</div>
+      </div>
+
+      <div class="section-label" style="margin-top:2.5rem;">Your athletes can start today</div>
+      <div class="athlete-tiers">
+        <div class="atier"><div class="an">Athlete</div><div class="ap">$29<span>/mo</span></div><div class="ad">Position-specific meal plans, full workout program, PR tracking.</div></div>
+        <div class="atier"><div class="an">Elite</div><div class="ap">$69<span>/mo</span></div><div class="ad">Everything in Athlete + AI Coach, recovery protocols, recruiting profile.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-block">
+    <div class="form-card" id="card">
+      <h2>Get early access — I'll set up your roster</h2>
+      <p>Drop your email and I'll personally get your program set up and lock in founding-coach pricing before Coach Pro opens to the public. Prefer to talk? Reply to any email from us, or reach me directly at <a href="mailto:support@elite-athlete.app?subject=Coach%20Pro%20early%20access" style="color:var(--gold);text-decoration:underline;">support@elite-athlete.app</a>.</p>
+      <form id="wf" novalidate>
+        <div class="form-row">
+          <input type="email" id="email" name="email" placeholder="you@yourschool.org" autocomplete="email" required/>
+          <input type="text" id="company" name="company" class="honeypot" tabindex="-1" autocomplete="off" aria-hidden="true"/>
+          <button type="submit" class="submit-btn" id="btn">Get Early Access</button>
+        </div>
+        <div class="msg" id="msg"></div>
+        <div class="fineprint">We'll only email you about Coach Pro. No spam, unsubscribe anytime.</div>
+      </form>
+      <div class="success">
+        <div class="sicon">◆</div>
+        <h3>You're in — I'll be in touch</h3>
+        <p>Check your inbox for a confirmation. I'll reach out personally to get your roster set up and lock your founding-coach pricing. Want to move faster? Just reply to that email.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    ELITE ATHLETE · Engineered for Champions<br/>
+    <a href="https://elite-athlete.app">elite-athlete.app</a> · support@elite-athlete.app<br/>
+    <a href="/privacy-policy.html">Privacy</a> · <a href="/terms-of-service.html">Terms</a>
+  </footer>
+
+<script>
+(function(){
+  var form=document.getElementById('wf'),card=document.getElementById('card'),
+      email=document.getElementById('email'),btn=document.getElementById('btn'),
+      msg=document.getElementById('msg'),hp=document.getElementById('company');
+  function valid(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);}
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    msg.className='msg';msg.textContent='';
+    if(hp.value){return;} // honeypot: silently drop bots
+    var v=(email.value||'').trim();
+    if(!valid(v)){msg.className='msg err';msg.textContent='Please enter a valid email.';return;}
+    btn.disabled=true;btn.textContent='Sending…';
+    fetch('/.netlify/functions/coach-waitlist',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:v,source:'coach_landing'})
+    }).then(function(r){return r.json().catch(function(){return {};}).then(function(j){return {ok:r.ok,j:j};});})
+      .then(function(res){
+        if(res.ok){card.classList.add('done');}
+        else{msg.className='msg err';msg.textContent=(res.j&&res.j.error)||'Something went wrong — please try again.';btn.disabled=false;btn.textContent='Get Early Access';}
+      })
+      .catch(function(){msg.className='msg err';msg.textContent='Network error — please try again.';btn.disabled=false;btn.textContent='Get Early Access';});
+  });
+})();
+</script>
+</body>
+</html>

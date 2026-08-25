@@ -19,6 +19,7 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
   const [success, setSuccess]     = useState('');
+  const [role, setRole]           = useState('athlete'); // athlete | coach — drives the tailored welcome
 
   const handleSubmit = async () => {
     setError(''); setSuccess('');
@@ -42,6 +43,9 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
     setLoading(true);
     try {
       if (mode === 'signup') {
+        // Persist the chosen role so it survives an email-confirmation round-trip; the
+        // welcome engine reads it after auth settles and tailors coach vs athlete.
+        try { localStorage.setItem('pending_role', role); } catch (e) {}
         const data = await signUp(email, password);
         // Always persist beta code to localStorage so it survives the email confirmation round-trip
         const trimmedCode = betaCode.trim().toUpperCase();
@@ -154,6 +158,24 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
           {success && (
             <div style={{ background: 'rgba(75,174,113,0.1)', border: '1px solid rgba(75,174,113,0.3)', borderRadius: 'var(--r)', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.78rem', color: '#4BAE71' }}>
               ✓ {success}
+            </div>
+          )}
+
+          {mode === 'signup' && (
+            <div className="f">
+              <label className="fl">I'm signing up as</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+                {[['athlete', 'Athlete'], ['coach', 'Coach']].map(([k, lbl]) => (
+                  <button key={k} type="button" onClick={() => setRole(k)}
+                    style={{ padding: '0.85rem 0.5rem', borderRadius: 'var(--r)', cursor: 'pointer',
+                      border: `1px solid ${role === k ? 'var(--gold)' : 'rgba(255,255,255,0.1)'}`,
+                      background: role === k ? 'rgba(168,130,42,0.15)' : 'rgba(255,255,255,0.03)',
+                      color: role === k ? 'var(--gold)' : 'var(--muted)', fontFamily: "'DM Sans',sans-serif",
+                      fontSize: '0.82rem', fontWeight: role === k ? 600 : 400, letterSpacing: '1px', transition: 'all 0.2s' }}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

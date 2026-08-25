@@ -1,6 +1,6 @@
-// netlify/functions/coach-ops-data.js
-// Coach Ops panel data — admin-gated read of KPI snapshots + run audit log.
-// Mirrors admin-data.js auth pattern. Read-only.
+// netlify/functions/coach-ops-metrics.js
+// Admin-gated read of per-tranche delivery funnel (from the tranche_metrics view).
+// Coach tranches only (sport is not null). Read-only. Mirrors coach-ops-data auth.
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -33,23 +33,16 @@ export default async (req) => {
     return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: CORS });
   }
 
-  const get = async (path) => {
-    const r = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
-      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-    });
-    return r.ok ? r.json() : [];
-  };
+  // Coach tranches only (sport present). Webhook went live 2026-08-12 00:18 UTC;
+  // tranches sent before that have no tracked delivery/open events (Resend dashboard
+  // holds their true numbers) — the UI flags this.
+  const WEBHOOK_LIVE = '2026-08-12T00:18:00Z';
+  const r = await fetch(
+    `${supabaseUrl}/rest/v1/tranche_metrics?sport=not.is.null&select=*`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+  );
+  const rows = r.ok ? await r.json() : [];
+  const tranches = rows.map((t) => ({ ...t, tracked: new Date(t.sent_at) >= new Date(WEBHOOK_LIVE) }));
 
-  const snapshots = await get('kpi_snapshots?select=id,week_start,captured_at,metrics,digest&order=week_start.desc&limit=12');
-  const runs      = await get('coach_ops_runs?select=id,run_type,status,started_at,finished_at,detail,created_at&order=created_at.desc&limit=10');
-  const drafts    = await get('coach_ops_drafts?select=id,kind,channel,audience,subject,body,meta,status,created_at,approved_at,sent_at&order=created_at.desc&limit=100');
-  const settingsRows = await get('coach_ops_settings?id=eq.1&select=*');
-
-  return new Response(JSON.stringify({
-    latest: snapshots[0] || null,
-    snapshots,
-    runs,
-    drafts,
-    settings: settingsRows[0] || null,
-  }), { status: 200, headers: CORS });
+  return new Response(JSON.stringify({ tranches, webhook_live: WEBHOOK_LIVE }), { status: 200, headers: CORS });
 };

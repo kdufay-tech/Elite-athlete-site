@@ -20,3 +20,9 @@ ios/App/build/
 android/app/build/.env.local.save
 .env*.save
 .DS_Store
+
+keystore.properties
+
+android/keystore.properties
+
+_backups/

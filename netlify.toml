@@ -10,7 +10,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.unsplash.com https://*.supabase.co; connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.emailjs.com https://*.anthropic.com; frame-src https://js.stripe.com; media-src 'self' blob:;"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.unsplash.com https://*.supabase.co; connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.emailjs.com https://*.anthropic.com https://cdn.jsdelivr.net; frame-src https://js.stripe.com; media-src 'self' blob:;"
 [functions]
   node_bundler = "esbuild"
 [functions."beta-followup"]
@@ -23,10 +23,22 @@
   timeout = 26
 [functions."marketing-blast"]
   timeout = 26
+[functions."welcome-email"]
+  timeout = 26
+[functions."resend-webhook"]
+  timeout = 26
+[functions."coach-followup"]
+  schedule = "0 23 * * *"
+  timeout = 26
+[functions."coach-ops-metrics"]
+  timeout = 26
 [functions."marketing-broadcast"]
   timeout = 26
 [functions."coach-ops-weekly"]
   schedule = "0 13 * * 1"
+  timeout = 26
+[functions."coach-ops-auto"]
+  schedule = "0 14 * * *"
   timeout = 26
 [[redirects]]
   from = "/report-bug.html"
@@ -36,6 +48,16 @@
 [[redirects]]
   from = "/privacy-policy.html"
   to = "/privacy-policy.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/coach"
+  to = "/coach.html"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/coach.html"
+  to = "/coach.html"
   status = 200
   force = true
 [[redirects]]

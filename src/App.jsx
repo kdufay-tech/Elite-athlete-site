@@ -4751,6 +4751,7 @@ export default function App() {
       saveProfile(authUser.id, {
         name: profile.name, weight: profile.weight, height: profile.height,
         age: profile.age, sport: profile.sport, position: profile.position, goal: profile.goal,
+        level: profile.level,
         targetWeight: profile.targetWeight,
       }).catch(err => console.error('Profile save failed:', err));
     }, 1500);
@@ -5531,6 +5532,14 @@ COACHING GUIDELINES:
                       </select>
                     </div>
                   )}
+                  <div className="f"><label className="fl">Competition Level</label>
+                    <select className="fi" value={profile.level||""} onChange={e=>setProfile(p=>({...p,level:e.target.value}))}>
+                      <option value="">Select Level</option>
+                      <option value="hs">High School</option>
+                      <option value="college">College</option>
+                      <option value="pro">Professional</option>
+                    </select>
+                  </div>
                   {(profile.goal==="Weight Gain"||profile.goal==="Weight Loss") && (
                     <div className="f">
                       <label className="fl">Target Weight (lbs)</label>
@@ -10905,6 +10914,21 @@ ${recruitingNote}`:null,
                   setObSaving(true);
                   try{
                     if(authUser?.id) await saveProfile(authUser.id, profile);
+                    // New signup finishing onboarding → fire the tailored welcome now that
+                    // name/sport/level are saved. Gated by pending_role (set only at signup),
+                    // idempotent server-side so it can never double-send.
+                    try{
+                      const pendingRole = localStorage.getItem('pending_role');
+                      if(pendingRole){
+                        const tok = await getFreshToken();
+                        fetch(`${API_BASE}/.netlify/functions/welcome-email`, {
+                          method:'POST',
+                          headers:{ Authorization:`Bearer ${tok}`, 'Content-Type':'application/json' },
+                          body: JSON.stringify({ role: pendingRole, name: profile.name, sport: profile.sport, level: profile.level }),
+                        }).then(()=>{ try{ localStorage.removeItem('pending_role'); }catch(_){} })
+                          .catch(e=>console.error('welcome-email:', e));
+                      }
+                    }catch(e){ console.error('welcome-email trigger:', e); }
                     setShowOnboarding(false);
                     window.scrollTo({top:0, behavior:'instant'});
                     shout(`Welcome, ${profile.name.split(' ')[0]}. Your journey begins now.`,"◆");

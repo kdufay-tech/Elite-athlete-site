@@ -25,7 +25,7 @@ Write-Host "Build complete." -ForegroundColor Green
 Write-Host ""
 
 Write-Host "[2/3] Authenticating..." -ForegroundColor Yellow
-$env:NETLIFY_AUTH_TOKEN = "nfp_2k2p1jsGvdPZ52ts9udpCv4Kew9d234m8831"
+$env:NETLIFY_AUTH_TOKEN = "nfp_PP7sEs1dHGPfrdQdjTa9i78pivnhPEcD39a7"
 
 Write-Host "[3/3] Deploying static files + Netlify functions..." -ForegroundColor Yellow
 npx netlify deploy --prod --dir=dist --functions=netlify/functions --site=379f18e6-ffe0-4b1a-bd0f-2d58ee827d6a
