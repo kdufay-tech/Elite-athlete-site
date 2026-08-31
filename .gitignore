@@ -11,7 +11,6 @@ resend api key.txt
 *.txt
 stripe cupon id.txt
 ios/
-android/
 Assets/
 .netlify/
 .env.local
