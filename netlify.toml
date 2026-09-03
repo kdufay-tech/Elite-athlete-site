@@ -1,66 +1,19 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command   = "npm run build"
+  publish   = "dist"
   functions = "netlify/functions"
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.unsplash.com https://*.supabase.co; connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.emailjs.com https://*.anthropic.com https://cdn.jsdelivr.net; frame-src https://js.stripe.com; media-src 'self' blob:;"
+
 [functions]
   node_bundler = "esbuild"
-[functions."beta-followup"]
-  schedule = "0 9 * * *"
-  timeout = 26
-[functions."beta-expiry-reminder"]
-  schedule = "0 10 * * *"
-  timeout = 26
-[functions."send-beta-invite"]
-  timeout = 26
-[functions."marketing-blast"]
-  timeout = 26
-[functions."welcome-email"]
-  timeout = 26
-[functions."resend-webhook"]
-  timeout = 26
-[functions."coach-followup"]
-  schedule = "0 23 * * *"
-  timeout = 26
-[functions."coach-ops-metrics"]
-  timeout = 26
-[functions."marketing-broadcast"]
-  timeout = 26
-[functions."coach-ops-weekly"]
-  schedule = "0 13 * * 1"
-  timeout = 26
-[functions."coach-ops-auto"]
-  schedule = "0 14 * * *"
-  timeout = 26
-[[redirects]]
-  from = "/report-bug.html"
-  to = "/report-bug.html"
-  status = 200
-  force = true
-[[redirects]]
-  from = "/privacy-policy.html"
-  to = "/privacy-policy.html"
-  status = 200
-  force = true
-[[redirects]]
-  from = "/coach"
-  to = "/coach.html"
-  status = 200
-  force = true
-[[redirects]]
-  from = "/coach.html"
-  to = "/coach.html"
-  status = 200
-  force = true
+
+[dev]
+  command    = "npm run dev"
+  framework  = "#custom"
+  targetPort = 5173
+  port       = 8888
+  autoLaunch = false
+
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to   = "/index.html"
   status = 200

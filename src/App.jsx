@@ -3,13 +3,16 @@ import { getSession, getFreshToken, onAuthChange, signOut, saveProfile, loadProf
          saveJournalEntry, loadJournalEntries, deleteJournalEntry, saveProgressNote, loadProgressNotes,
          loadSubscription, saveCheckIn, loadCheckIns, saveWorkoutLog, loadWorkoutLogs,
          saveWeightEntry, loadWeightLogs, saveNutritionEntry, loadNutritionLogs,
-         saveBenchmark, loadBenchmarks, saveAIConsent, updatePassword } from "./lib/supabase";
+         saveBenchmark, loadBenchmarks, saveAIConsent, updatePassword,
+         markOnboardingComplete } from "./lib/supabase";
 import { downloadMealPlanPDF, downloadWorkoutPDF, downloadProgressReportPDF, downloadJournalPDF, downloadRecoveryPDF, downloadAthleteReportCard } from "./lib/pdf";
 import { emailMealPlan, emailProgressReport, emailInjuryProtocol, emailWorkoutPlan, emailRecoveryNutrition, sendEmail } from "./lib/email";
 import AuthModal from "./components/AuthModal";
 import DeleteAccountModal from "./components/DeleteAccountModal";
 import AICoachConsentModal from "./components/AICoachConsentModal";
 import PayModal from "./components/CheckoutModal";
+import CoachRoster from "./components/CoachRoster";
+import JoinTeam from "./components/JoinTeam";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
@@ -26,6 +29,16 @@ async function nativeShare({ title, text, url }) {
   } catch (e) { return false; }
   try { await navigator.clipboard.writeText([title, text, url].filter(Boolean).join("\n")); } catch(e){}
   return false;
+}
+
+// Check-in dates are stored ISO (YYYY-MM-DD); render them human-readably.
+// Tolerates legacy "Sep 3" strings so old local state never renders blank.
+function fmtCIDate(d) {
+  if (!d) return "—";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d));
+  if (!m) return String(d);
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 // Haptic feedback on native; no-op on web.
@@ -4410,6 +4423,7 @@ export default function App() {
   const [checkIns, setCheckIns] = useState([]);
   const [todayCheckIn, setTodayCheckIn] = useState({recovery:7, energy:7, sleep:8, soreness:3, mood:7, notes:""});
   const [checkInDone, setCheckInDone] = useState(false);
+  const [ciSaving, setCiSaving] = useState(false);
 
   // Weight log [{date, weight, bodyFat}]
   const [weightLog, setWeightLog] = useState([]);
@@ -4712,8 +4726,17 @@ export default function App() {
           prof.goal === "Weight Gain" ? "Weight Gain" :
           prof.goal === "Weight Loss" ? "Weight Loss" : "Weight Maintenance"
         );
-        // Show floater for new signups OR incomplete profiles
-        if (isNewSignup || !prof.name || !prof.sport) { setShowOnboarding(true); setObStep(1); }
+        // Durable completion flag (DB column + local guard). Once onboarding is
+        // finished or skipped it NEVER re-appears — not on re-signin, not on reinstall.
+        const _obKey = 'ea_onboarded_' + userId;
+        let _localDone = false;
+        try { _localDone = localStorage.getItem(_obKey) === '1'; } catch (_) {}
+        if (prof.onboarding_completed === true || _localDone) {
+          try { localStorage.setItem(_obKey, '1'); } catch (_) {}
+          setShowOnboarding(false);
+        } else if (isNewSignup || !prof.name || !prof.sport) {
+          setShowOnboarding(true); setObStep(1);
+        }
       } else {
         // No profile record at all — definitely new user
         setShowOnboarding(true); setObStep(1);
@@ -4738,6 +4761,10 @@ export default function App() {
   // Fires when auth settles — guarantees floater shows on all platforms
   useEffect(() => {
     if (!authUser?.id || dbLoading) return;
+    const _obKey = 'ea_onboarded_' + authUser.id;
+    let _localDone = false;
+    try { _localDone = localStorage.getItem(_obKey) === '1'; } catch (_) {}
+    if (profile.onboarding_completed === true || _localDone) { setShowOnboarding(false); return; }
     if (!profile.name || !profile.sport) {
       setShowOnboarding(true);
       setObStep(1);
@@ -5582,6 +5609,8 @@ COACHING GUIDELINES:
     {id:"progress",  label:"Progress",   sub:"Analytics",       icon:"P", img:"https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&q=85"},
     {id:"journal",   label:"Journal",    sub:"Personal Notes",  icon:"J", img:"https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=85"},
     {id:"calendar",  label:"Calendar",   sub:"Schedule",        icon:"C", img:"https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&q=85"},
+    // Coach-only module — hidden entirely for athlete/elite/free tiers.
+    ...(canAccess('coach') ? [{id:"team", label:"My Team", sub:"Roster", icon:"T", img:"https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800&q=85"}] : []),
     {id:"profile",   label:"Profile",    sub:"Settings",        icon:"✦", img:sport.img},
     {id:"upgrade",   label:"Upgrade",    sub:"Premium Plans",   icon:"◆", img:"https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=85"},
   ];
@@ -5681,7 +5710,7 @@ COACHING GUIDELINES:
           <span className="nav-wm-main">Elite Athlete</span>
         </div>
         <div className="nav-pills">
-          {MODS.slice(0,6).map(m=>(
+          {MODS.filter(m=>m.id!=="profile"&&m.id!=="upgrade").map(m=>(
             <button key={m.id} className={`npill${dash===m.id?" on":""}`} onClick={()=>goTo(m.id)}>{m.label}</button>
           ))}
         </div>
@@ -8235,15 +8264,31 @@ COACHING GUIDELINES:
                           <textarea className="fi" placeholder="Any soreness location, fatigue reason, illness…"
                             value={todayCheckIn.notes} onChange={e=>setTodayCheckIn(p=>({...p,notes:e.target.value}))}/>
                         </div>
-                        <button className="bg" style={{width:"100%",padding:"0.8rem",marginTop:"0.75rem",fontSize:"0.88rem"}} onClick={()=>{
-                          const date=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+                        <button className="bg" disabled={ciSaving} style={{width:"100%",padding:"0.8rem",marginTop:"0.75rem",fontSize:"0.88rem",opacity:ciSaving?0.5:1}} onClick={async ()=>{
+                          // date MUST be ISO (YYYY-MM-DD) — check_ins.date is a Postgres
+                          // `date` column. Writing a display string like "Sep 3" made every
+                          // save fail with 22007 invalid input syntax, silently.
+                          const n=new Date();
+                          const date=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
                           const newCI={...todayCheckIn,date};
+                          if(authUser?.id){
+                            setCiSaving(true);
+                            try{
+                              await saveCheckIn(authUser.id, newCI);
+                            }catch(e){
+                              console.error("checkIn save:",e);
+                              setCiSaving(false);
+                              // Never claim success on a failed write.
+                              shout("Check-in didn't save — check connection and retry","!");
+                              return;
+                            }
+                            setCiSaving(false);
+                          }
                           setCheckIns(prev=>[...prev.filter(c=>c.date!==date),newCI]);
                           setCheckInDone(true);
-                          if(authUser?.id) saveCheckIn(authUser.id, newCI).catch(e=>console.error("checkIn save:",e));
                           shout("Check-in saved — great work","");
                           setProgressTab("overview");
-                        }}>✓ Save Today's Check-In</button>
+                        }}>{ciSaving?"Saving…":"✓ Save Today's Check-In"}</button>
                       </div>
                     </div>
                     {/* Recent check-ins */}
@@ -8253,7 +8298,7 @@ COACHING GUIDELINES:
                         {[...checkIns].reverse().slice(0,7).map((ci,i)=>(
                           <div key={i} style={{background:"var(--smoke)",borderRadius:"var(--r)",padding:"0.6rem 0.75rem",marginBottom:"0.4rem",border:"1px solid var(--border)"}}>
                             <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.3rem"}}>
-                              <span style={{fontSize:"0.76rem",fontWeight:600,color:"var(--ivory)"}}>{ci.date}</span>
+                              <span style={{fontSize:"0.76rem",fontWeight:600,color:"var(--ivory)"}}>{fmtCIDate(ci.date)}</span>
                               <span style={{fontSize:"0.76rem",color:`hsl(${ci.recovery*12},60%,50%)`}}>Recovery {ci.recovery}/10</span>
                             </div>
                             <div style={{display:"flex",gap:"0.6rem",fontSize:"0.72rem",color:"var(--muted)"}}>
@@ -10585,6 +10630,15 @@ ${recruitingNote}`:null,
           {/* CALENDAR */}
           {dash==="calendar" && (!canAccess('athlete') ? <UpgradePrompt feature="Training Calendar" desc="Schedule meals, workouts, and recovery sessions. Export to Apple Calendar or Google Calendar." onUpgrade={()=>setScreen("pricing")}/> : <CalView shout={shout} meals={meals} mealType={mealType} mealFreq={mealFreq} wkType={wkType} wkFocus={wkFocus} totalCals={totalCals} MEAL_PLANS={MEAL_PLANS} WORKOUTS={WORKOUTS} checkIns={checkIns} wkLog={wkLog} nutritionLog={nutritionLog} weightLog={weightLog} selInj={selInj} profile={profile} setDash={setDash} setProgressTab={setProgressTab}/>)}
 
+          {/* MY TEAM — coach roster */}
+          {dash==="team" && (!canAccess('coach')
+            ? <UpgradePrompt feature="Coach Dashboard" desc="Create a team, invite your athletes with a join code, and see every athlete's readiness and check-in status in one place — at-risk first." onUpgrade={()=>setScreen("pricing")}/>
+            : <>
+                <div style={{marginBottom:"2rem"}}><div className="eyebrow">Coaching</div><h2 className="sh2">My <em>Team</em></h2></div>
+                <CoachRoster authUser={authUser} getFreshToken={getFreshToken} shout={shout} nativeShare={nativeShare} apiBase={API_BASE}/>
+              </>
+          )}
+
           {/* PROFILE */}
           {dash==="profile" && (
             <div>
@@ -10630,6 +10684,8 @@ ${recruitingNote}`:null,
                       </div>
                     </div>
                   </div>
+                  {/* Athlete-side team membership — join with a coach's code */}
+                  <JoinTeam authUser={authUser} getFreshToken={getFreshToken} shout={shout} apiBase={API_BASE}/>
                 </div>
                 <div>
                   <div className="panel" style={{marginBottom:"1.1rem"}}>
@@ -10929,6 +10985,13 @@ ${recruitingNote}`:null,
                           .catch(e=>console.error('welcome-email:', e));
                       }
                     }catch(e){ console.error('welcome-email trigger:', e); }
+                    // Persist completion NOW — never rely on the 1.5s debounced autosave
+                    if(authUser?.id){
+                      try{ localStorage.setItem('ea_onboarded_'+authUser.id,'1'); }catch(_){}
+                      setProfile(p=>({...p, onboarding_completed:true}));
+                      try{ await markOnboardingComplete(authUser.id); }
+                      catch(e){ console.error('markOnboardingComplete:', e); }
+                    }
                     setShowOnboarding(false);
                     window.scrollTo({top:0, behavior:'instant'});
                     shout(`Welcome, ${profile.name.split(' ')[0]}. Your journey begins now.`,"◆");
@@ -10947,7 +11010,15 @@ ${recruitingNote}`:null,
             {/* Skip link — only for users who already have partial data */}
             {(profile.name && profile.sport) && (
               <div style={{textAlign:"center",marginTop:"1rem"}}>
-                <button onClick={()=>setShowOnboarding(false)}
+                <button onClick={async ()=>{
+                    if(authUser?.id){
+                      try{ localStorage.setItem('ea_onboarded_'+authUser.id,'1'); }catch(_){}
+                      setProfile(p=>({...p, onboarding_completed:true}));
+                      try{ await markOnboardingComplete(authUser.id); }
+                      catch(e){ console.error('markOnboardingComplete:', e); }
+                    }
+                    setShowOnboarding(false);
+                  }}
                   style={{background:"none",border:"none",color:"var(--muted)",fontSize:"0.7rem",cursor:"pointer",letterSpacing:"1px",textDecoration:"underline"}}>
                   Skip for now
                 </button>
