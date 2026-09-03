@@ -31,6 +31,16 @@ async function nativeShare({ title, text, url }) {
   return false;
 }
 
+// Check-in dates are stored ISO (YYYY-MM-DD); render them human-readably.
+// Tolerates legacy "Sep 3" strings so old local state never renders blank.
+function fmtCIDate(d) {
+  if (!d) return "—";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d));
+  if (!m) return String(d);
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Haptic feedback on native; no-op on web.
 async function haptic(kind = "impact") {
   if (!Capacitor.isNativePlatform()) return;
@@ -4413,6 +4423,7 @@ export default function App() {
   const [checkIns, setCheckIns] = useState([]);
   const [todayCheckIn, setTodayCheckIn] = useState({recovery:7, energy:7, sleep:8, soreness:3, mood:7, notes:""});
   const [checkInDone, setCheckInDone] = useState(false);
+  const [ciSaving, setCiSaving] = useState(false);
 
   // Weight log [{date, weight, bodyFat}]
   const [weightLog, setWeightLog] = useState([]);
@@ -8253,15 +8264,31 @@ COACHING GUIDELINES:
                           <textarea className="fi" placeholder="Any soreness location, fatigue reason, illness…"
                             value={todayCheckIn.notes} onChange={e=>setTodayCheckIn(p=>({...p,notes:e.target.value}))}/>
                         </div>
-                        <button className="bg" style={{width:"100%",padding:"0.8rem",marginTop:"0.75rem",fontSize:"0.88rem"}} onClick={()=>{
-                          const date=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+                        <button className="bg" disabled={ciSaving} style={{width:"100%",padding:"0.8rem",marginTop:"0.75rem",fontSize:"0.88rem",opacity:ciSaving?0.5:1}} onClick={async ()=>{
+                          // date MUST be ISO (YYYY-MM-DD) — check_ins.date is a Postgres
+                          // `date` column. Writing a display string like "Sep 3" made every
+                          // save fail with 22007 invalid input syntax, silently.
+                          const n=new Date();
+                          const date=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
                           const newCI={...todayCheckIn,date};
+                          if(authUser?.id){
+                            setCiSaving(true);
+                            try{
+                              await saveCheckIn(authUser.id, newCI);
+                            }catch(e){
+                              console.error("checkIn save:",e);
+                              setCiSaving(false);
+                              // Never claim success on a failed write.
+                              shout("Check-in didn't save — check connection and retry","!");
+                              return;
+                            }
+                            setCiSaving(false);
+                          }
                           setCheckIns(prev=>[...prev.filter(c=>c.date!==date),newCI]);
                           setCheckInDone(true);
-                          if(authUser?.id) saveCheckIn(authUser.id, newCI).catch(e=>console.error("checkIn save:",e));
                           shout("Check-in saved — great work","");
                           setProgressTab("overview");
-                        }}>✓ Save Today's Check-In</button>
+                        }}>{ciSaving?"Saving…":"✓ Save Today's Check-In"}</button>
                       </div>
                     </div>
                     {/* Recent check-ins */}
@@ -8271,7 +8298,7 @@ COACHING GUIDELINES:
                         {[...checkIns].reverse().slice(0,7).map((ci,i)=>(
                           <div key={i} style={{background:"var(--smoke)",borderRadius:"var(--r)",padding:"0.6rem 0.75rem",marginBottom:"0.4rem",border:"1px solid var(--border)"}}>
                             <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.3rem"}}>
-                              <span style={{fontSize:"0.76rem",fontWeight:600,color:"var(--ivory)"}}>{ci.date}</span>
+                              <span style={{fontSize:"0.76rem",fontWeight:600,color:"var(--ivory)"}}>{fmtCIDate(ci.date)}</span>
                               <span style={{fontSize:"0.76rem",color:`hsl(${ci.recovery*12},60%,50%)`}}>Recovery {ci.recovery}/10</span>
                             </div>
                             <div style={{display:"flex",gap:"0.6rem",fontSize:"0.72rem",color:"var(--muted)"}}>

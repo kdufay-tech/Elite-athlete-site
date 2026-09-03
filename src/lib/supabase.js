@@ -248,7 +248,10 @@ export async function loadCheckIns(userId) {
     .select('*')
     .eq('user_id', userId)
     .gte('created_at', threeMonthsAgo.toISOString())
-    .order('created_at', { ascending: false });
+    // MUST be ascending: the UI reads recency with checkIns.slice(-3)/-7/-14.
+    // Descending order made every readiness/trend figure use the OLDEST rows.
+    .order('date', { ascending: true })
+    .order('created_at', { ascending: true });
   if (error) throw error;
   return data || [];
 }
