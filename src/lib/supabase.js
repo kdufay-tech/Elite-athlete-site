@@ -70,6 +70,7 @@ export async function saveProfile(userId, profile) {
     sport:        profile.sport        || null,
     position:     profile.position     || null,
     goal:         profile.goal         || null,
+    level:        profile.level        || null,
     target_weight: profile.targetWeight ? parseFloat(profile.targetWeight) : (profile.target_weight ? parseFloat(profile.target_weight) : null),
     updated_at:   new Date().toISOString(),
   };
@@ -93,6 +94,17 @@ export async function saveAIConsent(userId) {
   const { error } = await supabase
     .from('profiles')
     .update({ ai_consent_at: new Date().toISOString() })
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+// Durable onboarding completion flag.
+// Written immediately on complete AND on skip — never rely on the 1.5s
+// debounced profile autosave, which is why setup used to re-appear.
+export async function markOnboardingComplete(userId) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ onboarding_completed: true, updated_at: new Date().toISOString() })
     .eq('user_id', userId);
   if (error) throw error;
 }
