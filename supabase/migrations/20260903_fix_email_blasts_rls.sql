@@ -1,0 +1,28 @@
+-- 20260903_fix_email_blasts_rls.sql
+--
+-- SECURITY FIX (applied to production 2026-09-03).
+--
+-- public.email_blasts carried a policy named "service_role_all" defined as:
+--     for all to public using (true)
+--
+-- Despite the name, `to public` means it applied to the anon and authenticated
+-- roles — not service_role. Combined with the default Supabase grants, any
+-- caller holding the public anon key (which ships inside the web and native app
+-- bundles) could SELECT, INSERT, UPDATE and DELETE the entire table: every
+-- outreach recipient address, subject line and send timestamp.
+--
+-- Verified before removal: all seven Netlify functions that touch this table
+-- (unsubscribe, welcome-email, marketing-blast, marketing-blast-background,
+-- resend-webhook, coach-followup, coach-ops-auto) authenticate with
+-- SUPABASE_SERVICE_ROLE_KEY, which bypasses RLS. No client-side code in src/
+-- references email_blasts. Dropping the policy therefore changes nothing for
+-- legitimate callers.
+--
+-- Post-state: RLS enabled, zero policies = service-role only, matching the
+-- other back-office tables (coach_contacts, email_events, support_inbound...).
+--
+-- Rollback (NOT recommended — this reopens the exposure):
+--   create policy service_role_all on public.email_blasts
+--     for all to public using (true);
+
+drop policy if exists service_role_all on public.email_blasts;
