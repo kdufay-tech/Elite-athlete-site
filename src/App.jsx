@@ -4158,14 +4158,14 @@ textarea.fi:focus{border-color:rgba(255,255,255,0.25);}
 // ─────────────────────────────────────────────────────────────
 // UPGRADE PROMPT — reusable elite gate component
 // ─────────────────────────────────────────────────────────────
-function UpgradePrompt({ feature, desc, onUpgrade }) {
+function UpgradePrompt({ feature, desc, onUpgrade, ctaLabel, ctaSub }) {
   return (
     <div style={{background:"rgba(191,161,106,0.06)",border:"1px solid rgba(191,161,106,0.2)",borderRadius:"16px",padding:"2.5rem 2rem",textAlign:"center",margin:"0.5rem 0"}}>
       <div style={{fontSize:"1.8rem",marginBottom:"0.75rem"}}>◆</div>
       <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"1.15rem",fontWeight:700,color:"var(--ivory)",marginBottom:"0.5rem",letterSpacing:"1px"}}>{feature}</div>
       <div style={{fontSize:"0.84rem",color:"var(--muted)",maxWidth:"380px",margin:"0 auto 1.5rem",lineHeight:1.6}}>{desc}</div>
-      <button className="bg" style={{padding:"0.85rem 2.5rem",fontSize:"0.72rem",letterSpacing:"2px"}} onClick={onUpgrade}>Upgrade to Elite — $69/mo</button>
-      <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>or $529/yr billed annually</div>
+      <button className="bg" style={{padding:"0.85rem 2.5rem",fontSize:"0.72rem",letterSpacing:"2px"}} onClick={onUpgrade}>{ctaLabel || "Upgrade to Elite — $69/mo"}</button>
+      <div style={{fontSize:"0.68rem",color:"var(--muted)",marginTop:"0.75rem"}}>{ctaSub || "or $529/yr billed annually"}</div>
     </div>
   );
 }
@@ -4677,6 +4677,8 @@ export default function App() {
         // Load user data once per authenticated session (guard against repeat events on iOS resume).
         if (!dataLoadedRef.current) {
           dataLoadedRef.current = true;
+          // Clear the PREVIOUS account's data before loading this one's.
+          resetUserState();
           loadUserData(session.user.id);
         }
         setScreen("dashboard");
@@ -4703,6 +4705,47 @@ export default function App() {
   useEffect(() => {
     if (betaExpired) setConversionModal(true);
   }, [betaExpired]);
+
+  // ── PER-USER STATE RESET ────────────────────────────────────
+  // Every value below belongs to ONE signed-in user. React state survives
+  // sign-out (App() never unmounts), so without this an account switch left
+  // the previous user's data on screen — including their subscription, which
+  // granted their tier to the next person to sign in.
+  const resetUserState = () => {
+    setSubscription(null);
+    setDash("nutrition");
+    setProgressTab("overview");
+    setProfile({ name:"", weight:"", height:"", age:"", sport:"football", position:"", goal:"Weight Maintenance" });
+    setProfilePhotoBefore(null);
+    setProfilePhotoAfter(null);
+    setJEntries([]);
+    setNotes([]);
+    setCheckIns([]);
+    setWkLog([]);
+    setWeightLog([]);
+    setNutritionLog([]);
+    setBenchmarks([]);
+    setProgressPhotos([]);
+    setMeasurements([]);
+    setCoaches([]);
+    setSentReports([]);
+    setCoachMessages([]);
+    setSelInj([]);
+    setSessionLog([]);
+    setActiveSession(null);
+    setFoodLog([]);
+    setMealSubs({});
+    setGrocery({});
+    setSelectedCoach(null);
+    setCheckInDone(false);
+    setTodayCheckIn({recovery:7, energy:7, sleep:8, soreness:3, mood:7, notes:""});
+    setTodayNutrition({calories:"", protein:"", carbs:"", fat:"", water:""});
+    setRecruitingEmail("");
+    setRecruitingNote("");
+    setRecruitingCardSent(false);
+    setShowOnboarding(false);
+    setObStep(1);
+  };
 
   // ── LOAD USER DATA FROM SUPABASE ─────────────────────────────
   const loadUserData = async (userId, isNewSignup = false) => {
@@ -4741,15 +4784,15 @@ export default function App() {
         // No profile record at all — definitely new user
         setShowOnboarding(true); setObStep(1);
       }
-      if (journals?.length) setJEntries(journals.map(j => ({ id: j.id, date: new Date(j.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), text: j.text, title: j.title })));
-      if (progNotes?.length) setNotes(progNotes.map(n => ({ date: new Date(n.created_at).toLocaleDateString(), text: n.text })));
-      if (sub) setSubscription(sub);
-      if (checkInsData?.length) setCheckIns(checkInsData.map(c=>({date:c.date,recovery:c.recovery||7,energy:c.energy||7,sleep:parseFloat(c.sleep)||8,soreness:c.soreness||3,mood:c.mood||7,notes:c.notes||""})));
-      if (workoutData?.length) setWkLog(workoutData.map(w=>({date:w.date,week:w.week,exercise:w.exercise,load:w.load,notes:w.notes,wkType:w.wk_type,wkFocus:w.wk_focus,sets:w.sets||0,totalVol:w.total_vol||0})));
-      if (weightData?.length) setWeightLog(weightData.map(w=>({date:w.date,weight:parseFloat(w.weight),bodyFat:w.body_fat?parseFloat(w.body_fat):null})));
-      if (nutritionData?.length) setNutritionLog(nutritionData.map(n=>({date:n.date,calories:n.calories,protein:n.protein,carbs:n.carbs,fat:n.fat,water:n.water})));
-      if (benchmarkData?.length) setBenchmarks(benchmarkData.map(b=>({date:b.date,test:b.test,value:b.value,unit:b.unit,notes:b.notes})));
-      if (photoData?.length) setProgressPhotos(photoData.map(p=>({id:p.id,storage_path:p.storage_path,label:p.label,date:p.date,weight:p.weight,note:p.note,dataUrl:p.dataUrl})));
+      setJEntries(journals?.length ? journals.map(j => ({ id: j.id, date: new Date(j.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), text: j.text, title: j.title })) : []);
+      setNotes(progNotes?.length ? progNotes.map(n => ({ date: new Date(n.created_at).toLocaleDateString(), text: n.text })) : []);
+      setSubscription(sub || null); // no row => free, never the previous user's tier
+      setCheckIns(checkInsData?.length ? checkInsData.map(c=>({date:c.date,recovery:c.recovery||7,energy:c.energy||7,sleep:parseFloat(c.sleep)||8,soreness:c.soreness||3,mood:c.mood||7,notes:c.notes||""})) : []);
+      setWkLog(workoutData?.length ? workoutData.map(w=>({date:w.date,week:w.week,exercise:w.exercise,load:w.load,notes:w.notes,wkType:w.wk_type,wkFocus:w.wk_focus,sets:w.sets||0,totalVol:w.total_vol||0})) : []);
+      setWeightLog(weightData?.length ? weightData.map(w=>({date:w.date,weight:parseFloat(w.weight),bodyFat:w.body_fat?parseFloat(w.body_fat):null})) : []);
+      setNutritionLog(nutritionData?.length ? nutritionData.map(n=>({date:n.date,calories:n.calories,protein:n.protein,carbs:n.carbs,fat:n.fat,water:n.water})) : []);
+      setBenchmarks(benchmarkData?.length ? benchmarkData.map(b=>({date:b.date,test:b.test,value:b.value,unit:b.unit,notes:b.notes})) : []);
+      setProgressPhotos(photoData?.length ? photoData.map(p=>({id:p.id,storage_path:p.storage_path,label:p.label,date:p.date,weight:p.weight,note:p.note,dataUrl:p.dataUrl})) : []);
     } catch (err) {
       console.error('Failed to load user data:', err);
     } finally {
@@ -10634,7 +10677,7 @@ ${recruitingNote}`:null,
 
           {/* MY TEAM — coach roster */}
           {dash==="team" && (!canAccess('coach')
-            ? <UpgradePrompt feature="Coach Dashboard" desc="Create a team, invite your athletes with a join code, and see every athlete's readiness and check-in status in one place — at-risk first." onUpgrade={()=>setScreen("pricing")}/>
+            ? <UpgradePrompt feature="Coach Dashboard" desc="Create a team, invite your athletes with a join code, and see every athlete's readiness and check-in status in one place — at-risk first." onUpgrade={()=>setScreen("pricing")} ctaLabel="See Coach Pro" ctaSub="$99/mo base + $4.99 per athlete · managed from your Elite Athlete account"/>
             : <>
                 <div style={{marginBottom:"2rem"}}><div className="eyebrow">Coaching</div><h2 className="sh2">My <em>Team</em></h2></div>
                 <CoachRoster authUser={authUser} getFreshToken={getFreshToken} shout={shout} nativeShare={nativeShare} apiBase={API_BASE}/>
