@@ -201,7 +201,69 @@ group by dy.d
 order by dy.d;
 $$;
 
+-- ── WHOLE-ROSTER SUMMARY ─────────────────────────────────────────────
+-- One row for the entire roster. Without this the coach UI would show an at-risk
+-- count for the CURRENT PAGE only — on a 500-athlete roster that understates risk,
+-- and it is the one number a coach has to be able to trust.
+create or replace function public.coach_roster_summary(
+  p_coach uuid,
+  p_team  uuid default null
+)
+returns table (
+  total integer, at_risk integer, avg_readiness numeric,
+  checked_in_today integer, never_checked_in integer
+)
+language sql stable security definer set search_path = ''
+as $$
+with roster as (
+  select tm.athlete_id, coalesce(p.sport, tm.sport) as sport
+  from public.team_members tm
+  left join public.profiles p on p.user_id = tm.athlete_id
+  where tm.coach_id = p_coach and tm.status = 'active'
+    and (p_team is null or tm.team_id = p_team)
+),
+calc as (
+  select r.athlete_id, l.date as last_date,
+    case when a.avg_recovery is null then null else
+      round(least(10,
+          a.avg_recovery * 0.30
+        + least(a.avg_sleep / (case when lower(coalesce(r.sport,'')) in ('football','basketball')
+                                    then 9 else 8 end), 1) * 10 * 0.25
+        + a.avg_energy * 0.20
+        + a.avg_mood   * 0.15
+        + (10 - a.avg_soreness) * 0.10
+      ), 1)
+    end as readiness
+  from roster r
+  left join lateral (
+    select c.date from public.check_ins c where c.user_id = r.athlete_id
+    order by c.date desc limit 1
+  ) l on true
+  left join lateral (
+    select avg(s.recovery)::numeric avg_recovery, avg(s.sleep)::numeric avg_sleep,
+           avg(s.energy)::numeric avg_energy, avg(s.mood)::numeric avg_mood,
+           avg(s.soreness)::numeric avg_soreness
+    from (select c2.recovery, c2.sleep, c2.energy, c2.mood, c2.soreness
+          from public.check_ins c2 where c2.user_id = r.athlete_id
+          order by c2.date desc limit 3) s
+  ) a on true
+)
+select
+  count(*)::integer,
+  count(*) filter (
+    where last_date is null
+       or (current_date - last_date) >= 3
+       or (readiness is not null and readiness < 5)
+  )::integer,
+  round(avg(readiness), 1),
+  count(*) filter (where last_date = current_date)::integer,
+  count(*) filter (where last_date is null)::integer
+from calc;
+$$;
+
 -- ── GRANTS ───────────────────────────────────────────────────────────
+revoke all on function public.coach_roster_summary(uuid, uuid)                       from public, anon, authenticated;
+grant  execute on function public.coach_roster_summary(uuid, uuid)                   to service_role;
 revoke all on function public.coach_roster_page(uuid, uuid, integer, integer, text) from public, anon, authenticated;
 revoke all on function public.coach_readiness_series(uuid, uuid[], integer)          from public, anon, authenticated;
 revoke all on function public.coach_team_series(uuid, uuid, integer)                 from public, anon, authenticated;

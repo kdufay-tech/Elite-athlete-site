@@ -8229,7 +8229,9 @@ COACHING GUIDELINES:
               {progressTab==="checkin" && (
                 <div>
                   <div style={{display:"flex",gap:"0.75rem",marginBottom:"1.5rem",alignItems:"flex-start",flexWrap:"wrap"}}>
-                    <div className="panel" style={{flex:1}}>
+                    {/* flex-basis (not flex:1) so this WRAPS on phones instead of being
+                        crushed to ~100px by the fixed-width Recent Check-Ins sidebar. */}
+                    <div className="panel" style={{flex:"1 1 320px",minWidth:"min(100%, 300px)"}}>
                       <div className="ph"><div className="pt">Today's <em>Check-In</em></div>
                         <span style={{fontSize:"0.74rem",color:"var(--gold)"}}>{new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</span>
                       </div>
@@ -8254,7 +8256,7 @@ COACHING GUIDELINES:
                             <input type="range" min={min} max={max} step={step} value={todayCheckIn[key]}
                               onChange={e=>setTodayCheckIn(p=>({...p,[key]:parseFloat(e.target.value)}))}
                               style={{width:"100%",accentColor:color}}/>
-                            <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.68rem",color:"var(--muted)"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",gap:"0.75rem",fontSize:"0.68rem",color:"var(--muted)"}}>
                               <span>{invert?"None":(key==="sleep"?"0hrs":min===1?"Poor":"Low")}</span>
                               <span>{invert?"Severe":(key==="sleep"?"12hrs":"Peak")}</span>
                             </div>
@@ -8293,7 +8295,7 @@ COACHING GUIDELINES:
                     </div>
                     {/* Recent check-ins */}
                     {checkIns.length>0 && (
-                      <div style={{width:"240px",flexShrink:0}}>
+                      <div style={{flex:"1 1 240px",minWidth:"min(100%, 220px)"}}>
                         <div style={{fontSize:"0.72rem",letterSpacing:"2px",color:"var(--muted)",textTransform:"uppercase",marginBottom:"0.75rem"}}>Recent Check-Ins</div>
                         {[...checkIns].reverse().slice(0,7).map((ci,i)=>(
                           <div key={i} style={{background:"var(--smoke)",borderRadius:"var(--r)",padding:"0.6rem 0.75rem",marginBottom:"0.4rem",border:"1px solid var(--border)"}}>
@@ -11302,11 +11304,14 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
         'Team wellness feed',
         'Team reports + compliance',
       ],
-      cta: 'Join Waitlist',
+      cta: 'Get Coach Pro',
       ctaClass: 'bgh',
       feat: false,
-      waitlist: true,
-      badge: 'Q3 2026',
+      // iOS: Apple requires digital subscriptions to use IAP, and rejects apps that
+      // link out to an external purchase flow. So on iOS this card shows no purchase
+      // button and no outbound link — Coach Pro is bought on the web and the app
+      // simply reads the entitlement.
+      webOnlyPurchase: true,
     },
   ];
 
@@ -11378,15 +11383,25 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
                 ))}
               </ul>
 
-              <button
-                className={t.ctaClass}
-                style={{width:'100%',padding:'0.85rem'}}
-                onClick={() => {
-                  if (!authUser) { setAuthModal(true); setPendingPlan({ tierKey: t.tierKey, billing }); return; }
-                  setPayModal({ tierKey: t.tierKey, billing });
-                }}>
-                {t.cta}
-              </button>
+              {t.webOnlyPurchase && IS_IOS ? (
+                /* No purchase button and no outbound purchase link on iOS —
+                   both are App Store rejections. Statement of fact only. */
+                <div style={{width:'100%',padding:'0.85rem',textAlign:'center',
+                             border:'1px solid rgba(255,255,255,0.1)',borderRadius:'var(--r)',
+                             color:'var(--muted)',fontSize:'0.76rem',lineHeight:1.5}}>
+                  Coach Pro is managed from your Elite Athlete account.
+                </div>
+              ) : (
+                <button
+                  className={t.ctaClass}
+                  style={{width:'100%',padding:'0.85rem'}}
+                  onClick={() => {
+                    if (!authUser) { setAuthModal(true); setPendingPlan({ tierKey: t.tierKey, billing }); return; }
+                    setPayModal({ tierKey: t.tierKey, billing });
+                  }}>
+                  {t.cta}
+                </button>
+              )}
             </div>
           );
         })}
