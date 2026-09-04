@@ -117,6 +117,7 @@ export default function AthleteDetail({ athlete, authUser, getFreshToken, shout,
   const series = data?.series || [];
   const stats  = data?.stats  || {};
   const last   = athlete.lastCheckIn;
+  const rosterSize = team.reduce((m, t) => Math.max(m, Number(t.rosterSize || 0)), 0);
 
   return (
     <div style={{ marginBottom: "1.5rem" }}>
@@ -181,9 +182,13 @@ export default function AthleteDetail({ athlete, authUser, getFreshToken, shout,
             : err
               ? <div style={{ color: "#C0695E", fontSize: "0.8rem" }}>{err}</div>
               : <>
+                  {/* With a one-athlete roster the team average IS this athlete, so the
+                      reference line sits exactly under the gold one and the legend
+                      advertises a line you cannot see. Hide it until there's a real
+                      comparison to make. */}
                   <ReadinessLineChart
                     series={series}
-                    reference={data?.teamReference || []}
+                    reference={rosterSize > 1 ? (data?.teamReference || []) : []}
                     label={athlete.name.split(" ")[0]}
                     refLabel="Team avg"
                     height={220}

@@ -12,6 +12,8 @@
 // already a vertical list, which makes it a natural small-multiples grid.
 import { useState, useEffect, useCallback } from "react";
 import AthleteDetail from "./AthleteDetail";
+import PracticeBoard from "./PracticeBoard";
+import TeamPrograms from "./TeamPrograms";
 import { Sparkline, readColor, readLabel } from "./ReadinessChart";
 
 const PAGE = 50;
@@ -50,6 +52,8 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
   const [search, setSearch]     = useState("");
   const [sparks, setSparks]     = useState({});
   const [selected, setSelected] = useState(null);
+  const [view, setView]         = useState("roster");   // roster | practice | programs
+  const [removing, setRemoving] = useState(null);
 
   const call = useCallback(async (path, opts = {}) => {
     const tok = await getFreshToken();
@@ -142,6 +146,19 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
       });
       shout(`Nudged ${d.sentCount} athlete${d.sentCount === 1 ? "" : "s"}`, "◆");
     } catch (e) { shout(e.message, "!"); }
+  };
+
+  const removeAthlete = async (a) => {
+    setRemoving(a.athlete_id);
+    try {
+      await call("coach-team", {
+        method: "POST",
+        body: JSON.stringify({ action: "remove", team_id: a.team_id, athlete_id: a.athlete_id }),
+      });
+      shout(`${a.name} removed from the team`, "◆");
+      await load({ offset: 0 });
+    } catch (e) { shout(e.message, "!"); }
+    finally { setRemoving(null); }
   };
 
   // ── ATHLETE DETAIL ───────────────────────────────────────────────
@@ -247,11 +264,34 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
               Nudge everyone overdue
             </button>
           )}
+
+          {/* View switcher */}
+          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "1.4rem",
+                        paddingTop: "1.1rem", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+            {[["roster", "Roster"], ["practice", "Practice Day"], ["programs", "Programs"]].map(([k, t]) => (
+              <button key={k} onClick={() => setView(k)}
+                style={{ ...L.btnGhost,
+                  borderColor: view === k ? "var(--gold)" : "rgba(255,255,255,0.14)",
+                  color: view === k ? "var(--gold-lt)" : "var(--ivory)" }}>
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {view === "practice" && (
+        <PracticeBoard teamId={activeTeam} getFreshToken={getFreshToken} shout={shout}
+                       apiBase={apiBase} onSelect={setSelected} />
+      )}
+
+      {view === "programs" && (
+        <TeamPrograms teamId={activeTeam} teamName={team?.name} getFreshToken={getFreshToken}
+                      shout={shout} apiBase={apiBase} />
+      )}
+
       {/* ── SEARCH (server-side; never filters a client-side full list) ── */}
-      {(page.total > 10 || search) && (
+      {view === "roster" && (page.total > 10 || search) && (
         <div className="panel" style={{ marginBottom: "1.1rem" }}>
           <div className="pb" style={{ paddingTop: "1rem", paddingBottom: "1rem" }}>
             <label style={L.lab}>Find an athlete</label>
@@ -267,7 +307,7 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
         </div>
       )}
 
-      {roster.length === 0 && !loading && (
+      {view === "roster" && roster.length === 0 && !loading && (
         <div className="panel">
           <div className="pb" style={{ color: "var(--muted)", fontSize: "0.85rem", lineHeight: 1.6 }}>
             {search
@@ -279,7 +319,7 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
       )}
 
       {/* ── ROSTER ROWS ───────────────────────────────────────── */}
-      {roster.map(a => (
+      {view === "roster" && roster.map(a => (
         <div key={a.athlete_id} className="panel"
              onClick={() => setSelected(a)}
              style={{ marginBottom: "0.6rem", cursor: "pointer",
@@ -308,13 +348,26 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
               {/* Text label, never colour alone: ready-green and at-risk-red are
                   ΔE 5.2 apart under deuteranopia */}
               <div style={{ ...L.lab, marginTop: "0.3rem" }}>{readLabel(a.readiness)}</div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();   // row opens detail; this must not
+                  if (window.confirm(`Remove ${a.name} from ${a.team_name}? Their own data is untouched — they simply leave the roster.`))
+                    removeAthlete(a);
+                }}
+                disabled={removing === a.athlete_id}
+                style={{ background: "none", border: "none", color: "var(--muted)",
+                         fontSize: "0.55rem", letterSpacing: "1px", textTransform: "uppercase",
+                         cursor: "pointer", textDecoration: "underline", marginTop: "0.45rem",
+                         padding: 0 }}>
+                {removing === a.athlete_id ? "Removing…" : "Remove"}
+              </button>
             </div>
           </div>
         </div>
       ))}
 
       {/* ── PAGINATION ────────────────────────────────────────── */}
-      {page.hasMore && (
+      {view === "roster" && page.hasMore && (
         <div className="panel">
           <div className="pb" style={{ textAlign: "center" }}>
             <button style={L.btnGhost} disabled={loading}
@@ -325,13 +378,13 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
         </div>
       )}
 
-      {!page.hasMore && page.total > PAGE && (
+      {view === "roster" && !page.hasMore && page.total > PAGE && (
         <div style={{ ...L.lab, textAlign: "center", padding: "0.75rem" }}>
           All {page.total} athletes shown
         </div>
       )}
 
-      {loading && roster.length === 0 && (
+      {view === "roster" && loading && roster.length === 0 && (
         <div className="panel"><div className="pb" style={{ color: "var(--muted)", fontSize: "0.8rem" }}>
           Loading roster…</div></div>
       )}

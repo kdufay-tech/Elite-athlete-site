@@ -11304,11 +11304,14 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
         'Team wellness feed',
         'Team reports + compliance',
       ],
-      cta: 'Join Waitlist',
+      cta: 'Get Coach Pro',
       ctaClass: 'bgh',
       feat: false,
-      waitlist: true,
-      badge: 'Q3 2026',
+      // iOS: Apple requires digital subscriptions to use IAP, and rejects apps that
+      // link out to an external purchase flow. So on iOS this card shows no purchase
+      // button and no outbound link — Coach Pro is bought on the web and the app
+      // simply reads the entitlement.
+      webOnlyPurchase: true,
     },
   ];
 
@@ -11380,15 +11383,25 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
                 ))}
               </ul>
 
-              <button
-                className={t.ctaClass}
-                style={{width:'100%',padding:'0.85rem'}}
-                onClick={() => {
-                  if (!authUser) { setAuthModal(true); setPendingPlan({ tierKey: t.tierKey, billing }); return; }
-                  setPayModal({ tierKey: t.tierKey, billing });
-                }}>
-                {t.cta}
-              </button>
+              {t.webOnlyPurchase && IS_IOS ? (
+                /* No purchase button and no outbound purchase link on iOS —
+                   both are App Store rejections. Statement of fact only. */
+                <div style={{width:'100%',padding:'0.85rem',textAlign:'center',
+                             border:'1px solid rgba(255,255,255,0.1)',borderRadius:'var(--r)',
+                             color:'var(--muted)',fontSize:'0.76rem',lineHeight:1.5}}>
+                  Coach Pro is managed from your Elite Athlete account.
+                </div>
+              ) : (
+                <button
+                  className={t.ctaClass}
+                  style={{width:'100%',padding:'0.85rem'}}
+                  onClick={() => {
+                    if (!authUser) { setAuthModal(true); setPendingPlan({ tierKey: t.tierKey, billing }); return; }
+                    setPayModal({ tierKey: t.tierKey, billing });
+                  }}>
+                  {t.cta}
+                </button>
+              )}
             </div>
           );
         })}
