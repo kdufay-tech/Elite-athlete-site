@@ -138,8 +138,8 @@ export function ReadinessLineChart({
       <div ref={wrapRef} style={{ position: "relative", width: "100%" }}
            onMouseMove={onMove} onMouseLeave={() => setHover(null)}
            onTouchStart={onMove} onTouchMove={onMove}>
-        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" height={height}
-             style={{ display: "block", overflow: "visible" }} role="img"
+        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%"
+             style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }} role="img"
              aria-label={`${label} over time, ${pts.length} points`}>
 
           {/* Status bands: position carries the meaning, colour only reinforces */}
@@ -250,8 +250,8 @@ export function ComplianceChart({ team = [], height = 96 }) {
   return (
     <div>
       <div style={{ ...lab, marginBottom: "0.4rem" }}>Check-in compliance</div>
-      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" height={height}
-           style={{ display: "block" }} role="img" aria-label="Daily check-in compliance">
+      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%"
+           style={{ display: "block", width: "100%", height: "auto" }} role="img" aria-label="Daily check-in compliance">
         {[0, 50, 100].map(v => (
           <g key={v}>
             <line x1={PAD.l} x2={PAD.l + iw} y1={PAD.t + ih - (v / 100) * ih}
