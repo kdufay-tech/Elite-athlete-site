@@ -30,7 +30,10 @@ const KINDS = {
   },
   lifecycle: {
     channel: 'email', audience: 'users', count: '2',
-    instruction: `Draft 2 lifecycle emails to signed-up users. (1) A Day-1 activation email that drives the real aha moment - generating their first sport-and-position plan and meeting EA Coach - with one CTA to do it right now. (2) A win-back email for users who went quiet: remind them what is sitting there waiting (their plan, readiness score, recruiting profile) and pull them back with one CTA. Each: subject, short body, one CTA.`,
+    instruction: `Draft 2 lifecycle emails to signed-up ATHLETES. Run the full 5-part spine in each, tuned to someone who already has an account, and keep it tight and punchy. Call it EA Coach, never AI Coach; EA Coach augments their training, it never does the work for them. No price talk - the CTA is the free app.
+(1) DAY-1 ACTIVATION - they signed up but have not generated their first plan yet. PROBLEM: they came for an edge and it is sitting unopened while the off-season / season clock runs. STATUS QUO: generic plans and scattered apps got them nowhere. EA'S EDGE: in two minutes they generate a plan built for their exact sport and position and meet EA Coach - a daily brief that keeps them on it. PATH: one CTA, generate your plan now. VISION: the support once reserved for pros, now in their pocket.
+(2) WIN-BACK - they went quiet. PROBLEM: they drifted and the edge is decaying; a readiness score and recruiting profile only work if they keep logging. STATUS QUO: starting from scratch every time, no continuity. EA'S EDGE: their plan, readiness score and auto-updating recruiting profile are still here and pick up where they left off, and EA Coach re-onboards them in a single session. PATH: one CTA to jump back in. VISION: one performance archive they own that travels high school to college to pro.
+Each email: subject, short body, one CTA.`,
   },
 };
 

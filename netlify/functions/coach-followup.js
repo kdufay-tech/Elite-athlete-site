@@ -1,10 +1,10 @@
-﻿// netlify/functions/coach-followup.js
+// netlify/functions/coach-followup.js
 // Sport-tailored 3/5/7-day follow-up sequence for coach marketing tranches.
 // Scheduled daily 23:00 UTC (~7pm ET). Also supports manual POST trigger.
 //
 // For each step N in {3,5,7}: find coaches who were sent an original marketing
 // blast (blast_id like 'blast_%') exactly N days ago and have NOT:
-//   - genuinely engaged â€” opened/clicked >5 min after delivery (human_engaged view;
+//   - genuinely engaged — opened/clicked >5 min after delivery (human_engaged view;
 //     excludes security-scanner auto-opens that fire within seconds),
 //   - unsubscribed / bounced / complained (suppression list),
 //   - signed up (welcome marker),
@@ -15,44 +15,44 @@
 // Copy is tailored per sport (football / basketball / soccer / volleyball) and
 // escalates across steps: bump -> concrete value -> polite last-call.
 //
-// Manual: POST { step?: 3|5|7, dry_run?: true } â€” dry_run reports candidate
+// Manual: POST { step?: 3|5|7, dry_run?: true } — dry_run reports candidate
 // counts per step without sending.
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Content-Type': 'application/json' };
 
-const POSTAL_ADDRESS = 'Taradome Technologies Â· 1366 Athens Ave SW, Atlanta, GA 30310';
+const POSTAL_ADDRESS = 'Taradome Technologies · 1366 Athens Ave SW, Atlanta, GA 30310';
 const STEPS = [3, 5, 7];
 
 // ---- Sport-tailored copy. Index 0=Day3, 1=Day5, 2=Day7. ----
 const SPORT_COPY = {
   football: [
     { subject: 'Re: your edge rusher vs. your slot receiver',
-      body: `Coach {{FIRST_NAME}}, did my note reach you?\n\nQuick recap: your edge rusher and your slot receiver should not be running the same program. Elite Athlete builds every athlete's nutrition and training around their exact position â€” free for all of {{SCHOOL}} this preseason.`,
+      body: `Coach {{FIRST_NAME}}, did my note reach you?\n\nQuick recap: your edge rusher and your slot receiver should not be running the same program. Elite Athlete builds every athlete's nutrition and training around their exact position — free for all of {{SCHOOL}} this preseason.`,
       cta: 'Reply to Set Up {{SCHOOL}}' },
     { subject: 'One number for {{SCHOOL}}',
-      body: `Coach {{FIRST_NAME}}, one number worth 30 seconds:\n\nA 250-lb defensive lineman and a 175-lb corner can need a 1,500-calorie daily gap just to perform â€” and completely different recovery. Generic plans miss that. Elite Athlete gives every position its own fuel, training, and recovery targets, plus an EA Coach in each athlete's pocket.\n\nWant me to get {{SCHOOL}} set up?`,
+      body: `Coach {{FIRST_NAME}}, one number worth 30 seconds:\n\nA 250-lb defensive lineman and a 175-lb corner can need a 1,500-calorie daily gap just to perform — and completely different recovery. Generic plans miss that. Elite Athlete gives every position its own fuel, training, and recovery targets, plus an EA Coach in each athlete's pocket.\n\nWant me to get {{SCHOOL}} set up?`,
       cta: 'Reply to Get Started' },
     { subject: 'Last note for {{SCHOOL}} this season',
-      body: `Coach {{FIRST_NAME}}, last note from me â€” I don't want to crowd your inbox during camp.\n\nIf position-specific training for {{SCHOOL}} is worth a look, just reply and I'll get it set up free this preseason. If not, no worries at all â€” good luck this season.`,
+      body: `Coach {{FIRST_NAME}}, last note from me — I don't want to crowd your inbox during camp.\n\nIf position-specific training for {{SCHOOL}} is worth a look, just reply and I'll get it set up free this preseason. If not, no worries at all — good luck this season.`,
       cta: 'Just Reply' },
   ],
   basketball: [
     { subject: 'Re: your point guard vs. your center',
-      body: `Coach {{FIRST_NAME}}, did this reach you?\n\nYour point guard and your center have completely different engines. Elite Athlete programs nutrition and training by position, not one-size-fits-all â€” free for {{SCHOOL}} this season.`,
+      body: `Coach {{FIRST_NAME}}, did this reach you?\n\nYour point guard and your center have completely different engines. Elite Athlete programs nutrition and training by position, not one-size-fits-all — free for {{SCHOOL}} this season.`,
       cta: 'Reply to Set Up {{SCHOOL}}' },
     { subject: 'One number for {{SCHOOL}}',
-      body: `Coach {{FIRST_NAME}}, one number:\n\nA 6'10 post and a 6'0 guard can differ by 1,000+ calories a day at the same practice intensity â€” and need different strength and recovery work. Elite Athlete sets fuel, workload, and recovery per position, plus an EA Coach for every player.\n\nWant me to set up {{SCHOOL}}?`,
+      body: `Coach {{FIRST_NAME}}, one number:\n\nA 6'10 post and a 6'0 guard can differ by 1,000+ calories a day at the same practice intensity — and need different strength and recovery work. Elite Athlete sets fuel, workload, and recovery per position, plus an EA Coach for every player.\n\nWant me to set up {{SCHOOL}}?`,
       cta: 'Reply to Get Started' },
     { subject: 'Last note for {{SCHOOL}} this season',
-      body: `Coach {{FIRST_NAME}}, last note â€” I'll stop here.\n\nIf dialing in each position for {{SCHOOL}} is worth a look, just reply and I'll set it up free. Either way, good luck this season.`,
+      body: `Coach {{FIRST_NAME}}, last note — I'll stop here.\n\nIf dialing in each position for {{SCHOOL}} is worth a look, just reply and I'll set it up free. Either way, good luck this season.`,
       cta: 'Just Reply' },
   ],
   soccer: [
     { subject: 'Re: your keeper vs. your winger',
-      body: `Coach {{FIRST_NAME}}, did my note land?\n\nYour keeper and your winger are almost playing two different sports inside one. Elite Athlete builds each player's program around their position â€” free for {{SCHOOL}}.`,
+      body: `Coach {{FIRST_NAME}}, did my note land?\n\nYour keeper and your winger are almost playing two different sports inside one. Elite Athlete builds each player's program around their position — free for {{SCHOOL}}.`,
       cta: 'Reply to Set Up {{SCHOOL}}' },
     { subject: 'One number for {{SCHOOL}}',
-      body: `Coach {{FIRST_NAME}}, one number:\n\nA winger can cover 7+ miles a match; a keeper a fraction of that â€” their fueling and recovery shouldn't match. Elite Athlete tailors both by position, with an EA Coach for each athlete.\n\nWant {{SCHOOL}} set up?`,
+      body: `Coach {{FIRST_NAME}}, one number:\n\nA winger can cover 7+ miles a match; a keeper a fraction of that — their fueling and recovery shouldn't match. Elite Athlete tailors both by position, with an EA Coach for each athlete.\n\nWant {{SCHOOL}} set up?`,
       cta: 'Reply to Get Started' },
     { subject: 'Last note for {{SCHOOL}} this season',
       body: `Coach {{FIRST_NAME}}, last note from me.\n\nIf position-specific training for {{SCHOOL}} is worth a look, just reply and I'll set it up free. If not, good luck this season.`,
@@ -60,24 +60,24 @@ const SPORT_COPY = {
   ],
   volleyball: [
     { subject: 'Re: your libero vs. your middle blocker',
-      body: `Coach {{FIRST_NAME}}, did this reach you?\n\nYour libero and your middle blocker have opposite physical demands. Elite Athlete programs each by position instead of one generic plan â€” free for {{SCHOOL}}.`,
+      body: `Coach {{FIRST_NAME}}, did this reach you?\n\nYour libero and your middle blocker have opposite physical demands. Elite Athlete programs each by position instead of one generic plan — free for {{SCHOOL}}.`,
       cta: 'Reply to Set Up {{SCHOOL}}' },
     { subject: 'One point for {{SCHOOL}}',
       body: `Coach {{FIRST_NAME}}, one point:\n\nA middle blocker's jump load and a libero's court volume need different strength and recovery work. Elite Athlete splits it by position, with an EA Coach for every player.\n\nWant me to set up {{SCHOOL}}?`,
       cta: 'Reply to Get Started' },
     { subject: 'Last note for {{SCHOOL}} this season',
-      body: `Coach {{FIRST_NAME}}, last note â€” I won't keep filling your inbox.\n\nIf tailoring training for {{SCHOOL}} by position is worth a look, just reply and I'll set it up free. Either way, good luck this season.`,
+      body: `Coach {{FIRST_NAME}}, last note — I won't keep filling your inbox.\n\nIf tailoring training for {{SCHOOL}} by position is worth a look, just reply and I'll set it up free. Either way, good luck this season.`,
       cta: 'Just Reply' },
   ],
   generic: [
     { subject: 'Re: position-specific training for {{SCHOOL}}',
-      body: `Coach {{FIRST_NAME}}, did my note reach you?\n\nEvery position on your roster has different demands â€” Elite Athlete builds each athlete's nutrition and training around theirs. Free for {{SCHOOL}}.`,
+      body: `Coach {{FIRST_NAME}}, did my note reach you?\n\nEvery position on your roster has different demands — Elite Athlete builds each athlete's nutrition and training around theirs. Free for {{SCHOOL}}.`,
       cta: 'Reply to Set Up {{SCHOOL}}' },
     { subject: 'A quick note for {{SCHOOL}}',
-      body: `Coach {{FIRST_NAME}}, the idea in one line:\n\nPosition-specific fuel, training, and recovery for every athlete â€” plus an EA Coach in their pocket. Want me to set up {{SCHOOL}}?`,
+      body: `Coach {{FIRST_NAME}}, the idea in one line:\n\nPosition-specific fuel, training, and recovery for every athlete — plus an EA Coach in their pocket. Want me to set up {{SCHOOL}}?`,
       cta: 'Reply to Get Started' },
     { subject: 'Last note for {{SCHOOL}} this season',
-      body: `Coach {{FIRST_NAME}}, last note from me.\n\nIf it's worth a look for {{SCHOOL}}, just reply and I'll set it up free. If not, no worries â€” good luck this season.`,
+      body: `Coach {{FIRST_NAME}}, last note from me.\n\nIf it's worth a look for {{SCHOOL}}, just reply and I'll set it up free. If not, no worries — good luck this season.`,
       cta: 'Just Reply' },
   ],
 };
@@ -185,10 +185,11 @@ export default async (req) => {
       const sport = (d.sport || '').toLowerCase();
       const copy = (SPORT_COPY[sport] || SPORT_COPY.generic)[stepIdx];
       const vars = { first, last: full.split(/\s+/).slice(1).join(' '), coach: full, school: d.school || '', email: e };
+      const mailto = `mailto:support@elite-athlete.app?subject=${encodeURIComponent('Set up ' + (d.school || 'my program') + ' on Elite Athlete')}`;
       return {
         email: e,
         subject: personalize(copy.subject, vars),
-        html: buildHtml(personalize(copy.body, vars), personalize(copy.cta, vars), 'mailto:support@elite-athlete.app?subject=' + encodeURIComponent('Set up ' + (d.school || 'my program') + ' on Elite Athlete'), e),
+        html: buildHtml(personalize(copy.body, vars), personalize(copy.cta, vars), mailto, e),
       };
     });
 
@@ -241,7 +242,7 @@ export default async (req) => {
   return new Response(JSON.stringify({
     ok: true,
     dry_run: dryRun,
-    message: dryRun ? 'Dry run â€” no emails sent' : `Follow-ups: ${grandSent} sent, ${grandFailed} failed`,
+    message: dryRun ? 'Dry run — no emails sent' : `Follow-ups: ${grandSent} sent, ${grandFailed} failed`,
     steps: report,
   }), { status: 200, headers: CORS });
 };
