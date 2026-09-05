@@ -9281,8 +9281,8 @@ COACHING GUIDELINES:
                                   </svg>
                                 </div>
                                 <div style={{textAlign:"center"}}>
-                                  <div style={{fontSize:"0.88rem",fontWeight:600,color:"var(--gold)",letterSpacing:"3px",textTransform:"uppercase",marginBottom:"0.2rem",fontSize:"0.72rem",fontWeight:700}}>UPLOAD PHOTO</div>
-                                  <div style={{fontSize:"0.72rem",color:"rgba(255,255,255,0.4)",letterSpacing:"1px",textTransform:"uppercase",whiteSpace:"nowrap",fontSize:"0.55rem"}}>JPG · PNG · HEIC</div>
+                                  <div style={{color:"var(--gold)",letterSpacing:"3px",textTransform:"uppercase",marginBottom:"0.2rem",fontSize:"0.72rem",fontWeight:700}}>UPLOAD PHOTO</div>
+                                  <div style={{color:"rgba(255,255,255,0.4)",letterSpacing:"1px",textTransform:"uppercase",whiteSpace:"nowrap",fontSize:"0.55rem"}}>JPG · PNG · HEIC</div>
                                 </div>
                               </div>
                             </label>
@@ -9306,7 +9306,7 @@ COACHING GUIDELINES:
                                   </svg>
                                 </div>
                                 <div style={{textAlign:"center"}}>
-                                  <div style={{fontSize:"0.88rem",fontWeight:600,color:"var(--ivory)",letterSpacing:"3px",textTransform:"uppercase",marginBottom:"0.2rem",fontSize:"0.72rem",fontWeight:700}}>CAMERA</div>
+                                  <div style={{color:"var(--ivory)",letterSpacing:"3px",textTransform:"uppercase",marginBottom:"0.2rem",fontSize:"0.72rem",fontWeight:700}}>CAMERA</div>
                                   <div style={{fontSize:"0.66rem",color:"rgba(255,255,255,0.4)",letterSpacing:"1.5px",textTransform:"uppercase"}}>LIVE CAPTURE</div>
                                 </div>
                               </div>
