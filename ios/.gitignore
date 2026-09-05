@@ -1,0 +1,28 @@
+App/build
+App/Pods
+App/output
+App/App/public
+DerivedData
+xcuserdata
+
+# Cordova plugins for Capacitor
+capacitor-cordova-ios-plugins
+
+# Generated Config files
+App/App/capacitor.config.json
+App/App/config.xml
+
+# Added: signing secrets, local Xcode state, macOS noise
+build/
+*.xcuserstate
+*.mobileprovision
+*.p12
+*.cer
+*.certSigningRequest
+ExportOptions.plist
+.DS_Store
+
+# Stale copies of the generated bundle left by earlier debugging
+App/App/public_stale_*
+App/App/public.bak
+App/App/public_old*

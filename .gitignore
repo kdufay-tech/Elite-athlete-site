@@ -10,12 +10,9 @@ dist/
 resend api key.txt
 *.txt
 stripe cupon id.txt
-ios/
 Assets/
 .netlify/
 .env.local
-ios/App/Pods/
-ios/App/build/
 android/app/build/.env.local.save
 .env*.save
 .DS_Store
