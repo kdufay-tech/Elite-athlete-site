@@ -175,10 +175,26 @@ export async function deleteJournalEntry(entryId) {
 
 // ── PROGRESS NOTES ────────────────────────────────────────────
 
+// Upsert by id, exactly like saveJournalEntry. This used to be an unconditional
+// INSERT, and the debounced autosave in App.jsx re-fired on every auth event -
+// sign-in and the hourly TOKEN_REFRESHED - so one note written in March had been
+// re-inserted 2,645 times by September. 3,054 rows held 18 real notes.
+// The caller MUST store the returned id back into state, or every save is a new row.
 export async function saveProgressNote(userId, note) {
+  if (note.id) {
+    const { data, error } = await supabase
+      .from('progress_notes')
+      .update({ text: note.text })
+      .eq('id', note.id)
+      .eq('user_id', userId);
+    if (error) throw error;
+    return data;
+  }
   const { data, error } = await supabase
     .from('progress_notes')
-    .insert({ user_id: userId, ...note, created_at: new Date().toISOString() });
+    .insert({ user_id: userId, text: note.text, created_at: new Date().toISOString() })
+    .select()
+    .single();
   if (error) throw error;
   return data;
 }

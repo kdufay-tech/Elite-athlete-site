@@ -4205,6 +4205,7 @@ export default function App() {
   const [obStep, setObStep] = useState(1);
   const [obSaving, setObSaving] = useState(false);
   const dataLoadedRef = useRef(false);
+  const lastNoteSaved = useRef(null);   // guards the progress-note autosave
   const recoveryHandledRef = useRef(false);
   const [dash, setDash] = useState("nutrition");
   const [toast, setToast] = useState(null);
@@ -4947,15 +4948,30 @@ export default function App() {
   }, [jEntries[0]?.text, authUser]);
 
   // ── AUTOSAVE — PROGRESS NOTES (debounced 2s) ─────────────────
+  // Three defects lived here and produced 3,036 duplicate rows from 18 notes:
+  //   1. saveProgressNote INSERTed unconditionally - no id, no upsert
+  //   2. the returned id was never stored, so every save was a fresh row
+  //   3. `authUser` was a dependency, and its identity changes on EVERY auth
+  //      event - sign-in and the hourly TOKEN_REFRESHED - re-arming the save
+  //      with unchanged text. authUser.id is stable; the object is not.
+  // lastNoteSaved guards the remaining case: reload puts the note back into
+  // state, which would otherwise re-save text that is already stored.
   useEffect(() => {
     if (!authUser?.id || notes.length === 0) return;
-    const timer = setTimeout(() => {
-      const latest = notes[0];
-      if (latest?.text) saveProgressNote(authUser.id, { text: latest.text })
-        .catch(err => console.error('notes autosave:', err));
+    const latest = notes[0];
+    if (!latest?.text) return;
+    if (lastNoteSaved.current === latest.text) return;
+    const timer = setTimeout(async () => {
+      try {
+        const saved = await saveProgressNote(authUser.id, { id: latest.id, text: latest.text });
+        lastNoteSaved.current = latest.text;
+        if (saved?.id && !latest.id) {
+          setNotes(prev => prev.map((n, i) => i === 0 ? { ...n, id: saved.id } : n));
+        }
+      } catch (err) { console.error('notes autosave:', err); }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [notes[0]?.text, authUser]);
+  }, [notes[0]?.text, notes[0]?.id, authUser?.id]);
 
   const shout = (msg, icon="✦") => {
     const isError = icon === "!" || msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("denied");
