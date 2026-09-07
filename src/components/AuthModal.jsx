@@ -10,7 +10,9 @@ const IS_IOS = Capacitor.getPlatform() === 'ios';
 // Password complexity, enforced on signup. Restored from the `main` branch,
 // where it was added as a security fix and then lost when this component was
 // rewritten on `master` - which left only a bare length >= 8 check.
-function validatePassword(pw) {
+// Exported so the password-recovery modal in App.jsx enforces the SAME rules
+// as signup. Reset is exactly where a weak password must not slip through.
+export function validatePassword(pw) {
   const errors = [];
   if (!pw || pw.length < 8) errors.push('8+ characters');
   if (!/[A-Z]/.test(pw))    errors.push('an uppercase letter');

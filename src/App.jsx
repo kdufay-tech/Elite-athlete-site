@@ -7,7 +7,7 @@ import { getSession, getFreshToken, onAuthChange, signOut, saveProfile, loadProf
          markOnboardingComplete, arrivedFromRecoveryLink } from "./lib/supabase";
 import { downloadMealPlanPDF, downloadWorkoutPDF, downloadProgressReportPDF, downloadJournalPDF, downloadRecoveryPDF, downloadAthleteReportCard } from "./lib/pdf";
 import { emailMealPlan, emailProgressReport, emailInjuryProtocol, emailWorkoutPlan, emailRecoveryNutrition, sendEmail } from "./lib/email";
-import AuthModal from "./components/AuthModal";
+import AuthModal, { validatePassword } from "./components/AuthModal";
 import DeleteAccountModal from "./components/DeleteAccountModal";
 import AICoachConsentModal from "./components/AICoachConsentModal";
 import PayModal from "./components/CheckoutModal";
@@ -4461,6 +4461,12 @@ export default function App() {
   const [recruitingCardSent, setRecruitingCardSent] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
+  // Password-recovery modal: shown when the user arrives on a reset link.
+  const [showSetPassword, setShowSetPassword] = useState(false);
+  const [recoveryPw, setRecoveryPw]       = useState("");
+  const [recoveryPw2, setRecoveryPw2]     = useState("");
+  const [recoveryErr, setRecoveryErr]     = useState("");
+  const [recoverySaving, setRecoverySaving] = useState(false);
   // Coach Connect state
   // Push notification state
   const [notifPermission, setNotifPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'default');
@@ -4686,9 +4692,13 @@ export default function App() {
         // Arriving from a password-reset link: land them on Profile, where the
         // change-password field lives, instead of dropping them on the dashboard
         // with no indication of what to do next.
-        if (event === 'PASSWORD_RECOVERY') {
-          setDash('profile');
-          shout('Signed in from your reset link - set a new password below', '\u{1F511}');
+        // Second path to the same modal. This event usually fires before this
+        // component subscribes and is never replayed - the boot-URL effect
+        // below is the reliable one - but on the occasions it does arrive,
+        // route it to the same place rather than the Profile tab.
+        if (event === 'PASSWORD_RECOVERY' && !recoveryHandledRef.current) {
+          recoveryHandledRef.current = true;
+          setShowSetPassword(true);
         }
         setAuthLoading(false);
         // Redeem any pending beta code from localStorage (survives email confirmation flow)
@@ -4720,9 +4730,13 @@ export default function App() {
   useEffect(() => {
     if (!authUser || !arrivedFromRecoveryLink || recoveryHandledRef.current) return;
     recoveryHandledRef.current = true;
+    // Do NOT route to Profile: the change-password field sits below Stats,
+    // My Team and the rest of a long page, so the user has to scroll and hunt
+    // for it. Show a dedicated modal instead - nothing else on screen until
+    // the password is set. The old shout() also auto-dismissed after 3.2s,
+    // which fired while loadUserData was still running, so it was never seen.
     setScreen('dashboard');
-    setDash('profile');
-    shout('Signed in from your reset link - set a new password below', '\u{1F511}');
+    setShowSetPassword(true);
   }, [authUser]);
 
   // ── BETA EXPIRY CHECK ─────────────────────────────────────────
@@ -11281,6 +11295,68 @@ ${recruitingNote}`:null,
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* SET A NEW PASSWORD - password-recovery arrival modal.
+          Opened by the arrivedFromRecoveryLink effect. Deliberately NOT the
+          Profile tab: the change-password field there sits below Stats, My
+          Team and the rest of a long page. Uses validatePassword() from
+          AuthModal so a reset cannot set a weaker password than signup allows. */}
+      {showSetPassword && (
+        <div className="pmbg">
+          <div className="pm" onClick={e=>e.stopPropagation()} style={{maxWidth:420}}>
+            <div className="pmh">
+              <div style={{fontFamily:"'Cormorant SC',serif",fontSize:"1.45rem",fontWeight:600,letterSpacing:"3px",color:"var(--ivory)"}}>
+                SET A NEW PASSWORD
+              </div>
+            </div>
+            <div className="pmb">
+              <div style={{fontSize:"0.85rem",color:"var(--ivory2)",lineHeight:1.6,marginBottom:"1.1rem"}}>
+                You are signed in from your reset link. Choose a new password to finish.
+              </div>
+              <div className="f">
+                <label className="fl">New Password</label>
+                <input className="fi" type="password" autoComplete="new-password"
+                  value={recoveryPw} onChange={e=>{setRecoveryPw(e.target.value); setRecoveryErr("");}}/>
+              </div>
+              <div className="f">
+                <label className="fl">Confirm New Password</label>
+                <input className="fi" type="password" autoComplete="new-password"
+                  value={recoveryPw2} onChange={e=>{setRecoveryPw2(e.target.value); setRecoveryErr("");}}
+                  onKeyDown={e=>{ if(e.key==="Enter") document.getElementById("ea-set-pw-btn")?.click(); }}/>
+              </div>
+              <div style={{fontSize:"0.7rem",color:"var(--muted)",lineHeight:1.6,marginBottom:"1rem"}}>
+                At least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character.
+              </div>
+              {recoveryErr && (
+                <div style={{fontSize:"0.72rem",color:"#E08080",marginBottom:"0.85rem"}}>{recoveryErr}</div>
+              )}
+              <button id="ea-set-pw-btn" className="bg"
+                style={{width:"100%",padding:"0.9rem",fontSize:"0.68rem",letterSpacing:"2.5px",opacity:recoverySaving?0.7:1}}
+                disabled={recoverySaving}
+                onClick={async()=>{
+                  const check = validatePassword(recoveryPw);
+                  if(!check.valid){ setRecoveryErr("Password needs: " + check.errors.join(", ")); return; }
+                  if(recoveryPw !== recoveryPw2){ setRecoveryErr("Passwords do not match."); return; }
+                  setRecoverySaving(true);
+                  try{
+                    await updatePassword(recoveryPw);
+                    setRecoveryPw(""); setRecoveryPw2(""); setRecoveryErr("");
+                    setShowSetPassword(false);
+                    shout("Password updated - you are signed in","*");
+                  }catch(err){
+                    setRecoveryErr((err && err.message) || "Could not update password. Request a new reset link.");
+                  }finally{ setRecoverySaving(false); }
+                }}>
+                {recoverySaving ? "Saving..." : "Save New Password"}
+              </button>
+              <button
+                style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:"0.72rem",padding:"0.9rem 0 0",cursor:"pointer"}}
+                onClick={()=>{ setRecoveryPw(""); setRecoveryPw2(""); setRecoveryErr(""); setShowSetPassword(false); }}>
+                Not now - keep my current password
+              </button>
             </div>
           </div>
         </div>
