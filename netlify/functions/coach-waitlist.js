@@ -131,8 +131,8 @@ WHAT'S COMING IN COACH PRO:
 ◆ Per-Athlete Billing — $4.99/athlete/month
 
 PRICING (Founding Member):
-◆ $99/month base + $4.99/athlete/month
-◆ or $899/year flat - unlimited athletes, no per-seat charge
+◆ $899/year subscription + $4.99/athlete/month
+◆ Per-athlete seats are billed monthly and track your roster
 
 You're among the first coaches to sign up. We'll be in touch.
 

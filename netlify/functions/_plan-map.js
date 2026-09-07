@@ -39,7 +39,10 @@ export const PLAN_BY_PRICE = {
   [e.VITE_STRIPE_PRICE_ATHLETE_ANNUAL  || 'price_1TDtnXEJzVyHAKH89Uq3kV5Y']: 'athlete_annual',
   [e.VITE_STRIPE_PRICE_ELITE_MONTHLY   || 'price_1TDtxVEJzVyHAKH8ripHGexG']: 'elite',
   [e.VITE_STRIPE_PRICE_ELITE_ANNUAL    || 'price_1TDtyPEJzVyHAKH8K0s74tQC']: 'elite_annual',
-  [e.VITE_STRIPE_PRICE_COACH_MONTHLY   || 'price_1TDtzdEJzVyHAKH8NbNZ2kf6']: 'coach',
+  // RETIRED 2026-09-07. Coach Pro is annual-only ($899/yr + $4.99/athlete/mo).
+  // Deliberately absent from this map so stripe-checkout REFUSES the price
+  // even if it is still Active in Stripe. Archive it there too.
+  // [COACH_MONTHLY price_1TDtzdEJzVyHAKH8NbNZ2kf6] -> retired, not sellable
   [e.VITE_STRIPE_PRICE_COACH_ANNUAL    || 'price_1TDu0VEJzVyHAKH8x8A17fkc']: 'coach_annual',
   [e.VITE_STRIPE_PRICE_ATHLETE_SEAT    || 'price_1TDxgUEJzVyHAKH8DuXr4sVF']: 'athlete_seat',
 };
@@ -86,15 +89,16 @@ export async function planFromStripePrice(priceId, stripeSecret) {
 
 
 // ── PER-ATHLETE SEAT PRICE ───────────────────────────────────
-// Monthly Coach Pro is billed $99 base + $4.99 per active athlete per month.
-// ANNUAL Coach Pro ($899/yr) is FLAT - no seat charge. That is a pricing
-// decision, and also a Stripe constraint: every item in one subscription must
-// share a billing interval, so a monthly seat cannot sit on an annual
-// subscription and no annual seat price exists.
+// Coach Pro is ONE subscription: $899/year. On top of it, every active
+// athlete costs $4.99/month. There is no $99/month coach plan.
+//
+// Those two cadences cannot live in one Stripe subscription - every item in a
+// subscription must share a billing interval - so the seats are carried on a
+// SEPARATE monthly subscription against the same customer. See _seat-sync.js.
 export const SEAT_PRICE_MONTHLY =
   process.env.VITE_STRIPE_PRICE_ATHLETE_SEAT || 'price_1TDxgUEJzVyHAKH8DuXr4sVF';
 
-/** Plans that carry per-athlete seat billing. Annual and comp plans do not. */
+/** Plans that carry per-athlete seat billing. Comp plans never do. */
 export function planHasSeats(planName) {
-  return planName === 'coach';
+  return planName === 'coach_annual';
 }

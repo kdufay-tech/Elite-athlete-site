@@ -10716,7 +10716,7 @@ ${recruitingNote}`:null,
 
           {/* MY TEAM — coach roster */}
           {dash==="team" && (!canAccess('coach')
-            ? <UpgradePrompt feature="Coach Dashboard" desc="Create a team, invite your athletes with a join code, and see every athlete's readiness and check-in status in one place — at-risk first." onUpgrade={()=>setScreen("pricing")} ctaLabel="See Coach Pro" ctaSub="$99/mo base + $4.99 per athlete · managed from your Elite Athlete account"/>
+            ? <UpgradePrompt feature="Coach Dashboard" desc="Create a team, invite your athletes with a join code, and see every athlete's readiness and check-in status in one place — at-risk first." onUpgrade={()=>setScreen("pricing")} ctaLabel="See Coach Pro" ctaSub="$899/yr subscription + $4.99 per athlete/month · managed from your Elite Athlete account"/>
             : <>
                 <div style={{marginBottom:"2rem"}}><div className="eyebrow">Coaching</div><h2 className="sh2">My <em>Team</em></h2></div>
                 <CoachRoster authUser={authUser} getFreshToken={getFreshToken} shout={shout} nativeShare={nativeShare} apiBase={API_BASE}/>
@@ -11394,7 +11394,7 @@ ${recruitingNote}`:null,
 // ─────────────────────────────────────────────────────────────
 // PRICING SECTION — 4-Tier with annual/monthly toggle
 // Free · Athlete ($29/mo·$199/yr) · Elite ($69/mo·$529/yr)
-// Coach Pro: $99/mo + $4.99/athlete/mo  ·  $899/yr flat (no seat charge)
+// Coach Pro: $899/yr subscription + $4.99/athlete/month
 // ─────────────────────────────────────────────────────────────
 function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan }) {
   const [billing, setBilling] = useState('monthly');
@@ -11462,8 +11462,8 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
       tierKey: 'coach',
       tier: 'Professional',
       name: 'Coach Pro',
-      monthly: { price: '$99', extra: '+ $4.99/athlete/mo', label: '/month base + per athlete' },
-      annual:  { price: '$899', extra: 'flat · unlimited athletes', label: '/yr · billed annually', moEquiv: '$74.92/mo', save: 'Save $289/yr on base' },
+      annualOnly: true,
+      annual:  { price: '$899', extra: '+ $4.99/athlete/month', label: '/yr subscription · billed annually', moEquiv: '$74.92/mo' },
       feats: [
         'Everything in Elite',
         'Coach dashboard — roster + readiness',
@@ -11514,7 +11514,9 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
         background:'rgba(191,161,106,0.07)',border:'1px solid rgba(191,161,106,0.07)',
         borderRadius:'var(--r-xl)',overflow:'hidden'}}>
         {TIERS.map(t => {
-          const b = billing === 'annual' ? t.annual : t.monthly;
+          // An annual-only tier (Coach Pro) always shows its annual price, whatever
+          // the page toggle says - t.monthly is null for it.
+          const b = (t.annualOnly || billing === 'annual') ? t.annual : t.monthly;
           return (
             <div key={t.name} style={{
               background: t.feat ? 'var(--slate)' : 'var(--charcoal)',

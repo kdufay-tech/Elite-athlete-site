@@ -1,26 +1,38 @@
 // ─────────────────────────────────────────────────────────────
 // netlify/functions/_seat-sync.js
-// Keeps a monthly Coach Pro subscription's seat quantity equal to the coach's
-// active roster.
+// Keeps a Coach Pro coach's per-athlete seat charge equal to their roster.
 //
-// WHY
-//   Coach Pro monthly is advertised as "$99/month base + $4.99/athlete/month".
-//   The base was charged; the seats never were. stripe-checkout.js sends a
-//   single line item (`line_items: [{ price, quantity: 1 }]`) and nothing
-//   anywhere added a seat item or moved its quantity. Coaches were billed a
-//   flat $99 regardless of roster size.
+// THE MODEL
+//   Coach Pro is ONE subscription fee: $899/year.
+//   On top of it, each active athlete costs $4.99/month.
+//   There is no $99/month coach plan.
 //
-// SCOPE - deliberately narrow
-//   * plan_name === 'coach' only. ANNUAL ($899/yr) is flat by decision, and
-//     Stripe forbids mixing intervals in one subscription anyway.
-//   * comp plans (coach_comp) are skipped - they are not billed.
-//   * Only status='active' rows count, and each athlete counts once even if
-//     they are on two of the same coach's teams.
+// WHY TWO SUBSCRIPTIONS
+//   Stripe requires every item in a subscription to share a billing interval,
+//   so a $4.99/MONTH seat cannot be an item on an $899/YEAR subscription. The
+//   seats therefore ride a SECOND, monthly subscription against the same
+//   Stripe customer. The coach sees one annual charge and one monthly charge
+//   that tracks headcount.
+//
+// WHY THIS EXISTS AT ALL
+//   The UI advertised per-athlete billing and nothing ever charged it.
+//   stripe-checkout.js sends one line item at quantity 1; no code added a seat
+//   anywhere. The $4.99 price has existed in Stripe since 23 March with zero
+//   subscriptions against it.
+//
+// SCOPE
+//   * plan_name === 'coach_annual' only. Comp plans are never billed.
+//   * status='active' members only; an athlete on two of the coach's teams
+//     counts once.
 //
 // SAFETY
-//   Never throws into the caller. A Stripe hiccup must not stop an athlete
-//   joining a team. Failures are logged and the next join/leave re-syncs,
-//   because this recomputes from the roster rather than adjusting by a delta.
+//   Never throws into the caller - a billing hiccup must not stop an athlete
+//   joining a team. Recomputes from the roster rather than adjusting by a
+//   delta, so a missed sync self-heals on the next roster change.
+//
+//   Creating the seat subscription charges the card off-session. If the coach's
+//   payment method needs authentication it can fail; that is logged, the join
+//   still succeeds, and the next roster change retries.
 // ─────────────────────────────────────────────────────────────
 
 import { SEAT_PRICE_MONTHLY, planHasSeats } from './_plan-map.js';
@@ -60,7 +72,7 @@ export async function syncCoachSeats(coachId, { supabaseUrl, serviceKey, stripeS
 
     // 1. The coach's subscription.
     const subRes = await fetch(
-      `${REST}/subscriptions?user_id=eq.${coachId}&select=plan_name,status,stripe_subscription_id`,
+      `${REST}/subscriptions?user_id=eq.${coachId}&select=plan_name,status,stripe_subscription_id,stripe_customer_id`,
       { headers: H });
     const sub = (subRes.ok ? await subRes.json() : [])[0];
     if (!sub) return { synced: false, reason: 'no subscription row' };
@@ -76,19 +88,32 @@ export async function syncCoachSeats(coachId, { supabaseUrl, serviceKey, stripeS
     const rows = memRes.ok ? await memRes.json() : [];
     const seats = new Set(rows.map(r => r.athlete_id).filter(Boolean)).size;
 
-    // 3. Current seat item on the subscription, if any.
-    const stripeSub = await stripeReq(`/subscriptions/${sub.stripe_subscription_id}`, stripeSecret);
-    const seatItem = (stripeSub.items?.data || []).find(i => i.price?.id === SEAT_PRICE_MONTHLY);
+    // 3. Find the coach's seat subscription, if one exists. It is a separate
+    //    monthly subscription on the same customer, carrying only the seat price.
+    if (!sub.stripe_customer_id) return { synced: false, reason: 'no stripe customer id' };
 
-    // 4. Converge. Stripe prorates each change automatically.
-    if (seats > 0 && !seatItem) {
-      await stripeReq('/subscription_items', stripeSecret, 'POST', {
-        subscription: sub.stripe_subscription_id,
-        price: SEAT_PRICE_MONTHLY,
-        quantity: seats,
+    const list = await stripeReq(
+      `/subscriptions?customer=${encodeURIComponent(sub.stripe_customer_id)}&status=active&limit=100`,
+      stripeSecret);
+    let seatSub = null, seatItem = null;
+    for (const s2 of (list.data || [])) {
+      if (s2.id === sub.stripe_subscription_id) continue;      // the $899 base
+      const item = (s2.items?.data || []).find(i => i.price?.id === SEAT_PRICE_MONTHLY);
+      if (item) { seatSub = s2; seatItem = item; break; }
+    }
+
+    // 4. Converge. Stripe prorates quantity changes automatically.
+    if (seats > 0 && !seatSub) {
+      await stripeReq('/subscriptions', stripeSecret, 'POST', {
+        customer: sub.stripe_customer_id,
+        'items[0][price]': SEAT_PRICE_MONTHLY,
+        'items[0][quantity]': seats,
+        'metadata[plan_name]': 'coach_seats',
+        'metadata[base_subscription]': sub.stripe_subscription_id,
+        off_session: 'true',
       });
-    } else if (seatItem && seats === 0) {
-      await stripeReq(`/subscription_items/${seatItem.id}`, stripeSecret, 'DELETE');
+    } else if (seatSub && seats === 0) {
+      await stripeReq(`/subscriptions/${seatSub.id}`, stripeSecret, 'DELETE');
     } else if (seatItem && seatItem.quantity !== seats) {
       await stripeReq(`/subscription_items/${seatItem.id}`, stripeSecret, 'POST', { quantity: seats });
     } else {

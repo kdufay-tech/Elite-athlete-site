@@ -17,7 +17,10 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
   const [loading,    setLoading]    = useState(false);
   const [apiError,   setApiError]   = useState('');
 
-  const billingInfo = billing === 'annual' ? info.annual : info.monthly;
+  // Coach Pro is annual-only ($899/yr subscription; seats bill separately per
+  // month). Force annual so a null info.monthly can never reach checkout.
+  const annualOnly  = !!info.annualOnly || !info.monthly;
+  const billingInfo = (annualOnly || billing === 'annual') ? info.annual : info.monthly;
   const priceKey    = billingInfo?.key;
   const planName    = billingInfo?.planName;
 
@@ -78,7 +81,8 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
 
           {(
             <>
-              {/* ── BILLING TOGGLE — annual is default ── */}
+              {/* ── BILLING TOGGLE — annual is default; hidden when the tier is annual-only ── */}
+              {!annualOnly && (
               <div style={{display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:'var(--r)',padding:'3px',marginBottom:'1.25rem',gap:'3px'}}>
                 <button onClick={() => setBilling('annual')} style={{
                   flex:1,padding:'0.55rem',fontSize:'0.7rem',letterSpacing:'1px',
@@ -98,6 +102,7 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
                   Monthly <span style={{fontSize:'0.58rem',opacity:0.6}}>(Flexible)</span>
                 </button>
               </div>
+              )}
 
               {/* ── PRICE DISPLAY ── */}
               <div style={{textAlign:'center',marginBottom:'1.25rem',padding:'0.75rem',background:'rgba(191,161,106,0.04)',borderRadius:'var(--r)',border:'1px solid rgba(191,161,106,0.12)'}}>
