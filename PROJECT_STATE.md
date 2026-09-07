@@ -265,6 +265,45 @@ manual for now.
 
 ---
 
+## Adding athletes to a team  (built 2026-09-07)
+
+Two ways in. Both land on the same `team_members` insert and the same seat sync.
+
+| | Default | Reuse | Expiry | Revocable |
+|---|---|---|---|---|
+| Per-athlete invite (`team_invites`) | **the norm** | single use | 14 days | yes |
+| Shared team code (`teams.join_code`) | **OFF** | unlimited | never | rotate only |
+
+**Why the shared code is opt-in.** It used to be the only way in: permanent,
+unrotatable, no approval, no cap. Anyone holding it joined instantly. That was
+harmless while a roster cost nothing - it stopped being harmless the moment
+per-athlete billing went in, since a leaked code became an uncapped recurring
+charge on the coach's card. It survives for onboarding a squad in one room;
+`join_code_enabled` gates it and `rotate_code` kills a leaked one instantly.
+
+**Roster caps are spend ceilings.** `teams.level` drives them, and the client
+mirror in `CoachRoster.jsx` (`LEVELS`) must stay in step with `ROSTER_CAPS` in
+`coach-team.js`:
+
+```
+hs 55 = $274/mo    college 150 = $748/mo
+pro 250 = $1,247/mo   youth 500 = $2,495/mo
+```
+
+An unset level gets the SMALLEST cap, not none. `invite_create` counts
+outstanding invites as future seats and will not mint past the cap.
+
+**Actions** (`coach-team.js`): `invite_create` (<=25, optional labels),
+`invite_list` (paginated, exact count), `invite_revoke`, `rotate_code`,
+`toggle_code`.
+
+**Backward compatible with shipped iOS/Android:** they post
+`{action:'join', code}` and read `team.join_code`. Their open code is simply
+rejected until a coach enables it. Older builds have no invite UI - coaches on
+them must use the web app to generate codes.
+
+---
+
 ## Tech Stack
 - React + Vite
   - Windows: `C:\Users\kdufa\App Development\Elite Athlete\elite-athlete-v3`

@@ -19,6 +19,18 @@ import { Sparkline, readColor, readLabel } from "./ReadinessChart";
 const PAGE = 50;
 const SPARK_DAYS = 14;
 
+// Mirrors ROSTER_CAPS in netlify/functions/coach-team.js. A cap is also a
+// monthly spend ceiling: every active athlete is $4.99/month on top of the
+// $899/year subscription. Keep the two in step.
+const LEVELS = [
+  { v: "hs",      label: "High School",              cap: 55  },
+  { v: "college", label: "College",                  cap: 150 },
+  { v: "pro",     label: "Professional",             cap: 250 },
+  { v: "youth",   label: "Youth / multi-grade club", cap: 500 },
+];
+const capFor = lv => (LEVELS.find(l => l.v === lv)?.cap ?? 55);
+const SEAT_COST = 4.99;
+
 const L = {
   wrap:  { marginBottom: "1.5rem" },
   lab:   { fontFamily: "'Inter',sans-serif", fontSize: "0.55rem", fontWeight: 700,
@@ -54,6 +66,12 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
   const [selected, setSelected] = useState(null);
   const [view, setView]         = useState("roster");   // roster | practice | programs
   const [removing, setRemoving] = useState(null);
+  const [newLevel, setNewLevel] = useState("hs");
+  const [invites, setInvites]   = useState([]);
+  const [invBusy, setInvBusy]   = useState(false);
+  const [invCount, setInvCount] = useState(1);
+  const [invLabels, setInvLabels] = useState("");
+  const [showInvites, setShowInvites] = useState(false);
 
   const call = useCallback(async (path, opts = {}) => {
     const tok = await getFreshToken();
@@ -117,7 +135,7 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
     try {
       const d = await call("coach-team", {
         method: "POST",
-        body: JSON.stringify({ action: "create", name: newName.trim(), sport: newSport.trim() || null }),
+        body: JSON.stringify({ action: "create", name: newName.trim(), sport: newSport.trim() || null, level: newLevel }),
       });
       shout(`Team created — code ${d.team.join_code}`, "◆");
       setNewName(""); setNewSport("");
@@ -125,6 +143,82 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
       await load({ teamId: d.team.id, offset: 0 });
     } catch (e) { shout(e.message, "!"); }
     finally { setCreating(false); }
+  };
+
+  // ── INVITES ────────────────────────────────────────────────
+  const loadInvites = async (teamId) => {
+    if (!teamId) return;
+    try {
+      const d = await call("coach-team", {
+        method: "POST",
+        body: JSON.stringify({ action: "invite_list", team_id: teamId, status: "pending", limit: 100 }),
+      });
+      setInvites(d.invites || []);
+    } catch (e) { /* non-fatal - the panel just stays empty */ }
+  };
+
+  const createInvites = async (team) => {
+    setInvBusy(true);
+    try {
+      const labels = invLabels.split(/[\n,]/).map(x => x.trim()).filter(Boolean);
+      const d = await call("coach-team", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "invite_create", team_id: team.id,
+          count: labels.length || Number(invCount) || 1,
+          labels,
+        }),
+      });
+      const n = (d.invites || []).length;
+      shout(d.capped ? `Created ${n} - roster cap reached` : `${n} invite code${n === 1 ? "" : "s"} created`, "\u25C6");
+      setInvLabels(""); setInvCount(1);
+      await loadInvites(team.id);
+    } catch (e) { shout(e.message, "!"); }
+    finally { setInvBusy(false); }
+  };
+
+  const revokeInvite = async (inv, team) => {
+    try {
+      await call("coach-team", {
+        method: "POST",
+        body: JSON.stringify({ action: "invite_revoke", invite_id: inv.id }),
+      });
+      shout("Invite revoked", "\u25C6");
+      await loadInvites(team.id);
+    } catch (e) { shout(e.message, "!"); }
+  };
+
+  const shareInvite = async (inv, team) => {
+    const text =
+      `You're invited to join ${team.name} on Elite Athlete.\n\n` +
+      `Your code: ${inv.code}\n\n` +
+      `1. Download Elite Athlete\n2. Open Profile -> Join a Team\n3. Enter ${inv.code}\n\n` +
+      `This code works once and expires in 14 days.`;
+    const ok = await nativeShare({ title: `${team.name} - invite`, text, url: "https://elite-athlete.app" });
+    if (!ok) shout("Invite copied to clipboard", "\u25C6");
+  };
+
+  const rotateCode = async (team) => {
+    if (!window.confirm("Generate a new team code? The current code stops working immediately.")) return;
+    try {
+      const d = await call("coach-team", {
+        method: "POST",
+        body: JSON.stringify({ action: "rotate_code", team_id: team.id }),
+      });
+      shout(`New team code - ${d.join_code}`, "\u25C6");
+      await load({ teamId: team.id, offset: 0 });
+    } catch (e) { shout(e.message, "!"); }
+  };
+
+  const toggleOpenCode = async (team, enabled) => {
+    try {
+      await call("coach-team", {
+        method: "POST",
+        body: JSON.stringify({ action: "toggle_code", team_id: team.id, enabled }),
+      });
+      shout(enabled ? "Open team code is ON - anyone with it can join" : "Open team code is OFF", "\u25C6");
+      await load({ teamId: team.id, offset: 0 });
+    } catch (e) { shout(e.message, "!"); }
   };
 
   const shareCode = async (team) => {
@@ -192,6 +286,20 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
             <input style={L.input} value={newSport} onChange={e => setNewSport(e.target.value)}
                    placeholder="football" maxLength={40} />
           </div>
+
+          <div style={{ marginBottom: "1.25rem" }}>
+            <div style={L.lab}>Level</div>
+            <select style={{ ...L.input, cursor: "pointer" }} value={newLevel}
+                    onChange={e => setNewLevel(e.target.value)}>
+              {LEVELS.map(l => (
+                <option key={l.v} value={l.v}>{l.label} — up to {l.cap} athletes</option>
+              ))}
+            </select>
+            <div style={{ fontSize: "0.68rem", color: "var(--muted)", marginTop: "0.4rem", lineHeight: 1.5 }}>
+              Sets your roster limit. Each active athlete is ${SEAT_COST.toFixed(2)}/month on top of your
+              subscription — at {capFor(newLevel)} athletes that is ${(capFor(newLevel) * SEAT_COST).toFixed(2)}/month.
+            </div>
+          </div>
           <button style={{ ...L.btn, opacity: creating ? 0.5 : 1 }} disabled={creating} onClick={createTeam}>
             {creating ? "Creating…" : "Create Team ◆"}
           </button>
@@ -228,16 +336,102 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
             </div>
           )}
 
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-            <div>
-              <div style={L.lab}>Join Code</div>
-              <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "1.6rem", fontWeight: 700,
-                            letterSpacing: "6px", color: "var(--gold-lt)", marginTop: "0.3rem" }}>
-                {team?.join_code}
+          {/* ── ADDING ATHLETES ──────────────────────────────────
+              Two ways in. Per-athlete invite codes are the default: single
+              use, 14-day expiry, revocable. The shared open code is opt-in
+              and off by default, because anyone holding it joins instantly
+              and every athlete is $4.99/month. */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <button style={L.btn}
+              onClick={() => { setShowInvites(v => !v); if (!showInvites) loadInvites(team.id); }}>
+              {showInvites ? "Hide Invites" : "Invite Athletes"}
+            </button>
+            <div style={{ fontSize: "0.72rem", color: "var(--muted)" }}>
+              {page.total ?? 0} of {capFor(team?.level)} athletes
+              {" · "}${(((page.total ?? 0)) * SEAT_COST).toFixed(2)}/month in seats
+            </div>
+          </div>
+
+          {showInvites && (
+            <div style={{ marginTop: "1.25rem", padding: "1.1rem", borderRadius: "var(--r)",
+                          border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
+              <div style={L.lab}>Create Invite Codes</div>
+              <div style={{ fontSize: "0.7rem", color: "var(--muted)", margin: "0.4rem 0 0.9rem", lineHeight: 1.55 }}>
+                One code per athlete. Each works once and expires in 14 days.
+                Names are optional — they only help you track who you sent which code to.
+              </div>
+              <textarea style={{ ...L.input, minHeight: "68px", resize: "vertical" }}
+                placeholder="One name per line, or leave blank and choose a number below"
+                value={invLabels} onChange={e => setInvLabels(e.target.value)} />
+              <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", marginTop: "0.8rem" }}>
+                {!invLabels.trim() && (
+                  <>
+                    <span style={{ fontSize: "0.7rem", color: "var(--muted)" }}>How many?</span>
+                    <input type="number" min="1" max="25" value={invCount}
+                      onChange={e => setInvCount(e.target.value)}
+                      style={{ ...L.input, width: "70px", textAlign: "center" }} />
+                  </>
+                )}
+                <button style={{ ...L.btn, opacity: invBusy ? 0.6 : 1 }} disabled={invBusy}
+                  onClick={() => createInvites(team)}>
+                  {invBusy ? "Creating…" : "Create Codes"}
+                </button>
+              </div>
+
+              {invites.length > 0 && (
+                <div style={{ marginTop: "1.25rem" }}>
+                  <div style={L.lab}>Outstanding Codes ({invites.length})</div>
+                  {invites.map(inv => (
+                    <div key={inv.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem",
+                          flexWrap: "wrap", padding: "0.6rem 0",
+                          borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                      <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "1.05rem", fontWeight: 700,
+                                     letterSpacing: "3px", color: "var(--gold-lt)", minWidth: "104px" }}>
+                        {inv.code}
+                      </span>
+                      <span style={{ fontSize: "0.78rem", color: "var(--ivory2)", flex: 1, minWidth: "110px" }}>
+                        {inv.label || "—"}
+                      </span>
+                      <span style={{ fontSize: "0.66rem", color: "var(--muted)" }}>
+                        expires {inv.expires_at ? new Date(inv.expires_at).toLocaleDateString() : "—"}
+                      </span>
+                      <button style={L.btnGhost} onClick={() => shareInvite(inv, team)}>Share</button>
+                      <button style={L.btnGhost} onClick={() => revokeInvite(inv, team)}>Revoke</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Shared open code - opt-in ── */}
+              <div style={{ marginTop: "1.5rem", paddingTop: "1.1rem",
+                            borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                <div style={L.lab}>Shared Team Code</div>
+                <div style={{ fontSize: "0.7rem", color: "var(--muted)", margin: "0.4rem 0 0.8rem", lineHeight: 1.55 }}>
+                  One code the whole squad can use — handy in a room together. Anyone who has it
+                  joins immediately and counts as a ${SEAT_COST.toFixed(2)}/month seat, so leave it
+                  off unless you are actively onboarding.
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "1.3rem", fontWeight: 700,
+                                 letterSpacing: "5px",
+                                 color: team?.join_code_enabled ? "var(--gold-lt)" : "var(--muted)" }}>
+                    {team?.join_code}
+                  </span>
+                  <span style={{ fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase",
+                                 color: team?.join_code_enabled ? "#4BAE71" : "var(--muted)" }}>
+                    {team?.join_code_enabled ? "ON" : "OFF"}
+                  </span>
+                  <button style={L.btnGhost} onClick={() => toggleOpenCode(team, !team?.join_code_enabled)}>
+                    Turn {team?.join_code_enabled ? "off" : "on"}
+                  </button>
+                  <button style={L.btnGhost} onClick={() => rotateCode(team)}>New code</button>
+                  {team?.join_code_enabled && (
+                    <button style={L.btnGhost} onClick={() => shareCode(team)}>Share</button>
+                  )}
+                </div>
               </div>
             </div>
-            <button style={L.btn} onClick={() => shareCode(team)}>Share Invite</button>
-          </div>
+          )}
 
           {summary && (
             <div style={{ display: "flex", gap: "1.75rem", flexWrap: "wrap", marginTop: "1.5rem",
