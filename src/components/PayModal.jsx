@@ -4,7 +4,7 @@
 // Annual/Monthly toggle — annual is default
 // ─────────────────────────────────────────────────────────────
 import { useState } from 'react';
-import { redirectToCheckout, validateCard, formatCardNumber, formatExpiry, TIER_INFO, IS_BETA_MODE } from '../lib/stripe';
+import { redirectToCheckout, TIER_INFO, IS_BETA_MODE } from '../lib/stripe';
 
 export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEmail, userId, couponCode }) {
   // plan can be { tierKey:'elite' } (new) or legacy { name:'Elite', price:'$79' }
@@ -14,11 +14,6 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
   const info = TIER_INFO[tierKey] || TIER_INFO.elite;
 
   const [billing,    setBilling]    = useState('annual'); // annual default
-  const [cardName,   setCardName]   = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry,     setExpiry]     = useState('');
-  const [cvv,        setCvv]        = useState('');
-  const [errors,     setErrors]     = useState({});
   const [loading,    setLoading]    = useState(false);
   const [apiError,   setApiError]   = useState('');
 
@@ -28,11 +23,6 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
 
   const handleCheckout = async () => {
     setApiError('');
-    if (tab === 'card') {
-      const errs = validateCard({ number: cardNumber, expiry, cvv, name: cardName });
-      setErrors(errs);
-      if (Object.keys(errs).length > 0) return;
-    }
     setLoading(true);
     try {
       await redirectToCheckout({
@@ -82,7 +72,6 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
               <div style={{fontSize:'0.62rem',letterSpacing:'2px',color:'#60a5fa',fontWeight:700,marginBottom:'6px'}}>🧪 BETA / TEST MODE</div>
               <div style={{fontSize:'0.75rem',color:'#93c5fd',lineHeight:1.6}}>
                 Use test card: <span style={{fontFamily:'monospace',background:'rgba(255,255,255,0.08)',padding:'1px 6px',borderRadius:4,letterSpacing:'2px'}}>4242 4242 4242 4242</span>
-                <br/>Any future expiry · Any 3-digit CVV · Any name — no real charge
               </div>
             </div>
           )}
@@ -135,37 +124,22 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
 
               {tab==='card' && (
                 <div>
-                  <div className="f">
-                    <label className="fl">Cardholder Name</label>
-                    <input className="fi" placeholder="John Smith" value={cardName} onChange={e => setCardName(e.target.value)} style={{borderColor:errors.name?'rgba(192,105,94,0.6)':undefined}} />
-                    {errors.name && <div style={{fontSize:'0.65rem',color:'#E08080',marginTop:'0.25rem'}}>{errors.name}</div>}
+                  {/* No card fields here, deliberately.
+                      This modal used to collect cardholder name, PAN, expiry and CVV,
+                      validate them locally, then THROW THEM AWAY and redirect to Stripe
+                      Checkout - where the user had to type all of it again. The values
+                      never left the browser, so nothing leaked, but live PAN sat in React
+                      state for no benefit, the "PCI DSS Compliant" badge sat above inputs
+                      that were in no way PCI scope, and it trained users to type card
+                      numbers into a non-Stripe form. Card entry belongs on Stripe's page. */}
+                  <div style={{textAlign:'center',padding:'1rem 0 1.5rem',fontFamily:"'Cormorant Garamond',serif",fontSize:'1.05rem',fontStyle:'italic',color:'var(--ivory2)',lineHeight:1.6}}>
+                    Card details are collected by Stripe on the next screen.<br/>
+                    You'll be securely redirected to complete payment of{' '}
+                    <span style={{color:'var(--gold-lt)'}}>{billingInfo?.price}/{billing==='annual'?'year':'month'}</span>
                   </div>
-                  <div className="f">
-                    <label className="fl">Card Number</label>
-                    <input className="fi" placeholder="4242 4242 4242 4242" maxLength="19"
-                      value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))}
-                      style={{borderColor:errors.number?'rgba(192,105,94,0.6)':undefined,letterSpacing:'2px'}} />
-                    {errors.number && <div style={{fontSize:'0.65rem',color:'#E08080',marginTop:'0.25rem'}}>{errors.number}</div>}
-                  </div>
-                  <div className="two">
-                    <div className="f">
-                      <label className="fl">Expiry</label>
-                      <input className="fi" placeholder="MM / YY" maxLength="5"
-                        value={expiry} onChange={e => setExpiry(formatExpiry(e.target.value))}
-                        style={{borderColor:errors.expiry?'rgba(192,105,94,0.6)':undefined}} />
-                      {errors.expiry && <div style={{fontSize:'0.65rem',color:'#E08080',marginTop:'0.25rem'}}>{errors.expiry}</div>}
-                    </div>
-                    <div className="f">
-                      <label className="fl">CVV</label>
-                      <input className="fi" placeholder="•••" type="password" maxLength="4"
-                        value={cvv} onChange={e => setCvv(e.target.value.replace(/\D/g,''))}
-                        style={{borderColor:errors.cvv?'rgba(192,105,94,0.6)':undefined}} />
-                      {errors.cvv && <div style={{fontSize:'0.65rem',color:'#E08080',marginTop:'0.25rem'}}>{errors.cvv}</div>}
-                    </div>
-                  </div>
-                  <button className="bg" style={{width:'100%',padding:'0.95rem',fontSize:'0.68rem',letterSpacing:'2.5px',opacity:loading?0.7:1,marginTop:'0.5rem'}}
+                  <button className="bg" style={{width:'100%',padding:'0.95rem',fontSize:'0.68rem',letterSpacing:'2.5px',opacity:loading?0.7:1}}
                     onClick={handleCheckout} disabled={loading}>
-                    {loading ? 'Redirecting to Stripe…' : `Confirm · ${billingInfo?.price}/${billing==='annual'?'year':'month'}`}
+                    {loading ? 'Redirecting to Stripe…' : `Continue to secure payment · ${billingInfo?.price}/${billing==='annual'?'year':'month'}`}
                   </button>
                 </div>
               )}

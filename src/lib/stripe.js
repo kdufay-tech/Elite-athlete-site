@@ -169,27 +169,10 @@ export async function redirectToCheckout({ priceKey, planName, userEmail, userId
   await stripe.redirectToCheckout({ sessionId });
 }
 
-// ── CARD HELPERS ─────────────────────────────────────────────
-export function validateCard({ number, expiry, cvv, name }) {
-  const errors = {};
-  if (!name?.trim()) errors.name = 'Cardholder name required';
-  const num = number?.replace(/\s/g, '');
-  if (!num || num.length < 13 || num.length > 19 || !/^\d+$/.test(num))
-    errors.number = 'Valid card number required';
-  if (!expiry || !/^\d{2}\/\d{2}$/.test(expiry)) errors.expiry = 'Format: MM/YY';
-  else {
-    const [mm, yy] = expiry.split('/').map(Number);
-    if (mm < 1 || mm > 12 || new Date(2000 + yy, mm - 1, 1) < new Date())
-      errors.expiry = 'Card expired';
-  }
-  if (!cvv || cvv.length < 3) errors.cvv = 'CVV required';
-  return errors;
-}
-
-export const formatCardNumber = v =>
-  v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
-
-export const formatExpiry = v => {
-  const d = v.replace(/\D/g, '').slice(0, 4);
-  return d.length >= 2 ? d.slice(0, 2) + '/' + d.slice(2) : d;
-};
+// ── CARD HELPERS - REMOVED 2026-09-07 ──────────────────────
+// validateCard / formatCardNumber / formatExpiry existed only to drive a card
+// form inside PayModal that collected cardholder name, PAN, expiry and CVV,
+// validated them locally, then discarded them and redirected to Stripe
+// Checkout, where the user re-entered everything. Card entry belongs on
+// Stripe's page: it keeps live PAN out of React state and off this origin.
+// Do not reintroduce card fields in this app.
