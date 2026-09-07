@@ -7,6 +7,19 @@ import { signIn, signUp, supabase } from '../lib/supabase';
 import { Capacitor } from '@capacitor/core';
 const IS_IOS = Capacitor.getPlatform() === 'ios';
 
+// Password complexity, enforced on signup. Restored from the `main` branch,
+// where it was added as a security fix and then lost when this component was
+// rewritten on `master` - which left only a bare length >= 8 check.
+function validatePassword(pw) {
+  const errors = [];
+  if (!pw || pw.length < 8) errors.push('8+ characters');
+  if (!/[A-Z]/.test(pw))    errors.push('an uppercase letter');
+  if (!/[a-z]/.test(pw))    errors.push('a lowercase letter');
+  if (!/[0-9]/.test(pw))    errors.push('a number');
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw)) errors.push('a special character');
+  return { valid: errors.length === 0, errors };
+}
+
 export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCode }) {
   const [mode, setMode]           = useState(initialMode || 'signin');
   const [email, setEmail]         = useState('');
@@ -39,7 +52,10 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
     }
     if (!email || !password) { setError('Email and password required.'); return; }
     if (mode === 'signup' && password !== confirm) { setError('Passwords do not match.'); return; }
-    if (mode === 'signup' && password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (mode === 'signup') {
+      const pwCheck = validatePassword(password);
+      if (!pwCheck.valid) { setError('Password needs: ' + pwCheck.errors.join(', ')); return; }
+    }
     setLoading(true);
     try {
       if (mode === 'signup') {

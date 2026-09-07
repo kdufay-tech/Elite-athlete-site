@@ -15,7 +15,11 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false,
+    // MUST stay true: password-reset and email-confirmation links arrive with the
+    // token in the URL hash, and Supabase only consumes it when this is on. With
+    // it false the "Forgot password?" email sent a link that did nothing.
+    // Harmless on native - a Capacitor webview URL carries no such hash.
+    detectSessionInUrl: true,
     storage: window.localStorage,
   }
 });

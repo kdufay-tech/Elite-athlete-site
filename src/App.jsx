@@ -4682,6 +4682,13 @@ export default function App() {
           loadUserData(session.user.id);
         }
         setScreen("dashboard");
+        // Arriving from a password-reset link: land them on Profile, where the
+        // change-password field lives, instead of dropping them on the dashboard
+        // with no indication of what to do next.
+        if (event === 'PASSWORD_RECOVERY') {
+          setDash('profile');
+          shout('Signed in from your reset link - set a new password below', '\u{1F511}');
+        }
         setAuthLoading(false);
         // Redeem any pending beta code from localStorage (survives email confirmation flow)
         const pendingCode = localStorage.getItem('pending_beta_code');
@@ -11298,7 +11305,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
       tier: 'Foundation',
       name: 'Athlete',
       monthly: { price: '$29', label: '/month · billed monthly' },
-      annual:  { price: '$199', label: '/yr · billed annually' },
+      annual:  { price: '$199', label: '/yr · billed annually', moEquiv: '$16.58/mo', save: 'Save $149/yr — 43% off' },
       feats: [
         'Full position-specific meal plans',
         'Complete workout program',
@@ -11318,7 +11325,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
       tier: 'Champion',
       name: 'Elite',
       monthly: { price: '$69', label: '/month · billed monthly' },
-      annual:  { price: '$529', label: '/yr · billed annually' },
+      annual:  { price: '$529', label: '/yr · billed annually', moEquiv: '$44.08/mo', save: 'Save $299/yr — 36% off' },
       feats: [
         'Everything in Athlete',
         'AI Coach — unlimited, daily briefs',
@@ -11338,7 +11345,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
       tier: 'Professional',
       name: 'Coach Pro',
       monthly: { price: '$99', extra: '+ $4.99/athlete/mo', label: '/month base + per athlete' },
-      annual:  { price: '$899', extra: '+ $3.33/ath/mo', label: '/yr base · billed annually' },
+      annual:  { price: '$899', extra: '+ $3.33/ath/mo', label: '/yr base · billed annually', moEquiv: '$74.92/mo', save: 'Save $289/yr on base' },
       feats: [
         'Everything in Elite',
         'Coach dashboard — roster + readiness',
