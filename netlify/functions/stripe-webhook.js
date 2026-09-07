@@ -1,5 +1,6 @@
 // netlify/functions/stripe-webhook.js
 // ESM format — required for this project (node_bundler = esbuild)
+import { planForPrice } from './_plan-map.js';
 
 export default async (req) => {
   if (req.method !== 'POST')
@@ -53,7 +54,12 @@ async function onCheckout(session, stripeSecret, supabaseUrl, supabaseKey) {
   });
   const sub = await subRes.json();
 
-  const planName = sub.metadata?.plan_name
+  // Derive from the price actually on the subscription. Metadata is only a
+  // fallback for rows created before the checkout function stopped trusting
+  // the client - it was writable by whoever called the unauthenticated
+  // checkout endpoint, so it cannot be the primary source.
+  const planName = planForPrice(sub.items?.data?.[0]?.price?.id)
+    || sub.metadata?.plan_name
     || sub.items?.data?.[0]?.price?.nickname
     || 'elite';
 
@@ -73,7 +79,7 @@ async function onCheckout(session, stripeSecret, supabaseUrl, supabaseKey) {
 }
 
 async function onSubUpdated(sub, supabaseUrl, supabaseKey) {
-  const planName = sub.metadata?.plan_name || sub.items?.data?.[0]?.price?.nickname || 'elite';
+  const planName = planForPrice(sub.items?.data?.[0]?.price?.id) || sub.metadata?.plan_name || sub.items?.data?.[0]?.price?.nickname || 'elite';
   await patchSubById(supabaseUrl, supabaseKey, sub.id, {
     plan_name: planName, status: sub.status,
     current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : new Date(Date.now() + 30*24*60*60*1000).toISOString(),

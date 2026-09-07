@@ -189,6 +189,40 @@ A working reset produces `email.sent` AND `email.delivered` within ~2 seconds.
 
 ---
 
+## Payments - plan/price binding  (security, fixed 2026-09-07)
+
+`netlify/functions/_plan-map.js` is the single server-side source of truth for
+price ID -> plan name. **Never derive a plan from anything the client sends.**
+
+What was wrong: stripe-checkout.js took `priceId` AND `planName` from the request
+body. VALID_PLAN_NAMES checked the name against a known set but never against the
+price, and wrote it into `subscription_data.metadata.plan_name`. stripe-webhook.js
+read that metadata first and stored it as `subscriptions.plan_name`, which
+`getUserTier()` turns into the user's tier.
+
+A POST with the ATHLETE price ID and `planName: "coach"` therefore produced a
+genuine, fully-paid $29/mo subscription tagged `coach` - Coach Pro ($99/mo +
+$4.99/athlete) for athlete money. The endpoint has NO authentication, and all
+seven price IDs ship in the public client bundle.
+
+Verified 2026-09-07: no subscription row was ever created this way. Live since
+at least May; only became worth exploiting when Coach Pro went purchasable
+earlier the same day (2bb3896).
+
+Now: checkout derives the plan from the price being charged, refuses an
+unrecognised price, and logs any client/price disagreement. The webhook derives
+from the subscription's actual price ID and uses metadata only as a fallback for
+rows created before this change.
+
+### Still open on this endpoint
+`stripe-checkout` has no caller authentication, and stripe-webhook attributes the
+subscription via the client-supplied `customer_email` rather than
+`client_reference_id` (which is sent but unused). Neither lets anyone obtain a
+tier they have not paid for now that the plan is price-derived, but a caller can
+still direct a subscription they pay for at an email they do not control.
+
+---
+
 ## Tech Stack
 - React + Vite
   - Windows: `C:\Users\kdufa\App Development\Elite Athlete\elite-athlete-v3`

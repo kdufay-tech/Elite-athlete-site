@@ -11,11 +11,12 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8888',
 ];
 
-const VALID_PLAN_NAMES = [
-  'athlete','athlete_annual',
-  'elite','elite_annual',
-  'coach','coach_annual',
-];
+import { planForPrice, planFromStripePrice } from './_plan-map.js';
+
+// VALID_PLAN_NAMES used to allowlist the CLIENT's planName. That constrained
+// the name to a known set but never tied it to the price being charged, so
+// priceId=<athlete> + planName='coach' bought Coach Pro for athlete money.
+// The plan is now derived from the price and the client's planName is ignored.
 
 export default async (req) => {
   const origin = req.headers.get('origin') || req.headers.get('referer') || '';
@@ -59,7 +60,18 @@ export default async (req) => {
   if (!priceId || typeof priceId !== 'string' || priceId.length > 100)
     return new Response(JSON.stringify({ error: 'Invalid or missing priceId: ' + priceId }), { status: 400, headers });
 
-  const safePlanName = VALID_PLAN_NAMES.includes(planName) ? planName : 'elite';
+  // Derive the plan from the price the customer will actually be charged.
+  // Never from the request body. Unknown price -> ask Stripe by nickname ->
+  // still unknown -> refuse, rather than guess and grant a tier.
+  let safePlanName = planForPrice(priceId);
+  if (!safePlanName) safePlanName = await planFromStripePrice(priceId, secretKey);
+  if (!safePlanName) {
+    console.warn('Rejected checkout for unrecognised priceId:', priceId);
+    return new Response(JSON.stringify({ error: 'Unrecognised price.' }), { status: 400, headers });
+  }
+  if (planName && planName !== safePlanName) {
+    console.warn(`planName mismatch ignored: client sent "${planName}", price ${priceId} is "${safePlanName}"`);
+  }
 
   const appUrl = 'https://the-elite-athlete.netlify.app';
   const successUrl = `${appUrl}?payment=success&plan=${safePlanName}`;
