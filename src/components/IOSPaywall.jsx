@@ -33,8 +33,6 @@ export default function IOSPaywall({ plan, onClose, onSuccess, userId, userEmail
   const [error, setError]       = useState('');
 
   // Coach Pro waitlist state (mirrors PayModal)
-  const [waitEmail, setWaitEmail] = useState(userEmail || '');
-  const [waitSent,  setWaitSent]  = useState(false);
 
   useEffect(() => {
     if (isCoach) return;
@@ -94,20 +92,6 @@ export default function IOSPaywall({ plan, onClose, onSuccess, userId, userEmail
     }
   };
 
-  const joinWaitlist = async () => {
-    if (!waitEmail.includes('@')) { setError('Please enter a valid email.'); return; }
-    setPurchasing('waitlist');
-    try {
-      await fetch('/.netlify/functions/coach-waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: waitEmail }),
-      }).catch(() => {});
-      setWaitSent(true);
-    } finally {
-      setPurchasing(null);
-    }
-  };
 
   // tier label for a package
   const labelFor = (pkg) => {
@@ -123,7 +107,7 @@ export default function IOSPaywall({ plan, onClose, onSuccess, userId, userEmail
         <div className="pmh">
           <div>
             <div style={{fontFamily:"'Cormorant SC',serif",fontSize:'1.55rem',fontWeight:600,letterSpacing:'3px',color:'var(--ivory)'}}>
-              {isCoach ? 'Join Waitlist' : 'Choose Membership'}
+              {isCoach ? 'Coach Pro' : 'Choose Membership'}
             </div>
             <div style={{color:'var(--gold)',fontSize:'0.62rem',letterSpacing:'2px',marginTop:'0.22rem'}}>
               Excellence · Performance · Legacy
@@ -133,29 +117,26 @@ export default function IOSPaywall({ plan, onClose, onSuccess, userId, userEmail
         </div>
 
         <div className="pmb">
-          {/* ── COACH PRO WAITLIST (matches web) ── */}
+          {/* ── COACH PRO — web-only purchase ──
+              Apple rejects both IAP bypass and outbound purchase links, so this
+              card states the position and offers no button. Coach Pro is bought
+              on the web; the app reads the entitlement. Matches App.jsx
+              webOnlyPurchase, set by 4174c3b when Coach Pro went live.
+              The old waitlist form fired into a swallowed catch and confirmed
+              success regardless of the result. */}
           {isCoach ? (
-            waitSent ? (
-              <div style={{textAlign:'center',padding:'1.5rem 0'}}>
-                <div style={{fontSize:'2.5rem',marginBottom:'0.5rem'}}>✅</div>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'1.25rem',color:'var(--gold)',marginBottom:'0.5rem'}}>You're on the list</div>
-                <div style={{fontSize:'0.8rem',color:'var(--muted)'}}>We'll email you first when Coach Pro launches in Q3 2026.</div>
+            <div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'1rem',color:'var(--ivory2)',marginBottom:'1rem',lineHeight:1.65}}>
+                Coach Pro is managed from your Elite Athlete account. Once active, your
+                roster, programs and team reports appear here automatically.
               </div>
-            ) : (
-              <div>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'1rem',color:'var(--ivory2)',marginBottom:'1rem',lineHeight:1.65}}>
-                  Coach Pro is launching Q3 2026. Join the waitlist for early access and founding member pricing.
-                </div>
-                <div className="f">
-                  <label className="fl">Your Email</label>
-                  <input className="fi" placeholder="coach@school.edu" value={waitEmail} onChange={e => setWaitEmail(e.target.value)} />
-                </div>
-                {error && <div style={{fontSize:'0.68rem',color:'#E08080',marginBottom:'0.75rem'}}>⚠ {error}</div>}
-                <button className="bg" style={{width:'100%',padding:'0.9rem',fontSize:'0.68rem',letterSpacing:'2.5px',opacity:purchasing?0.7:1}} onClick={joinWaitlist} disabled={!!purchasing}>
-                  {purchasing === 'waitlist' ? 'Joining…' : 'Join Coach Pro Waitlist'}
-                </button>
-              </div>
-            )
+              <div style={{fontSize:'0.68rem',color:'var(--muted)',letterSpacing:'1px',marginBottom:'0.5rem'}}>INCLUDES</div>
+              <ul style={{marginBottom:'1.25rem',paddingLeft:'1.25rem'}}>
+                {(TIER_INFO.coach?.features || []).map(f => (
+                  <li key={f} style={{fontSize:'0.82rem',color:'var(--ivory2)',marginBottom:'0.3rem',fontWeight:300}}>{f}</li>
+                ))}
+              </ul>
+            </div>
           ) : (
             <>
               {loading && (

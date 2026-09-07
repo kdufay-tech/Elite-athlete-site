@@ -98,7 +98,13 @@ export const TIER_INFO = {
     ],
   },
   coach: {
-    label: 'Coach Pro', tier: 'Professional', waitlist: true,
+    label: 'Coach Pro', tier: 'Professional',
+    // Coach Pro shipped 2026-09-04 (4174c3b). The waitlist flag is retired: the
+    // pricing screen already says 'Get Coach Pro', and leaving it set made that
+    // CTA open a Join Waitlist modal for a product that was already live.
+    // iOS shows a statement instead of a buy button - Apple rejects both IAP
+    // bypass and outbound purchase links. Same rule as App.jsx webOnlyPurchase.
+    webOnlyPurchase: true,
     monthly: { price: '$99', display: '$99/mo',  key: 'coach_monthly', planName: 'coach' },
     annual:  { price: '$899', display: '$899/yr', key: 'coach_annual',  planName: 'coach_annual', moEquiv: '$74.92/mo', save: 'Save $289/yr on base' },
     perAthlete: '+ $4.99/athlete/month',

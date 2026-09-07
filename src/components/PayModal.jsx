@@ -21,8 +21,6 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
   const [errors,     setErrors]     = useState({});
   const [loading,    setLoading]    = useState(false);
   const [apiError,   setApiError]   = useState('');
-  const [waitEmail,  setWaitEmail]  = useState(userEmail || '');
-  const [waitSent,   setWaitSent]   = useState(false);
 
   const billingInfo = billing === 'annual' ? info.annual : info.monthly;
   const priceKey    = billingInfo?.key;
@@ -55,20 +53,6 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
     }
   };
 
-  const handleWaitlist = async () => {
-    if (!waitEmail.includes('@')) { setApiError('Please enter a valid email.'); return; }
-    setLoading(true);
-    try {
-      await fetch('/.netlify/functions/coach-waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: waitEmail }),
-      }).catch(() => {});
-      setWaitSent(true);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="pmbg" onClick={onClose}>
@@ -76,7 +60,7 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
         <div className="pmh">
           <div>
             <div style={{fontFamily:"'Cormorant SC',serif",fontSize:'1.55rem',fontWeight:600,letterSpacing:'3px',color:'var(--ivory)'}}>
-              {info.waitlist ? 'Join Waitlist' : 'Secure Checkout'}
+              Secure Checkout
             </div>
             <div style={{color:'var(--gold)',fontSize:'0.62rem',letterSpacing:'2px',marginTop:'0.22rem'}}>
               {info.tier} · {info.label}
@@ -93,7 +77,7 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
           </div>
 
           {/* Beta mode test card banner */}
-          {IS_BETA_MODE && !info.waitlist && (
+          {IS_BETA_MODE && (
             <div style={{background:'rgba(59,130,246,0.08)',border:'1px solid rgba(59,130,246,0.3)',borderRadius:'var(--r)',padding:'0.85rem 1rem',marginBottom:'1.25rem'}}>
               <div style={{fontSize:'0.62rem',letterSpacing:'2px',color:'#60a5fa',fontWeight:700,marginBottom:'6px'}}>🧪 BETA / TEST MODE</div>
               <div style={{fontSize:'0.75rem',color:'#93c5fd',lineHeight:1.6}}>
@@ -103,39 +87,7 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
             </div>
           )}
 
-          {/* ── COACH PRO WAITLIST ── */}
-          {info.waitlist ? (
-            waitSent ? (
-              <div style={{textAlign:'center',padding:'1.5rem 0'}}>
-                <div style={{fontSize:'2.5rem',marginBottom:'0.5rem'}}>✅</div>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'1.25rem',color:'var(--gold)',marginBottom:'0.5rem'}}>You're on the list</div>
-                <div style={{fontSize:'0.8rem',color:'var(--muted)'}}>We'll email you first when Coach Pro launches in Q3 2026.</div>
-              </div>
-            ) : (
-              <div>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'1rem',color:'var(--ivory2)',marginBottom:'1rem',lineHeight:1.65}}>
-                  Coach Pro is launching Q3 2026. Join the waitlist for early access and founding member pricing.
-                </div>
-                <div style={{fontSize:'0.68rem',color:'var(--muted)',letterSpacing:'1px',marginBottom:'0.5rem'}}>INCLUDES</div>
-                <ul style={{marginBottom:'1.25rem',paddingLeft:'1.25rem'}}>
-                  {info.features.map(f => <li key={f} style={{fontSize:'0.82rem',color:'var(--ivory2)',marginBottom:'0.3rem',fontWeight:300}}>{f}</li>)}
-                </ul>
-                <div style={{fontSize:'0.68rem',color:'var(--muted)',letterSpacing:'1px',marginBottom:'0.35rem'}}>PRICING</div>
-                <div style={{fontSize:'0.88rem',color:'var(--gold)',marginBottom:'1.25rem'}}>
-                  {info.monthly.price}/month + {info.perAthlete}
-                  <span style={{color:'var(--muted)',marginLeft:'8px'}}>· or {info.annual.price}/year + $39.99/ath/yr</span>
-                </div>
-                <div className="f">
-                  <label className="fl">Your Email</label>
-                  <input className="fi" placeholder="coach@school.edu" value={waitEmail} onChange={e => setWaitEmail(e.target.value)} />
-                </div>
-                {apiError && <div style={{fontSize:'0.68rem',color:'#E08080',marginBottom:'0.75rem'}}>⚠ {apiError}</div>}
-                <button className="bg" style={{width:'100%',padding:'0.9rem',fontSize:'0.68rem',letterSpacing:'2.5px',opacity:loading?0.7:1}} onClick={handleWaitlist} disabled={loading}>
-                  {loading ? 'Joining…' : 'Join Coach Pro Waitlist'}
-                </button>
-              </div>
-            )
-          ) : (
+          {(
             <>
               {/* ── BILLING TOGGLE — annual is default ── */}
               <div style={{display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:'var(--r)',padding:'3px',marginBottom:'1.25rem',gap:'3px'}}>
