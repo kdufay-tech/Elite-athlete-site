@@ -132,7 +132,7 @@ WHAT'S COMING IN COACH PRO:
 
 PRICING (Founding Member):
 ◆ $99/month base + $4.99/athlete/month
-◆ or $899/year base + $39.99/athlete/year
+◆ or $899/year flat - unlimited athletes, no per-seat charge
 
 You're among the first coaches to sign up. We'll be in touch.
 

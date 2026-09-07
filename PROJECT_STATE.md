@@ -223,6 +223,48 @@ still direct a subscription they pay for at an email they do not control.
 
 ---
 
+## Per-athlete seat billing  (built 2026-09-07)
+
+| Plan | Base | Seats |
+|------|------|-------|
+| Coach Pro monthly (`coach`) | $99/mo | **+ $4.99 per active athlete per month** |
+| Coach Pro annual (`coach_annual`) | $899/yr | **flat - no seat charge** |
+| `coach_comp` | comp | never billed |
+
+Annual is flat by decision AND by constraint: Stripe requires every item in one
+subscription to share a billing interval, so a monthly seat price cannot sit on
+an annual base. There is no annual seat price and none should be created unless
+that decision changes.
+
+**What was wrong.** The UI advertised "+$4.99/athlete/month" but
+`stripe-checkout.js` sent a single line item at quantity 1 and nothing anywhere
+added a seat item or moved its quantity. Coaches were billed a flat $99 no
+matter how large the roster. Three different and mutually inconsistent annual
+figures also existed: $4.99/athlete/month (stripe.js), $3.33/ath/mo (App.jsx),
+$39.99/athlete/year (the waitlist email). All are now gone.
+
+**How it works.** `_seat-sync.js` recomputes from the roster - it never adjusts
+by a delta - so a missed sync self-heals on the next roster change. It counts
+DISTINCT `team_members.athlete_id` where `coach_id = X and status = 'active'`,
+then converges the Stripe subscription: adds a seat item, changes its quantity,
+or deletes it at zero. Stripe prorates each change.
+
+Called from all three roster mutation points in `coach-team.js`: **join**
+(athlete uses a code), **leave** (athlete removes self - the coach_id is read
+BEFORE the delete, or it is unrecoverable), and **remove** (coach removes an
+athlete). Adding a fourth mutation path without a sync call is how this drifts.
+
+Failures are logged and swallowed. A Stripe outage must never stop an athlete
+joining a team.
+
+### Follow-up - not built
+No periodic reconcile. If a sync fails and that coach never changes their roster
+again, their seat count stays stale. A scheduled reconcile is the obvious fix but
+scheduled functions are paused by the council decision, so this is deliberately
+manual for now.
+
+---
+
 ## Tech Stack
 - React + Vite
   - Windows: `C:\Users\kdufa\App Development\Elite Athlete\elite-athlete-v3`

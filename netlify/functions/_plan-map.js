@@ -83,3 +83,18 @@ export async function planFromStripePrice(priceId, stripeSecret) {
     return null;
   } catch (_) { return null; }
 }
+
+
+// ── PER-ATHLETE SEAT PRICE ───────────────────────────────────
+// Monthly Coach Pro is billed $99 base + $4.99 per active athlete per month.
+// ANNUAL Coach Pro ($899/yr) is FLAT - no seat charge. That is a pricing
+// decision, and also a Stripe constraint: every item in one subscription must
+// share a billing interval, so a monthly seat cannot sit on an annual
+// subscription and no annual seat price exists.
+export const SEAT_PRICE_MONTHLY =
+  process.env.VITE_STRIPE_PRICE_ATHLETE_SEAT || 'price_1TDxgUEJzVyHAKH8DuXr4sVF';
+
+/** Plans that carry per-athlete seat billing. Annual and comp plans do not. */
+export function planHasSeats(planName) {
+  return planName === 'coach';
+}

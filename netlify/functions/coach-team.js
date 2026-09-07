@@ -4,6 +4,15 @@
 // Netlify Functions v2 — requires "type":"module" in package.json.
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 import { CORS, json, env, svc, verifyCaller, makeJoinCode } from './_coach-auth.js';
+import { syncCoachSeats } from './_seat-sync.js';
+
+// Mirrors stripe-checkout.js: test key in beta mode, live key otherwise.
+function stripeKey() {
+  const isBeta = process.env.VITE_BETA_MODE === 'true';
+  return isBeta
+    ? (process.env.STRIPE_TEST_SECRET_KEY || process.env.STRIPE_SECRET_KEY)
+    : process.env.STRIPE_SECRET_KEY;
+}
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: CORS });
@@ -94,6 +103,9 @@ export default async (req) => {
           return json({ team: { id: team.id, name: team.name }, already: true });
         return json({ error: 'Could not join team', detail: t.slice(0, 200) }, 500);
       }
+      // Roster grew - bring the coach's seat quantity in line. Monthly Coach
+      // Pro only; annual is flat. Never throws, so billing cannot block a join.
+      await syncCoachSeats(team.coach_id, { supabaseUrl, serviceKey, stripeSecret: stripeKey() });
       return json({ team: { id: team.id, name: team.name }, already: false });
     }
 
@@ -140,10 +152,19 @@ export default async (req) => {
     if (action === 'leave') {
       const teamId = String(body.team_id || '');
       if (!teamId) return json({ error: 'team_id required' }, 400);
+      // Capture the coach BEFORE deleting - afterwards the row is gone and
+      // there is nothing left to identify whose seat count changed.
+      const ownRes = await fetch(
+        `${REST}/team_members?athlete_id=eq.${caller.id}&team_id=eq.${teamId}&select=coach_id`,
+        { headers: H });
+      const leavingCoachId = (ownRes.ok ? await ownRes.json() : [])[0]?.coach_id || null;
+
       const res = await fetch(
         `${REST}/team_members?athlete_id=eq.${caller.id}&team_id=eq.${teamId}`,
         { method: 'DELETE', headers: H });
       if (!res.ok) return json({ error: 'Could not leave team' }, 500);
+      // Roster shrank by the athlete's own action - same sync as a coach remove.
+      if (leavingCoachId) await syncCoachSeats(leavingCoachId, { supabaseUrl, serviceKey, stripeSecret: stripeKey() });
       return json({ ok: true });
     }
 
@@ -156,6 +177,8 @@ export default async (req) => {
         `${REST}/team_members?coach_id=eq.${caller.id}&team_id=eq.${teamId}&athlete_id=eq.${athleteId}`,
         { method: 'DELETE', headers: H });
       if (!res.ok) return json({ error: 'Could not remove athlete' }, 500);
+      // Roster shrank - drop the seat count (or the seat item entirely at zero).
+      await syncCoachSeats(caller.id, { supabaseUrl, serviceKey, stripeSecret: stripeKey() });
       return json({ ok: true });
     }
 

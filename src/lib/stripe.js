@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // src/lib/stripe.js  —  Elite Athlete 4-Tier Pricing
 // Free · Athlete ($29/mo · $199/yr) · Elite ($69/mo · $529/yr)
-// Coach Pro ($99/mo · $899/yr + $4.99/athlete/mo)
+// Coach Pro ($99/mo + $4.99/athlete/mo · $899/yr flat, no seat charge)
 // ─────────────────────────────────────────────────────────────
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -107,7 +107,10 @@ export const TIER_INFO = {
     webOnlyPurchase: true,
     monthly: { price: '$99', display: '$99/mo',  key: 'coach_monthly', planName: 'coach' },
     annual:  { price: '$899', display: '$899/yr', key: 'coach_annual',  planName: 'coach_annual', moEquiv: '$74.92/mo', save: 'Save $289/yr on base' },
-    perAthlete: '+ $4.99/athlete/month',
+    // Monthly only. Annual ($899/yr) is flat - no seat charge - both as a
+    // pricing decision and because Stripe forbids mixing billing intervals
+    // in one subscription, so a monthly seat cannot ride an annual base.
+    perAthleteMonthly: '+ $4.99/athlete/month',
     features: [
       'Everything in Elite',
       'Coach dashboard — roster + readiness',

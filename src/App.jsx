@@ -11393,7 +11393,8 @@ ${recruitingNote}`:null,
 // ─────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────
 // PRICING SECTION — 4-Tier with annual/monthly toggle
-// Free · Athlete ($29/mo·$199/yr) · Elite ($69/mo·$529/yr) · Coach Pro ($99/mo+$4.99/ath)
+// Free · Athlete ($29/mo·$199/yr) · Elite ($69/mo·$529/yr)
+// Coach Pro: $99/mo + $4.99/athlete/mo  ·  $899/yr flat (no seat charge)
 // ─────────────────────────────────────────────────────────────
 function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan }) {
   const [billing, setBilling] = useState('monthly');
@@ -11462,7 +11463,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
       tier: 'Professional',
       name: 'Coach Pro',
       monthly: { price: '$99', extra: '+ $4.99/athlete/mo', label: '/month base + per athlete' },
-      annual:  { price: '$899', extra: '+ $3.33/ath/mo', label: '/yr base · billed annually', moEquiv: '$74.92/mo', save: 'Save $289/yr on base' },
+      annual:  { price: '$899', extra: 'flat · unlimited athletes', label: '/yr · billed annually', moEquiv: '$74.92/mo', save: 'Save $289/yr on base' },
       feats: [
         'Everything in Elite',
         'Coach dashboard — roster + readiness',
