@@ -1,5 +1,5 @@
 # Elite Athlete — Project State
-> Last updated: 2026-04-20
+> Last updated: 2026-09-07
 > Always update this file at the end of each session before closing.
 
 ---
@@ -36,16 +36,94 @@ All vars set under: Netlify → the-elite-athlete → Site configuration → Env
 | `STRIPE_SECRET_KEY` | `sk_test_...` | Server-side only (Netlify function) |
 | `VITE_SUPABASE_URL` | `https://[project].supabase.co` | |
 | `VITE_SUPABASE_ANON_KEY` | `eyJ...` | |
+| `RESEND_API_KEY` | `re_...` | **Must be a key from the `taratechent` Resend workspace.** Used by all 10 mail-sending functions. |
+| `RESEND_WEBHOOK_SECRET` | `whsec_...` | Verifies the Resend webhook that writes `email_events`. |
+| `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` | Server-side only. |
+
+## Email & Transactional Mail  (config-of-record)
+
+> Added 2026-09-07 after a 4.5-month silent outage. This section exists so an email
+> misconfiguration is visible in a diff instead of only in a Supabase error log.
+
+**Two independent Resend credentials. They are not interchangeable.**
+
+| Path | Credential | Set in | Sends |
+|------|-----------|--------|-------|
+| Netlify Functions | `RESEND_API_KEY` env var | Netlify UI | blasts, welcome-email, coach-nudge, coach-ops-weekly, beta-* |
+| Supabase Auth | SMTP password | Supabase Dashboard -> Auth -> SMTP | password reset, email confirmation |
+
+**Both keys MUST come from the `taratechent` Resend workspace** - that is the only
+workspace where `elite-athlete.app` is verified. A key minted in any other workspace
+authenticates successfully and then fails every send with:
+
+```
+550 "The elite-athlete.app domain is not verified."
+```
+
+That is exactly what happened: Supabase held a key from the `taradomemusik` workspace
+(zero verified domains) from approx. 2026-04-17 until 2026-09-07. Password reset was
+dead the entire time and nobody noticed, because email confirmation is disabled so
+signups never needed it.
+
+### Supabase Auth SMTP
+```
+Host          smtp.resend.com
+Port          465
+Username      resend
+Password      <Resend API key, taratechent workspace, scoped to elite-athlete.app>
+Sender email  support@elite-athlete.app
+Sender name   Elite Athlete
+```
+
+### Sender addresses in code
+| Address | Used by |
+|---------|---------|
+| `support@elite-athlete.app` | 8 functions + Supabase auth mail |
+| `kiszo@elite-athlete.app` | `beta-expiry-reminder.js` |
+
+### DNS (Cloudflare, zone elite-athlete.app)
+| Record | Value |
+|--------|-------|
+| `resend._domainkey` TXT | Resend DKIM public key |
+| `send` TXT | `v=spf1 include:amazonses.com ~all` |
+| `send` MX | `feedback-smtp.us-east-1.amazonses.com` (priority 10) |
+| `_dmarc` TXT | `v=DMARC1; p=none; rua=mailto:support@elite-athlete.app` |
+
+### EmailJS (separate provider, still in use)
+`coach-waitlist.js`, `send-beta-invite.js`, `src/lib/email.js`. Unrelated to Resend -
+changing one does not affect the other.
+
+### Known issue - open
+Auth mail sent from `support@elite-athlete.app` lands in Gmail **spam**. That address
+carries ~34,000 cold-outreach sends with bounces and a complaint, and transactional
+mail inherits the reputation. Fix: verify `auth.elite-athlete.app` as its own Resend
+domain and move Supabase's sender to it, isolating the two streams.
+
+### How to verify email end-to-end
+```sql
+-- did Supabase actually send?
+select max(recovery_sent_at) from auth.users;
+-- did Resend accept and deliver?
+select created_at, type, email, raw->'data'->>'subject'
+from email_events order by created_at desc limit 10;
+```
+A working reset produces `email.sent` AND `email.delivered` within ~2 seconds.
+
+---
 
 ## Tech Stack
-- React + Vite (local: `C:\Users\kdufa\App Development\Elite Athlete\elite-athlete-v3`)
-- Supabase (auth + data), EmailJS, Stripe, jsPDF
-- Netlify Functions: coach, stripe-checkout, stripe-webhook, food-search, admin-action, admin-data, beta-feedback, beta-signup, coach-waitlist
+- React + Vite
+  - Windows: `C:\Users\kdufa\App Development\Elite Athlete\elite-athlete-v3`
+  - Mac: `/Users/taradomeentertainmentgroup/App Development/elite-athlete-v3`
+- Supabase (auth + Postgres + RLS), Stripe, RevenueCat, Resend, EmailJS, jsPDF
+- Capacitor: web / iOS / Android from one codebase. `android/` and `ios/` are both tracked in git.
+- Netlify Functions: 37 in `netlify/functions/`. `ls netlify/functions` is the source of truth;
+  10 of them send mail (see Email section above).
 - EmailJS template ID: `template_b4rv0ur` (Contact Us type)
 - Test account: Emeka Ugokwe (username: kdufay)
 
 ## App Structure
-- Single file: `src/App.jsx` (~11,261 lines)
+- Single file: `src/App.jsx` (~12206 lines, one App() component, ~90 useState)
 - Components: `src/components/PayModal.jsx`, `src/components/AuthModal.jsx`
 - Pricing lib: `src/lib/stripe.js`
 
@@ -75,6 +153,14 @@ All vars set under: Netlify → the-elite-athlete → Site configuration → Env
 | 9 | Nutrition log macro bar 4-col overflow on mobile | ✅ Fixed — `g4mob` → 2x2 | `45f28a0` |
 | 10 | Stripe price IDs missing for Athlete/Elite | ✅ Price IDs obtained, needs Netlify env var set | See above |
 
+### Session Sep 7 2026
+| # | Bug | Status | Notes |
+|---|-----|--------|-------|
+| 1 | Password reset email never sent (since ~Apr 17) | Fixed | Supabase SMTP held a Resend key from the wrong workspace. See Email section. |
+| 2 | Reset link signed user straight into dashboard, no password prompt | Fixed | supabase-js emits PASSWORD_RECOVERY before App.jsx subscribes; event never replayed. Replaced with a boot-URL marker (`arrivedFromRecoveryLink`) read before createClient. |
+| 3 | 15 stale .png launcher icons duplicated the tracked .webp resources | Fixed | Same resource name in the same mipmap folder - an aapt2 duplicate-resource hazard. Moved to `_to_delete/`. |
+| 4 | Auth mail lands in Gmail spam | Open | Shares the cold-outreach sending identity. See Email section. |
+
 ### Remaining Bugs (from bug list doc)
 - [ ] Tile backgrounds not loading after dashboard launch
 - [ ] Free trial needs email step
@@ -98,5 +184,8 @@ All vars set under: Netlify → the-elite-athlete → Site configuration → Env
 - Always `git pull` before making changes
 - Build: `npm run build` (warns about chunk size — normal, ignore)
 - Push to GitHub triggers nothing — site is Netlify Drop, must run `DEPLOY.ps1` or drag dist
+- Mac deploy: `npx netlify deploy --prod --dir=dist` (DEPLOY.ps1 is Windows-only)
+- Building over the Cowork device bridge needs `@rollup/rollup-linux-arm64-gnu`
+  (`npm i --no-save --no-package-lock`) - that shell is Linux, node_modules is darwin-arm64
 - CSS utility classes: `.g2mob` = 2-col → 1-col at 640px, `.g4mob` = 4-col → 2-col at 640px
 - Height stored as total inches in profile (e.g. 73 = 6'1") — use `Math.floor(h/12)` + `Math.round(h%12)`

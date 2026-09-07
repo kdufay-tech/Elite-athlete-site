@@ -4,7 +4,7 @@ import { getSession, getFreshToken, onAuthChange, signOut, saveProfile, loadProf
          loadSubscription, saveCheckIn, loadCheckIns, saveWorkoutLog, loadWorkoutLogs,
          saveWeightEntry, loadWeightLogs, saveNutritionEntry, loadNutritionLogs,
          saveBenchmark, loadBenchmarks, saveAIConsent, updatePassword,
-         markOnboardingComplete } from "./lib/supabase";
+         markOnboardingComplete, arrivedFromRecoveryLink } from "./lib/supabase";
 import { downloadMealPlanPDF, downloadWorkoutPDF, downloadProgressReportPDF, downloadJournalPDF, downloadRecoveryPDF, downloadAthleteReportCard } from "./lib/pdf";
 import { emailMealPlan, emailProgressReport, emailInjuryProtocol, emailWorkoutPlan, emailRecoveryNutrition, sendEmail } from "./lib/email";
 import AuthModal from "./components/AuthModal";
@@ -4179,6 +4179,7 @@ export default function App() {
   const [obStep, setObStep] = useState(1);
   const [obSaving, setObSaving] = useState(false);
   const dataLoadedRef = useRef(false);
+  const recoveryHandledRef = useRef(false);
   const [dash, setDash] = useState("nutrition");
   const [toast, setToast] = useState(null);
   const [payModal, setPayModal] = useState(null);
@@ -4706,6 +4707,23 @@ export default function App() {
     });
     return () => authSub?.unsubscribe();
   }, []);
+
+  // ── PASSWORD-RESET ARRIVAL ──────────────────────────────
+  // The PASSWORD_RECOVERY branch in the onAuthChange handler above cannot be
+  // relied on: supabase-js emits that event during its own init, before this
+  // component has subscribed, and it is never replayed. So the reset link used
+  // to sign the user straight into the dashboard with no password prompt.
+  //
+  // arrivedFromRecoveryLink is read from the boot URL in lib/supabase.js before
+  // the client can clear it, so this fires no matter which path established the
+  // session, and the ref keeps it to once per load.
+  useEffect(() => {
+    if (!authUser || !arrivedFromRecoveryLink || recoveryHandledRef.current) return;
+    recoveryHandledRef.current = true;
+    setScreen('dashboard');
+    setDash('profile');
+    shout('Signed in from your reset link - set a new password below', '\u{1F511}');
+  }, [authUser]);
 
   // ── BETA EXPIRY CHECK ─────────────────────────────────────────
   // Fires conversion modal automatically when beta period ends

@@ -11,6 +11,22 @@ if (!SUPABASE_URL || !SUPABASE_ANON) {
   console.warn('⚠️  Supabase keys missing — check your .env.local file');
 }
 
+// ── PASSWORD-RECOVERY ARRIVAL MARKER ──────────────────────────
+// Snapshot the boot URL BEFORE createClient runs.
+//
+// With detectSessionInUrl:true, supabase-js parses and CLEARS window.location.hash
+// during its own async init, and it emits PASSWORD_RECOVERY exactly once. App.jsx
+// subscribes via onAuthChange inside a useEffect, which runs after React's first
+// render - by then the event has already fired and is never replayed (only
+// INITIAL_SESSION is). The result: the reset link signed the user in and dropped
+// them on the dashboard with no password prompt at all.
+//
+// Reading the marker here is timing-independent, so it cannot race.
+// Implicit flow (no flowType set, supabase-js v2) returns:
+//   https://elite-athlete.app#access_token=...&type=recovery
+const _bootHash = typeof window !== 'undefined' ? window.location.hash : '';
+export const arrivedFromRecoveryLink = /[#&]type=recovery(&|$)/.test(_bootHash);
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {
     persistSession: true,

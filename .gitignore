@@ -22,3 +22,7 @@ keystore.properties
 android/keystore.properties
 
 _backups/
+
+# Staging area for dead folders pending manual deletion, and vite temp files
+_to_delete/
+vite.config.js.timestamp-*.mjs
