@@ -134,6 +134,43 @@ worth having, and it silently re-breaks password reset.
 from `auth.elite-athlete.app`; it fails at send time, which looks like a DNS
 problem and is not. Supabase SMTP uses a key scoped to the auth domain.
 
+### Password-reset flow  (end-to-end, verified 2026-09-07)
+
+```
+Forgot password?  -> Supabase /recover
+                  -> Resend SMTP, no-reply@auth.elite-athlete.app
+                  -> email: supabase/email-templates/recovery.html
+                  -> link: <project>.supabase.co/auth/v1/verify?type=recovery
+                           &redirect_to=https://elite-athlete.app     (NO links. wrapper)
+                  -> app boots, lib/supabase.js reads type=recovery from the
+                     boot URL BEFORE createClient clears it
+                  -> SET A NEW PASSWORD modal, nothing else on screen
+                  -> save  ->  toast  ->  dashboard
+                     cancel ->  signOut() -> landing
+```
+
+**Why the boot-URL marker and not the PASSWORD_RECOVERY event.** supabase-js
+emits PASSWORD_RECOVERY during its own async init, before App.jsx subscribes via
+onAuthChange inside useEffect. Only INITIAL_SESSION is replayed to late
+subscribers, so that event was always missed and the reset link simply signed
+the user into the dashboard. `arrivedFromRecoveryLink` in lib/supabase.js is
+timing-independent and cannot race.
+
+**Why the cancel button signs out.** The recovery link exchanges its token for a
+full, ordinary session. Reaching the modal proves control of the MAILBOX, not
+knowledge of the password. Dismissing without setting one would hand full app
+access to whoever opened the email. The only exits are: set a new password, or
+sign out. Do not add a plain dismiss.
+
+**Password rules.** The modal uses validatePassword() exported from
+AuthModal.jsx - 8+ chars, upper, lower, number, special - the same rules as
+signup.
+
+### Known issue - open
+The Profile tab's own change-password field (App.jsx) still enforces only
+`newPassword.length < 6`, so a user can set a weaker password there than signup
+or reset allow. Pre-existing; not changed when the reset flow was rebuilt.
+
 ### Email templates
 Supabase email templates live only in the dashboard, so they are mirrored in
 `supabase/email-templates/`. Edit the file, then paste it into
