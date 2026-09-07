@@ -10832,10 +10832,18 @@ ${recruitingNote}`:null,
                         <div style={{fontSize:"0.95rem",color:"var(--ivory)",fontWeight:600,wordBreak:"break-all"}}>{authUser?.email||"—"}</div>
                       </div>
                       <div style={{fontSize:"0.6rem",letterSpacing:"3px",textTransform:"uppercase",color:"var(--muted)",marginBottom:"0.4rem"}}>Change Password</div>
-                      <input className="fi" type="password" autoComplete="new-password" placeholder="New password (min 6 characters)" value={newPassword} onChange={e=>setNewPassword(e.target.value)} style={{marginBottom:"0.6rem"}}/>
+                      <input className="fi" type="password" autoComplete="new-password" placeholder="New password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} style={{marginBottom:"0.6rem"}}/>
+                      <div id="ea-profile-pw-hint" style={{fontSize:"0.68rem",color:"var(--muted)",lineHeight:1.55,marginBottom:"0.7rem"}}>
+                        At least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character.
+                      </div>
                       <button className="bg" style={{width:"100%",padding:"0.72rem",opacity:pwSaving?0.6:1}} disabled={pwSaving}
                         onClick={async()=>{
-                          if(newPassword.length<6){shout("Password must be at least 6 characters","!");return;}
+                          // Same rules as signup and the recovery modal. This field
+                          // used to accept 6 characters with no complexity, so a user
+                          // could set a weaker password here than they were allowed at
+                          // signup - the weakest door into the account.
+                          const pwCheck = validatePassword(newPassword);
+                          if(!pwCheck.valid){shout("Password needs: " + pwCheck.errors.join(", "),"!");return;}
                           setPwSaving(true);
                           try{ await updatePassword(newPassword); setNewPassword(""); shout("Password updated","✦"); }
                           catch(err){ shout((err&&err.message)||"Could not update password","!"); }

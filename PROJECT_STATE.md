@@ -166,10 +166,9 @@ sign out. Do not add a plain dismiss.
 AuthModal.jsx - 8+ chars, upper, lower, number, special - the same rules as
 signup.
 
-### Known issue - open
-The Profile tab's own change-password field (App.jsx) still enforces only
-`newPassword.length < 6`, so a user can set a weaker password there than signup
-or reset allow. Pre-existing; not changed when the reset flow was rebuilt.
+All three places a password can be set - signup, the recovery modal, and the
+Profile tab's Account panel - now call the same validatePassword(). Do not
+reintroduce a separate rule in any of them.
 
 ### Email templates
 Supabase email templates live only in the dashboard, so they are mirrored in
