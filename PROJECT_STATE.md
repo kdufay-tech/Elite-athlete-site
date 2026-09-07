@@ -304,6 +304,50 @@ them must use the web app to generate codes.
 
 ---
 
+## Athlete career record  (built 2026-09-07)
+
+An athlete's data already belongs to the athlete: all eleven data tables key to
+`user_id`, not to a team or a coach, so the record travels with them from high
+school to college to pro by construction.
+
+**The problem it solves.** Every loader in `src/lib/supabase.js` filters to the
+last three months. The rows live in Postgres forever, but nothing older than 90
+days is visible to anyone - so a four-year career simply cannot be seen.
+
+**The shape: pagination first, aggregation on demand.**
+
+| Action | Returns |
+|--------|---------|
+| `summary` | ONE ROW PER MONTH via `athlete_history_summary()`. Four years = 48 rows. |
+| `page` | raw rows for ONE table and ONE window, limit/offset, exact count, max 100 |
+
+`netlify/functions/athlete-history.js`. Never loads a whole table, and the
+90-day working window on the dashboard is untouched - this is a separate read
+path, not a widening of the existing one.
+
+**Authorisation.** `verifyCaller` establishes who is asking and every query is
+pinned to THAT id. `p_user_id` is never read from the request body, so an
+athlete can only ever fetch their own record. Table names come from a
+whitelist, so nothing uncontrolled reaches the URL.
+
+**Aggregates on `created_at`, not `date`.** Only `check_ins.date` is a real
+DATE; `workout_logs`, `nutrition_logs`, `weight_logs` and `benchmarks` all store
+`date` as TEXT with no enforced format.
+
+**Readiness is not computed in SQL.** The formula already exists twice -
+`computeReadiness()` in `_coach-auth.js` and the Postgres copy inside
+`coach_roster_page()`. The summary returns raw component averages and the client
+applies the formula it already owns; a third copy would drift.
+
+### Not built yet
+Coach access to history, scoped to the window a coach actually had the athlete
+on their roster, and athlete-granted sharing for recruiting. Both need
+`team_members` soft-deleted first (`left_at` + `status='departed'`) - today
+`leave` and `remove` hard DELETE the row, so there is no record an athlete was
+ever on a team.
+
+---
+
 ## Tech Stack
 - React + Vite
   - Windows: `C:\Users\kdufa\App Development\Elite Athlete\elite-athlete-v3`
