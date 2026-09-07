@@ -1,0 +1,77 @@
+<!--
+  Supabase Auth -> Email Templates -> Reset Password
+  Mirrored here because Supabase email templates live only in the dashboard.
+  Paste this file's contents into that field verbatim; edit here first, then
+  paste, so the repo stays the source of truth.
+
+  WHY THIS REPLACES THE STOCK TEMPLATE
+    Supabase ships "Follow this link to reset the password for your user:" with
+    a bare link. No sender identity, no expiry, no "you can ignore this". Gmail
+    scores that shape poorly on its own, and it gave the user nothing to judge
+    the mail by.
+
+  RULES THIS TEMPLATE DEPENDS ON - do not break them:
+    1. Click tracking MUST stay OFF on auth.elite-athlete.app in Resend.
+       With it on, the ConfirmationURL variable is rewritten to
+       https://links.elite-athlete.app/CL0/<url-encoded supabase.co link>/...
+       which (a) reads as an open-redirect phishing link and triggers Gmail's
+       "This message might be dangerous" banner, and (b) lets mail scanners
+       prefetch and CONSUME the single-use token before the user clicks.
+    2. No images and no remote assets. Everything is inline. A remote image is
+       a tracking pixel to a spam filter and a broken box to an offline reader.
+    3. The destination URL is printed in full below the button. Auth mail that
+       hides where it is sending you is exactly what phishing does.
+
+  Colours match netlify/functions/welcome-email.js: #B8962E gold on #0D0D0D.
+-->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0D0D0D;margin:0;padding:32px 0;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#141414;border:1px solid #262626;border-radius:8px;">
+        <tr>
+          <td style="padding:32px 32px 8px 32px;">
+            <div style="font-family:Arial,sans-serif;font-size:13px;letter-spacing:3px;color:#B8962E;text-transform:uppercase;">Elite Athlete</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px 32px 0 32px;">
+            <h1 style="margin:0 0 16px 0;font-family:Arial,sans-serif;font-size:22px;font-weight:normal;color:#ffffff;">Reset your password</h1>
+            <p style="margin:0 0 20px 0;font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#c9c9c9;">
+              We received a request to reset the password for the Elite Athlete account registered to
+              <span style="color:#ffffff;">{{ .Email }}</span>.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:8px 32px 24px 32px;">
+            <a href="{{ .ConfirmationURL }}"
+               style="display:inline-block;background:#B8962E;color:#0D0D0D;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;letter-spacing:1px;text-decoration:none;padding:14px 32px;border-radius:4px;">
+              Set a new password
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 24px 32px;">
+            <p style="margin:0 0 8px 0;font-family:Arial,sans-serif;font-size:12px;color:#8a8a8a;">
+              If the button does not work, copy this address into your browser:
+            </p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;word-break:break-all;color:#B8962E;">
+              {{ .ConfirmationURL }}
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 32px 32px;border-top:1px solid #262626;">
+            <p style="margin:20px 0 0 0;font-family:Arial,sans-serif;font-size:12px;line-height:1.6;color:#8a8a8a;">
+              This link can be used once and expires in one hour.<br>
+              If you did not ask to reset your password, you can ignore this email &mdash; your password will not change.<br>
+              Questions? Reply-to is not monitored on this address; contact
+              <a href="mailto:support@elite-athlete.app" style="color:#B8962E;text-decoration:none;">support@elite-athlete.app</a>.
+            </p>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:16px 0 0 0;font-family:Arial,sans-serif;font-size:11px;color:#5a5a5a;">Elite Athlete &middot; elite-athlete.app</p>
+    </td>
+  </tr>
+</table>

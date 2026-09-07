@@ -93,11 +93,53 @@ Sender name   Elite Athlete
 `coach-waitlist.js`, `send-beta-invite.js`, `src/lib/email.js`. Unrelated to Resend -
 changing one does not affect the other.
 
-### Known issue - open
-Auth mail sent from `support@elite-athlete.app` lands in Gmail **spam**. That address
-carries ~34,000 cold-outreach sends with bounces and a complaint, and transactional
-mail inherits the reputation. Fix: verify `auth.elite-athlete.app` as its own Resend
-domain and move Supabase's sender to it, isolating the two streams.
+### Sending-domain split - REQUIRED, do not collapse
+
+| Stream | Domain | Resend click/open tracking |
+|--------|--------|----------------------------|
+| Auth (reset, confirmation) | `auth.elite-athlete.app` | **OFF - permanently** |
+| Marketing (blasts, broadcasts) | `elite-athlete.app` | on |
+
+**Click tracking must NEVER be enabled on the auth domain.** With it on, Resend
+rewrites the reset link to:
+
+```
+https://links.elite-athlete.app/CL0/<url-encoded supabase.co verify link>/1/<token>
+```
+
+Two consequences, both observed on 2026-09-07:
+
+1. Gmail shows **"This message might be dangerous"** - a redirector on one domain
+   wrapping a URL-encoded foreign domain, around a credential link, is the shape
+   of an open-redirect phishing attack.
+2. Mail security scanners prefetch links. Supabase `/auth/v1/verify` consumes the
+   single-use token on first GET, so a scanner can **burn the reset before the
+   user clicks it**. School/district mail gateways scan aggressively, and coaches
+   are exactly who sits behind them.
+
+`links.elite-athlete.app` resolves to `links1.resend-dns.com` -> CloudFront. That
+CNAME existing on the apex is what tracking uses; the auth subdomain must not
+have it.
+
+The split also insulates auth deliverability from outreach reputation. On
+2026-08-24 the apex sent 2,289 with 82 bounces and 1 complaint. Before the split,
+the password reset landed in **spam** for exactly that reason.
+
+**When email blasts are reinstated:** turn tracking back on for `elite-athlete.app`
+only. It is a per-domain setting, so this has no effect on auth mail. Do not
+re-enable it on `auth.elite-athlete.app` to "get reset metrics" - there are none
+worth having, and it silently re-breaks password reset.
+
+**API keys are domain-scoped.** A key scoped to `elite-athlete.app` cannot send
+from `auth.elite-athlete.app`; it fails at send time, which looks like a DNS
+problem and is not. Supabase SMTP uses a key scoped to the auth domain.
+
+### Email templates
+Supabase email templates live only in the dashboard, so they are mirrored in
+`supabase/email-templates/`. Edit the file, then paste it into
+Auth -> Email Templates. The stock Supabase recovery template was replaced on
+2026-09-07: it had no sender identity, no expiry, no "ignore this" line, and hid
+the destination behind a bare link.
 
 ### How to verify email end-to-end
 ```sql
