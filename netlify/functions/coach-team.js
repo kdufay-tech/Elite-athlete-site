@@ -1,6 +1,6 @@
 // netlify/functions/coach-team.js
 // Team lifecycle: create (coach), join (athlete), list (coach), mine (athlete),
-// leave (athlete), remove (coach).
+// leave (athlete), remove (coach) - both SOFT delete (status='departed').
 // Netlify Functions v2 — requires "type":"module" in package.json.
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 import { CORS, json, env, svc, verifyCaller, makeJoinCode } from './_coach-auth.js';
@@ -141,7 +141,10 @@ export default async (req) => {
         body: JSON.stringify({
           team_id: team.id, coach_id: team.coach_id, athlete_id: caller.id,
           sport: prof.sport || team.sport || null, position: prof.position || null,
-          status: 'active',
+          // left_at:null - a returning athlete reactivates the SAME row
+          // (UNIQUE (team_id, athlete_id) + resolution=merge-duplicates), so the
+          // old departure has to be cleared or they read as departed forever.
+          status: 'active', left_at: null,
         }),
       });
       if (!insRes.ok) {
@@ -315,16 +318,20 @@ export default async (req) => {
     if (action === 'leave') {
       const teamId = String(body.team_id || '');
       if (!teamId) return json({ error: 'team_id required' }, 400);
-      // Capture the coach BEFORE deleting - afterwards the row is gone and
-      // there is nothing left to identify whose seat count changed.
+      // Capture the coach first - the seat sync below needs to know whose
+      // roster shrank, and it is cheaper to read it than to re-derive it.
       const ownRes = await fetch(
         `${REST}/team_members?athlete_id=eq.${caller.id}&team_id=eq.${teamId}&select=coach_id`,
         { headers: H });
       const leavingCoachId = (ownRes.ok ? await ownRes.json() : [])[0]?.coach_id || null;
 
+      // SOFT delete. Every reader pins status=eq.active, so a departed row is
+      // invisible to rosters, readiness and billing - but the athlete's time on
+      // this team survives, which is the whole point of a portable career record.
       const res = await fetch(
-        `${REST}/team_members?athlete_id=eq.${caller.id}&team_id=eq.${teamId}`,
-        { method: 'DELETE', headers: H });
+        `${REST}/team_members?athlete_id=eq.${caller.id}&team_id=eq.${teamId}&status=eq.active`,
+        { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'departed', left_at: new Date().toISOString() }) });
       if (!res.ok) return json({ error: 'Could not leave team' }, 500);
       // Roster shrank by the athlete's own action - same sync as a coach remove.
       if (leavingCoachId) await syncCoachSeats(leavingCoachId, { supabaseUrl, serviceKey, stripeSecret: stripeKey() });
@@ -336,9 +343,12 @@ export default async (req) => {
       const athleteId = String(body.athlete_id || '');
       const teamId = String(body.team_id || '');
       if (!athleteId || !teamId) return json({ error: 'team_id and athlete_id required' }, 400);
+      // SOFT delete - see 'leave' above. coach_id=eq.caller.id still scopes this
+      // to the coach's own roster, so a coach cannot touch another team's row.
       const res = await fetch(
-        `${REST}/team_members?coach_id=eq.${caller.id}&team_id=eq.${teamId}&athlete_id=eq.${athleteId}`,
-        { method: 'DELETE', headers: H });
+        `${REST}/team_members?coach_id=eq.${caller.id}&team_id=eq.${teamId}&athlete_id=eq.${athleteId}&status=eq.active`,
+        { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'departed', left_at: new Date().toISOString() }) });
       if (!res.ok) return json({ error: 'Could not remove athlete' }, 500);
       // Roster shrank - drop the seat count (or the seat item entirely at zero).
       await syncCoachSeats(caller.id, { supabaseUrl, serviceKey, stripeSecret: stripeKey() });
