@@ -11352,10 +11352,25 @@ ${recruitingNote}`:null,
                 }}>
                 {recoverySaving ? "Saving..." : "Save New Password"}
               </button>
+              {/* Escape hatch SIGNS OUT - it must not simply dismiss.
+                  Supabase's recovery link exchanges its token for a full,
+                  normal session: reaching this modal proves control of the
+                  mailbox, NOT knowledge of the password. Dismissing without
+                  setting one would hand full app access to whoever opened the
+                  email. Cancelling therefore ends the session and returns to
+                  the landing screen; the only ways out of here are set a new
+                  password, or sign out. */}
               <button
                 style={{width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:"0.72rem",padding:"0.9rem 0 0",cursor:"pointer"}}
-                onClick={()=>{ setRecoveryPw(""); setRecoveryPw2(""); setRecoveryErr(""); setShowSetPassword(false); }}>
-                Not now - keep my current password
+                onClick={async()=>{
+                  setRecoveryPw(""); setRecoveryPw2(""); setRecoveryErr("");
+                  setShowSetPassword(false);
+                  try{ await signOut(); }catch(_){}
+                  setAuthUser(null); setSubscription(null);
+                  setScreen("landing");
+                  shout("Signed out - your password was not changed","*");
+                }}>
+                Cancel and sign out
               </button>
             </div>
           </div>
