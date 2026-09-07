@@ -20,15 +20,41 @@ const API_BASE = Capacitor.getPlatform() === "web" ? "" : "https://elite-athlete
 const IS_IOS = Capacitor.getPlatform() === "ios";
 
 // Native share: opens the iOS share sheet on device; falls back to clipboard on web.
+// Returns 'shared' | 'copied' | 'failed' so callers can tell the user the truth.
+//
+// The web branch used to be missing entirely: on anything but a Capacitor build
+// this fell straight past to a clipboard write, swallowed any failure, and
+// returned false - so the coach's Share button opened nothing and the caller
+// still claimed "copied to clipboard" without checking. navigator.share is now
+// tried first on web, which is what produces the Mail / Messages / WhatsApp
+// sheet on mobile browsers and on Safari and Edge desktop.
+//
+// Must be called straight from a user gesture - do not await anything before it,
+// or the browser will reject the share.
 async function nativeShare({ title, text, url }) {
-  try {
-    if (Capacitor.isNativePlatform()) {
+  const payload = [title, text, url].filter(Boolean).join("\n");
+
+  if (Capacitor.isNativePlatform()) {
+    try {
       await Share.share({ title, text, url, dialogTitle: title });
-      return true;
+      return 'shared';
+    } catch (e) { /* fall through to the web paths */ }
+  }
+
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      await navigator.share({ title, text, url });
+      return 'shared';
+    } catch (e) {
+      // The user dismissing the sheet is not a failure - do not fall back.
+      if (e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) return 'shared';
     }
-  } catch (e) { return false; }
-  try { await navigator.clipboard.writeText([title, text, url].filter(Boolean).join("\n")); } catch(e){}
-  return false;
+  }
+
+  try {
+    await navigator.clipboard.writeText(payload);
+    return 'copied';
+  } catch (e) { return 'failed'; }
 }
 
 // Check-in dates are stored ISO (YYYY-MM-DD); render them human-readably.

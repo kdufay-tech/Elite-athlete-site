@@ -72,6 +72,7 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
   const [invCount, setInvCount] = useState(1);
   const [invLabels, setInvLabels] = useState("");
   const [showInvites, setShowInvites] = useState(false);
+  const [manualShare, setManualShare] = useState("");
 
   const call = useCallback(async (path, opts = {}) => {
     const tok = await getFreshToken();
@@ -194,8 +195,9 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
       `Your code: ${inv.code}\n\n` +
       `1. Download Elite Athlete\n2. Open Profile -> Join a Team\n3. Enter ${inv.code}\n\n` +
       `This code works once and expires in 14 days.`;
-    const ok = await nativeShare({ title: `${team.name} - invite`, text, url: "https://elite-athlete.app" });
-    if (!ok) shout("Invite copied to clipboard", "\u25C6");
+    const r = await nativeShare({ title: `${team.name} - invite`, text, url: "https://elite-athlete.app" });
+    if (r === "copied") shout("Invite copied to clipboard", "\u25C6");
+    else if (r === "failed") { setManualShare(text); }
   };
 
   const rotateCode = async (team) => {
@@ -225,8 +227,9 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
     const text =
       `Join our team on Elite Athlete.\n\nTeam: ${team.name}\nCode: ${team.join_code}\n\n` +
       `1. Download Elite Athlete\n2. Open Profile → Join a Team\n3. Enter ${team.join_code}`;
-    const ok = await nativeShare({ title: `${team.name} — team code`, text, url: "https://elite-athlete.app" });
-    if (!ok) shout("Invite copied to clipboard", "◆");
+    const r = await nativeShare({ title: `${team.name} - team code`, text, url: "https://elite-athlete.app" });
+    if (r === "copied") shout("Team code copied to clipboard", "\u25C6");
+    else if (r === "failed") { setManualShare(text); }
   };
 
   const nudgeStale = async () => {
@@ -351,6 +354,21 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
               {" · "}${(((page.total ?? 0)) * SEAT_COST).toFixed(2)}/month in seats
             </div>
           </div>
+
+          {/* MANUAL SHARE FALLBACK - shown only when both the share sheet and the
+              clipboard were unavailable, so the coach can still copy the text by
+              hand instead of a button that appears to do nothing. */}
+          {manualShare && (
+            <div style={{ marginTop: "1rem", padding: "1rem", borderRadius: "var(--r)",
+                          border: "1px solid rgba(191,161,106,0.35)", background: "rgba(191,161,106,0.06)" }}>
+              <div style={L.lab}>Copy this and send it yourself</div>
+              <textarea readOnly value={manualShare} onFocus={e => e.target.select()}
+                style={{ ...L.input, minHeight: "120px", marginTop: "0.5rem" }} />
+              <button style={{ ...L.btnGhost, marginTop: "0.6rem" }} onClick={() => setManualShare("")}>
+                Done
+              </button>
+            </div>
+          )}
 
           {showInvites && (
             <div style={{ marginTop: "1.25rem", padding: "1.1rem", borderRadius: "var(--r)",
