@@ -37,7 +37,7 @@
 //   coach-followup, coach-ops-*). Do not wire it to any of them.
 // ─────────────────────────────────────────────────────────────
 
-import { CORS, json, env } from './_coach-auth.js';
+import { CORS, json, env, rpc } from './_coach-auth.js';
 
 const FROM         = 'Elite Athlete <support@elite-athlete.app>';
 const CODE_TTL_MS  = 10 * 60 * 1000;       // 10 minutes
@@ -221,20 +221,22 @@ export default async (req) => {
       const benchmarks = bRes.ok ? await bRes.json() : [];
       const allMonths = mRes.ok ? await mRes.json() : [];
 
-      // Record the view. Best-effort and awaited-free - a counter must never
-      // block or fail the page. Read-then-write can undercount if the same
-      // grant is opened twice in the same instant; that is acceptable for a
-      // "has anyone looked at this" signal and not worth a lock.
-      fetch(`${REST}/share_grants?id=eq.${grant.id}&select=view_count`, { headers: H })
-        .then(r => (r.ok ? r.json() : null))
-        .then(rows => fetch(`${REST}/share_grants?id=eq.${grant.id}`, {
-          method: 'PATCH', headers: JH,
-          body: JSON.stringify({
-            view_count: (rows?.[0]?.view_count ?? 0) + 1,
-            last_viewed_at: new Date().toISOString(),
-          }),
-        }))
-        .catch(() => {});
+      // Record the view. AWAITED, deliberately.
+      //
+      // This was fire-and-forget on the theory that a counter must never block
+      // the page. That is browser thinking: in a serverless function the
+      // runtime freezes the container the moment the handler returns, so an
+      // un-awaited promise is simply killed. A real coach visit on 2026-09-08
+      // left view_count at 0. The read-then-write was also a lost-update race.
+      //
+      // One atomic RPC, awaited. ~100ms, and the athlete actually finds out
+      // whether the coach opened it - which is most of why this beats a PDF.
+      // Still wrapped: a counter failure must not deny access to the profile.
+      try {
+        await rpc(supabaseUrl, serviceKey, 'share_grant_record_view', { p_id: grant.id });
+      } catch (e) {
+        console.error('share view counter failed:', e.message);
+      }
 
       return json({
         athlete: {
