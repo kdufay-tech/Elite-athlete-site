@@ -4921,12 +4921,15 @@ export default function App() {
         console.warn('profile autosave skipped: profile belongs to another account');
         return;
       }
-      saveProfile(authUser.id, {
-        name: profile.name, weight: profile.weight, height: profile.height,
-        age: profile.age, sport: profile.sport, position: profile.position, goal: profile.goal,
-        level: profile.level,
-        targetWeight: profile.targetWeight,
-      }).catch(err => console.error('Profile save failed:', err));
+      // Pass the WHOLE profile. This used to hand over a hand-picked object of
+      // nine fields, which meant saveProfile's own allow-list saw undefined for
+      // highSchool/graduationYear/gpa/gpaScale/hudlLink/location and mapped each
+      // to null - so every autosave WIPED the recruiting fields, including ones
+      // the coach-email button had just saved correctly a second earlier.
+      // saveProfile owns the field mapping; a caller must not maintain a second
+      // copy of it, because the two drift and the loser is silent data loss.
+      saveProfile(authUser.id, profile)
+        .catch(err => console.error('Profile save failed:', err));
     }, 1500);
     return () => clearTimeout(timer);
   }, [profile, authUser]);
