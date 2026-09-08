@@ -224,6 +224,19 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
   };
 
   const shareCode = async (team) => {
+    // coach-team.js queries teams with join_code_enabled=is.true, so sharing the
+    // code while it is OFF hands the athlete something the server will reject
+    // with "No team found with that code". Offer the one-step fix rather than
+    // sharing a dead code - or hiding the button, which is what used to happen.
+    if (!team?.join_code_enabled) {
+      const ok = window.confirm(
+        `The shared team code is currently OFF, so ${team?.join_code} will be rejected ` +
+        `when an athlete enters it.\n\nTurn it on and share? Anyone holding the code can ` +
+        `then join, and each athlete is $${SEAT_COST.toFixed(2)}/month.`
+      );
+      if (!ok) return;
+      await toggleOpenCode(team, true);
+    }
     const text =
       `Join our team on Elite Athlete.\n\nTeam: ${team.name}\nCode: ${team.join_code}\n\n` +
       `1. Download Elite Athlete\n2. Open Profile → Join a Team\n3. Enter ${team.join_code}`;
@@ -420,36 +433,40 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
                 </div>
               )}
 
-              {/* ── Shared open code - opt-in ── */}
-              <div style={{ marginTop: "1.5rem", paddingTop: "1.1rem",
-                            borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-                <div style={L.lab}>Shared Team Code</div>
-                <div style={{ fontSize: "0.7rem", color: "var(--muted)", margin: "0.4rem 0 0.8rem", lineHeight: 1.55 }}>
-                  One code the whole squad can use — handy in a room together. Anyone who has it
-                  joins immediately and counts as a ${SEAT_COST.toFixed(2)}/month seat, so leave it
-                  off unless you are actively onboarding.
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "1.3rem", fontWeight: 700,
-                                 letterSpacing: "5px",
-                                 color: team?.join_code_enabled ? "var(--gold-lt)" : "var(--muted)" }}>
-                    {team?.join_code}
-                  </span>
-                  <span style={{ fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase",
-                                 color: team?.join_code_enabled ? "#4BAE71" : "var(--muted)" }}>
-                    {team?.join_code_enabled ? "ON" : "OFF"}
-                  </span>
-                  <button style={L.btnGhost} onClick={() => toggleOpenCode(team, !team?.join_code_enabled)}>
-                    Turn {team?.join_code_enabled ? "off" : "on"}
-                  </button>
-                  <button style={L.btnGhost} onClick={() => rotateCode(team)}>New code</button>
-                  {team?.join_code_enabled && (
-                    <button style={L.btnGhost} onClick={() => shareCode(team)}>Share</button>
-                  )}
-                </div>
-              </div>
             </div>
           )}
+
+          {/* ── SHARED TEAM CODE ─────────────────────────────────
+              Sits OUTSIDE the invites panel. It used to be nested inside it,
+              so a coach had to press "Invite Athletes" before the team code
+              existed on screen at all. */}
+          <div style={{ marginTop: "1.5rem", paddingTop: "1.1rem",
+                        borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={L.lab}>Shared Team Code</div>
+            <div style={{ fontSize: "0.7rem", color: "var(--muted)", margin: "0.4rem 0 0.8rem", lineHeight: 1.55 }}>
+              One code the whole squad can use — handy in a room together. Anyone who has it
+              joins immediately and counts as a ${SEAT_COST.toFixed(2)}/month seat, so leave it
+              off unless you are actively onboarding.
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "1.3rem", fontWeight: 700,
+                             letterSpacing: "5px",
+                             color: team?.join_code_enabled ? "var(--gold-lt)" : "var(--muted)" }}>
+                {team?.join_code}
+              </span>
+              <span style={{ fontSize: "0.62rem", letterSpacing: "1.5px", textTransform: "uppercase",
+                             color: team?.join_code_enabled ? "#4BAE71" : "var(--muted)" }}>
+                {team?.join_code_enabled ? "ON" : "OFF"}
+              </span>
+              <button style={L.btnGhost} onClick={() => toggleOpenCode(team, !team?.join_code_enabled)}>
+                Turn {team?.join_code_enabled ? "off" : "on"}
+              </button>
+              <button style={L.btnGhost} onClick={() => rotateCode(team)}>New code</button>
+              {/* Always rendered. Gating this on join_code_enabled meant a coach
+                  with the code OFF saw no Share button at all and read it as broken. */}
+              <button style={L.btnGhost} onClick={() => shareCode(team)}>Share</button>
+            </div>
+          </div>
 
           {summary && (
             <div style={{ display: "flex", gap: "1.75rem", flexWrap: "wrap", marginTop: "1.5rem",
@@ -524,8 +541,13 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
           <div className="pb" style={{ color: "var(--muted)", fontSize: "0.85rem", lineHeight: 1.6 }}>
             {search
               ? <>No athlete matches "{search}".</>
-              : <>No athletes yet. Share code <strong style={{ color: "var(--gold-lt)", letterSpacing: "3px" }}>
-                  {team?.join_code}</strong> — they enter it under Profile → Join a Team.</>}
+              : team?.join_code_enabled
+                ? <>No athletes yet. Share code <strong style={{ color: "var(--gold-lt)", letterSpacing: "3px" }}>
+                    {team?.join_code}</strong> — they enter it under Profile → Join a Team.</>
+                /* The shared code is off, and coach-team.js rejects a join on a
+                   disabled code. Naming it here would send athletes to a dead end. */
+                : <>No athletes yet. Press <strong style={{ color: "var(--gold-lt)" }}>Invite Athletes</strong> above
+                    to create a single-use code for each one — or turn the shared team code on.</>}
           </div>
         </div>
       )}
@@ -567,10 +589,14 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
                     removeAthlete(a);
                 }}
                 disabled={removing === a.athlete_id}
-                style={{ background: "none", border: "none", color: "var(--muted)",
-                         fontSize: "0.55rem", letterSpacing: "1px", textTransform: "uppercase",
-                         cursor: "pointer", textDecoration: "underline", marginTop: "0.45rem",
-                         padding: 0 }}>
+                /* Was 0.55rem muted underlined text tucked under the readiness
+                   number - present in the DOM, invisible in practice. */
+                style={{ background: "none", border: "1px solid rgba(192,105,94,0.45)",
+                         borderRadius: "6px", color: "#C0695E",
+                         fontSize: "0.68rem", letterSpacing: "0.5px",
+                         cursor: removing === a.athlete_id ? "default" : "pointer",
+                         marginTop: "0.6rem", padding: "0.32rem 0.7rem",
+                         opacity: removing === a.athlete_id ? 0.5 : 1, whiteSpace: "nowrap" }}>
                 {removing === a.athlete_id ? "Removing…" : "Remove"}
               </button>
             </div>
