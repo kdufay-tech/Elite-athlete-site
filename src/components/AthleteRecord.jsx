@@ -22,7 +22,7 @@
 //   owns the arithmetic. avg_mood was added to the rollup for this reason; the
 //   0.15 mood term is not optional.
 import { useState, useEffect, useCallback } from "react";
-import { readColor, readLabel } from "./ReadinessChart";
+import { readColor, readLabel, monthReadiness } from "./ReadinessChart";
 
 const PAGE = 50;
 
@@ -68,22 +68,6 @@ const dayLabel = (d) => {
   if (!d) return "—";
   const dt = new Date(d);
   return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined, { month: "short", year: "numeric" });
-};
-
-// Same formula as _coach-auth.computeReadiness() and coach_roster_page().
-// Sport-specific sleep target, because 8h is not the same ask for a footballer.
-const monthReadiness = (m, sport) => {
-  if (!m || !m.check_ins) return null;
-  const n = (v, d) => (v === null || v === undefined ? d : Number(v));
-  const s = String(sport || "").toLowerCase();
-  const optimalSleep = s === "football" || s === "basketball" ? 9 : 8;
-  const r =
-    n(m.avg_recovery, 7) * 0.30 +
-    Math.min(n(m.avg_sleep, 8) / optimalSleep, 1) * 10 * 0.25 +
-    n(m.avg_energy, 7) * 0.20 +
-    n(m.avg_mood, 7) * 0.15 +
-    (10 - n(m.avg_soreness, 3)) * 0.10;
-  return Math.min(10, Math.round(r * 10) / 10);
 };
 
 export default function AthleteRecord({ getFreshToken, shout, apiBase = "", sport }) {

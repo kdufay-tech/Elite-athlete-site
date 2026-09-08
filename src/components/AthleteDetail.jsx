@@ -6,6 +6,7 @@
 // for a month" — the question that makes a coach open the app twice a day.
 import { useState, useEffect, useCallback } from "react";
 import { ReadinessLineChart, ComplianceChart, readColor, readLabel } from "./ReadinessChart";
+import CoachAthleteHistory from "./CoachAthleteHistory";
 
 const RANGES = [
   { d: 7,  label: "7D"  },
@@ -256,6 +257,14 @@ export default function AthleteDetail({ athlete, authUser, getFreshToken, shout,
           )}
         </div>
       )}
+
+      {/* ── LONGER RECORD ──────────────────────────────────────
+          The panels above answer "what has she been doing for a month".
+          This answers "what did I inherit" - and stops at the boundary of
+          what this coach is entitled to. Months before they joined show
+          readiness and volume only; the server sends nothing more. */}
+      <CoachAthleteHistory athlete={athlete} getFreshToken={getFreshToken}
+                           shout={shout} apiBase={apiBase}/>
 
       {/* ── COACH NOTES ────────────────────────────────────────── */}
       <div className="panel" style={{ marginBottom: "1.1rem" }}>

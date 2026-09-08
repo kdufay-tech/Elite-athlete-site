@@ -28,6 +28,26 @@ export const readColor = (r) =>
 export const readLabel = (r) =>
   r === null || r === undefined ? "No data" : r >= 7.5 ? "Prime" : r >= 5 ? "Caution" : "At risk";
 
+// Readiness from a MONTH of averaged components. Same weights as
+// _coach-auth.computeReadiness() and coach_roster_page(); the SQL rollups
+// (athlete_history_summary, coach_athlete_history) deliberately return raw
+// components and leave the arithmetic here so there is ONE client-side copy.
+// AthleteRecord (athlete's own record) and CoachAthleteHistory (coach view of
+// an athlete) both use this - do not re-implement it in either.
+export function monthReadiness(m, sport) {
+  if (!m || m.avg_recovery === null || m.avg_recovery === undefined) return null;
+  const n = (v, d) => (v === null || v === undefined ? d : Number(v));
+  const s = String(sport || "").toLowerCase();
+  const optimalSleep = s === "football" || s === "basketball" ? 9 : 8;
+  const r =
+    n(m.avg_recovery, 7) * 0.30 +
+    Math.min(n(m.avg_sleep, 8) / optimalSleep, 1) * 10 * 0.25 +
+    n(m.avg_energy, 7) * 0.20 +
+    n(m.avg_mood, 7) * 0.15 +
+    (10 - n(m.avg_soreness, 3)) * 0.10;
+  return Math.min(10, Math.round(r * 10) / 10);
+}
+
 const lab = {
   fontFamily: "'Inter',sans-serif", fontSize: "0.55rem", fontWeight: 700,
   letterSpacing: "2.5px", textTransform: "uppercase", color: "var(--ivory2)",
