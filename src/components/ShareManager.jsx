@@ -14,6 +14,7 @@
 //   link gets its own persistent block with a copy button rather than a toast
 //   that can be missed. Lost link = revoke and re-issue.
 import { useState, useEffect, useCallback, useRef } from "react";
+import { APP_ORIGIN } from "../lib/appUrl";
 
 const lab = {
   fontFamily: "'Inter',sans-serif", fontSize: "0.55rem", fontWeight: 700,
@@ -104,7 +105,10 @@ export default function ShareManager({ getFreshToken, shout, nativeShare, apiBas
         recipient_email: email.trim(),
         recipient_label: label.trim() || null,
       });
-      setFresh({ url: `${window.location.origin}/s/${d.token}`, email: d.recipient_email });
+      // APP_ORIGIN, never window.location.origin: in a native build that is
+      // https://localhost (Android) or capacitor://localhost (iOS), so the
+      // link and the QR both pointed at the phone itself.
+      setFresh({ url: `${APP_ORIGIN}/s/${d.token}`, email: d.recipient_email });
       setEmail(""); setLabel("");
       await load();
     } catch (e) { shout?.(e.message, "!"); }
@@ -121,7 +125,13 @@ export default function ShareManager({ getFreshToken, shout, nativeShare, apiBas
   };
 
   const shareLink = async (url) => {
-    const r = await nativeShare?.({ title: "My Elite Athlete profile", text: url, url });
+    // `text` is a sentence, NOT the url - Android's share sheet concatenates
+    // text and url, so passing the url as both printed it twice in the email.
+    const r = await nativeShare?.({
+      title: "My Elite Athlete profile",
+      text: "My Elite Athlete recruiting profile - benchmarks, training record and film:",
+      url,
+    });
     if (r === "copied") shout?.("Link copied", "◆");
     else if (!r || r === "failed") {
       try { await navigator.clipboard.writeText(url); shout?.("Link copied", "◆"); }

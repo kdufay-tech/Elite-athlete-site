@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { signIn, signUp, supabase } from '../lib/supabase';
 import { Capacitor } from '@capacitor/core';
 const IS_IOS = Capacitor.getPlatform() === 'ios';
+import { APP_ORIGIN } from '../lib/appUrl';
 
 // Password complexity, enforced on signup. Restored from the `main` branch,
 // where it was added as a security fix and then lost when this component was
@@ -44,7 +45,10 @@ export default function AuthModal({ onClose, onAuth, initialMode, initialBetaCod
       setLoading(true);
       try {
         const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin,
+          // Same defect as the share link: on native this was
+          // https://localhost, so a reset link requested from the app was
+          // unopenable. This URL leaves the device - it must be public.
+          redirectTo: APP_ORIGIN,
         });
         if (e) throw e;
         setSuccess('Password reset link sent — check your email.');
