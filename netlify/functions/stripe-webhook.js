@@ -1,7 +1,7 @@
 // netlify/functions/stripe-webhook.js
 // ESM format — required for this project (node_bundler = esbuild)
 import { planForPrice } from './_plan-map.js';
-import { cancelCoachSeats } from './_seat-sync.js';
+import { cancelCoachSeats, resyncCoachesOfAthlete } from './_seat-sync.js';
 
 export default async (req) => {
   if (req.method !== 'POST')
@@ -35,7 +35,7 @@ export default async (req) => {
 
   try {
     if      (type === 'checkout.session.completed')      await onCheckout(data.object, stripeSecret, supabaseUrl, supabaseKey);
-    else if (type === 'customer.subscription.updated')   await onSubUpdated(data.object, supabaseUrl, supabaseKey);
+    else if (type === 'customer.subscription.updated')   await onSubUpdated(data.object, supabaseUrl, supabaseKey, stripeSecret);
     else if (type === 'customer.subscription.deleted')   await onSubDeleted(data.object, supabaseUrl, supabaseKey, stripeSecret);
     else if (type === 'invoice.payment_failed')          await onPayFailed(data.object, supabaseUrl, supabaseKey);
     return new Response(JSON.stringify({ received: true }), { status: 200 });
@@ -73,23 +73,36 @@ async function onCheckout(session, stripeSecret, supabaseUrl, supabaseKey) {
     stripe_subscription_id: subscriptionId,
     plan_name: planName,
     status: sub.status,
+    // Their own subscription - no longer a school-granted seat.
+    seat_coach_id: null,
     billing_interval: sub.items?.data?.[0]?.price?.recurring?.interval || 'month',
     current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : new Date(Date.now() + 30*24*60*60*1000).toISOString(),
   });
+  // They now pay for themselves, so no school should still be billed a seat
+  // for them. Recomputing their coaches' rosters removes it.
+  await resyncCoachesOfAthlete(userId, { supabaseUrl, serviceKey: supabaseKey, stripeSecret });
+
   console.log(`Subscription saved: user=${userId} plan=${planName}`);
 }
 
-async function onSubUpdated(sub, supabaseUrl, supabaseKey) {
+async function onSubUpdated(sub, supabaseUrl, supabaseKey, stripeSecret) {
   // A seat subscription changing status is seat bookkeeping, never a change to
   // the coach's plan. Its id lives in subscriptions.seat_subscription_id, so
   // patchSubById would match zero rows and the change would vanish.
   if (await patchSeatSub(supabaseUrl, supabaseKey, sub.id, { seat_status: sub.status })) return;
+
+  // Their own access may have just started or stopped, which changes whether a
+  // school should be billed a seat for them.
+  const owner = await ownerOfSub(supabaseUrl, supabaseKey, sub.id);
 
   const planName = planForPrice(sub.items?.data?.[0]?.price?.id) || sub.metadata?.plan_name || sub.items?.data?.[0]?.price?.nickname || 'elite';
   await patchSubById(supabaseUrl, supabaseKey, sub.id, {
     plan_name: planName, status: sub.status,
     current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : new Date(Date.now() + 30*24*60*60*1000).toISOString(),
   });
+
+  if (owner?.user_id)
+    await resyncCoachesOfAthlete(owner.user_id, { supabaseUrl, serviceKey: supabaseKey, stripeSecret });
 }
 
 async function onSubDeleted(sub, supabaseUrl, supabaseKey, stripeSecret) {
@@ -116,6 +129,14 @@ async function onSubDeleted(sub, supabaseUrl, supabaseKey, stripeSecret) {
   }
 
   await patchSubById(supabaseUrl, supabaseKey, sub.id, { status: 'cancelled', plan_name: '' });
+
+  // THE REJOIN. Their paid period has actually ended - Stripe sends this at the
+  // end of the period, not when cancel_at_period_end is set - so if a Coach Pro
+  // coach rosters them, the school's seat now applies. This is what makes
+  // "after the paid period expires, they can rejoin the seat" true without a
+  // scheduled job.
+  if (owner?.user_id)
+    await resyncCoachesOfAthlete(owner.user_id, { supabaseUrl, serviceKey: supabaseKey, stripeSecret });
 }
 
 async function onPayFailed(invoice, supabaseUrl, supabaseKey) {

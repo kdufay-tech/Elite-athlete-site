@@ -52,6 +52,141 @@ const STRIPE = 'https://api.stripe.com/v1';
 // A seat subscription in any of them must be REUSED, never duplicated.
 const LIVE_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete']);
 
+// Statuses that mean "this person's OWN access is live right now". Narrower
+// than LIVE_STATUSES: 'unpaid' and 'incomplete' are subscriptions Stripe has
+// not managed to collect on, so they are not access anyone is paying for.
+const LIVE_ACCESS = new Set(['active', 'trialing', 'past_due']);
+
+// How many user ids to put in one PostgREST in.() filter. Rosters are bounded
+// per coach, but a 500-athlete program must not become one enormous URL.
+const ID_CHUNK = 100;
+
+// Status comparison is ALWAYS case- and space-insensitive here. The live table
+// held a row with status 'Active', which every status='active' filter in the
+// app silently missed. In this file that failure mode is not neutral: the
+// question being asked is "does this athlete already pay?", and a missed match
+// answers "no", which bills a school for someone who is already paying.
+const normStatus = (v) => String(v || '').trim().toLowerCase();
+const normPlan   = (v) => String(v || '').trim().toLowerCase();
+
+/**
+ * Does this subscription row represent the person's OWN live access - the
+ * thing that makes a school seat unnecessary?
+ *
+ * A school-granted seat (seat_coach_id set) deliberately does NOT count: it is
+ * the thing being decided, not evidence against itself. Treating it as "they
+ * already have access" would make every seat cancel itself on the next sync.
+ *
+ * Comped and beta plans DO count. Kiszo's call, 2026-09-08: a beta athlete has
+ * live access, so no school pays for them; when beta ends they roll onto the
+ * seat through the same path as an expiring paid subscription.
+ */
+function holdsOwnAccess(row) {
+  if (!row) return false;
+  if (row.seat_coach_id) return false;
+  const plan = normPlan(row.plan_name);
+  if (!plan || plan === 'athlete_seat') return false;
+  return LIVE_ACCESS.has(normStatus(row.status));
+}
+
+// Subscription rows for a set of users, chunked. Returns Map(user_id -> row).
+async function subsForUsers(REST, H, ids) {
+  const out = new Map();
+  for (let i = 0; i < ids.length; i += ID_CHUNK) {
+    const chunk = ids.slice(i, i + ID_CHUNK);
+    const r = await fetch(
+      `${REST}/subscriptions?user_id=in.(${chunk.join(',')})`
+      + `&select=user_id,plan_name,status,seat_coach_id`, { headers: H });
+    if (!r.ok) throw new Error(`roster subscription read failed: ${await r.text()}`);
+    for (const row of await r.json()) out.set(row.user_id, row);
+  }
+  return out;
+}
+
+/**
+ * Another Coach Pro coach who is also actively rostering this athlete.
+ *
+ * Needed because an athlete can sit on two teams. Without this, coach B's
+ * cleanup pass would clear a seat row and cut off access the athlete still has
+ * through coach A - who is still being billed for them.
+ */
+async function otherSeatCoachFor(REST, H, athleteId, excludeCoachId) {
+  const r = await fetch(
+    `${REST}/team_members?athlete_id=eq.${athleteId}&status=eq.active&select=coach_id`,
+    { headers: H });
+  if (!r.ok) return null;
+  const ids = [...new Set((await r.json()).map(x => x.coach_id).filter(Boolean))]
+    .filter(c => c !== excludeCoachId);
+  if (!ids.length) return null;
+  const s = await fetch(
+    `${REST}/subscriptions?user_id=in.(${ids.slice(0, ID_CHUNK).join(',')})`
+    + `&select=user_id,plan_name,status`, { headers: H });
+  if (!s.ok) return null;
+  const hit = (await s.json()).find(
+    row => planHasSeats(row.plan_name) && normStatus(row.status) === 'active');
+  return hit?.user_id || null;
+}
+
+/**
+ * Bring the athletes' OWN subscription rows in line with who this coach is
+ * paying for. This is what turns a $4.99 charge into actual access.
+ *
+ * THE RAIL: every write here is confined to rows where seat_coach_id is set,
+ * or to creating one. A self-purchased subscription has seat_coach_id null and
+ * cannot be touched by this function - which matters, because this is seat
+ * code writing to the table the paywall reads.
+ */
+async function reconcileSeatRows(REST, H, coachId, billed, subsByUser) {
+  const JH  = { ...H, 'Content-Type': 'application/json' };
+  const now = () => new Date().toISOString();
+  let granted = 0, cleared = 0;
+
+  // GRANT - everyone this coach is billed for gets athlete_seat access.
+  for (const id of billed) {
+    const row = subsByUser.get(id);
+    if (row && row.seat_coach_id === coachId
+        && normPlan(row.plan_name) === 'athlete_seat'
+        && normStatus(row.status) === 'active') continue;      // already correct
+
+    const patch = { plan_name: 'athlete_seat', status: 'active',
+                    seat_coach_id: coachId, updated_at: now() };
+    // PATCH rather than upsert when a row exists: an athlete whose own
+    // subscription lapsed still has stripe_customer_id / stripe_subscription_id
+    // on that row, and overwriting the whole row would destroy the history that
+    // lets them resume later.
+    const res = row
+      ? await fetch(`${REST}/subscriptions?user_id=eq.${id}`,
+          { method: 'PATCH', headers: JH, body: JSON.stringify(patch) })
+      : await fetch(`${REST}/subscriptions`,
+          { method: 'POST', headers: JH, body: JSON.stringify({ user_id: id, ...patch }) });
+    if (res.ok) granted++;
+    else console.error('seat grant failed for', id, await res.text());
+  }
+
+  // CLEAR - rows THIS coach granted to someone they are no longer billed for.
+  // Kiszo's call: access ends the moment the roster row does, so billing and
+  // access always end on the same event.
+  let q = `${REST}/subscriptions?seat_coach_id=eq.${coachId}`;
+  if (billed.size) q += `&user_id=not.in.(${[...billed].join(',')})`;
+  const staleRes = await fetch(`${q}&select=user_id`, { headers: H });
+  const stale = staleRes.ok ? await staleRes.json() : [];
+
+  for (const { user_id } of stale) {
+    // Still rostered by another Coach Pro coach? Hand the grant over instead of
+    // cutting them off - that coach is paying for them.
+    const other = await otherSeatCoachFor(REST, H, user_id, coachId);
+    const patch = other
+      ? { seat_coach_id: other, updated_at: now() }
+      : { plan_name: '', status: 'inactive', seat_coach_id: null, updated_at: now() };
+    const res = await fetch(`${REST}/subscriptions?user_id=eq.${user_id}&seat_coach_id=eq.${coachId}`,
+      { method: 'PATCH', headers: JH, body: JSON.stringify(patch) });
+    if (res.ok) cleared++;
+    else console.error('seat clear failed for', user_id, await res.text());
+  }
+
+  return { granted, cleared };
+}
+
 function form(obj) {
   return Object.entries(obj)
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
@@ -106,7 +241,7 @@ export async function syncCoachSeats(coachId, { supabaseUrl, serviceKey, stripeS
     const sub = (subRes.ok ? await subRes.json() : [])[0];
     if (!sub) return { synced: false, reason: 'no subscription row' };
     if (!planHasSeats(sub.plan_name)) return { synced: false, reason: `plan "${sub.plan_name}" has no seats` };
-    if (sub.status !== 'active') return { synced: false, reason: `subscription ${sub.status}` };
+    if (normStatus(sub.status) !== 'active') return { synced: false, reason: `subscription ${sub.status}` };
     if (!sub.stripe_subscription_id) return { synced: false, reason: 'no stripe subscription id' };
     if (!sub.stripe_customer_id)     return { synced: false, reason: 'no stripe customer id' };
 
@@ -116,7 +251,23 @@ export async function syncCoachSeats(coachId, { supabaseUrl, serviceKey, stripeS
       `${REST}/team_members?coach_id=eq.${coachId}&status=eq.active&select=athlete_id`,
       { headers: H });
     const rows = memRes.ok ? await memRes.json() : [];
-    const seats = new Set(rows.map(r => r.athlete_id).filter(Boolean)).size;
+    const roster = [...new Set(rows.map(r => r.athlete_id).filter(Boolean))];
+
+    // 2b. Subtract athletes who already hold their own live access.
+    //     Kiszo's rule, 2026-09-08: "block the seat while they hold their own
+    //     paid subscription; after the paid period expires they can rejoin the
+    //     seat." Without this the athlete pays for Elite AND their school pays
+    //     $4.99 for the same person, every month.
+    //
+    //     Rejoining is not a scheduled job: Stripe emits
+    //     customer.subscription.deleted when a period actually ends (including
+    //     cancel_at_period_end), and RevenueCat emits EXPIRATION. Both call
+    //     resyncCoachesOfAthlete, which lands right back here.
+    const subsByUser = roster.length ? await subsForUsers(REST, H, roster) : new Map();
+    const billed = new Set(roster.filter(id => !holdsOwnAccess(subsByUser.get(id))));
+    const seats = billed.size;
+    const exempt = roster.length - seats;
+    if (exempt) console.log(`Seat sync: coach=${coachId} ${exempt} athlete(s) already have their own access - not billed`);
 
     // 3. Resolve the seat subscription BY STORED ID, in any status. Listing
     //    active subscriptions and matching on price is what produced duplicates.
@@ -172,11 +323,16 @@ export async function syncCoachSeats(coachId, { supabaseUrl, serviceKey, stripeS
       // trustworthy mirror rather than only being written when something moves.
       await recordSeatState(REST, H, coachId,
         { seat_quantity: seats, seat_status: seatSub ? seatSub.status : null });
-      return { synced: true, seats, reason: 'already correct' };
     }
 
-    console.log(`Seat sync: coach=${coachId} seats=${seats}`);
-    return { synced: true, seats };
+    // 5. Access. Deliberately AFTER Stripe has converged: if the charge could
+    //    not be applied we fall into catch and grant nothing, rather than
+    //    handing out access the school is not being billed for.
+    const rowResult = await reconcileSeatRows(REST, H, coachId, billed, subsByUser);
+
+    console.log(`Seat sync: coach=${coachId} seats=${seats} `
+      + `granted=${rowResult.granted} cleared=${rowResult.cleared}`);
+    return { synced: true, seats, ...rowResult };
   } catch (err) {
     // Non-fatal by design - a billing hiccup must never block a roster change.
     console.error('Seat sync failed (non-fatal):', err.message);
@@ -208,11 +364,61 @@ export async function cancelCoachSeats(coachId, { supabaseUrl, serviceKey, strip
     await stripeReq(`/subscriptions/${seatId}`, stripeSecret, 'DELETE');
     await recordSeatState(REST, H, coachId,
       { seat_subscription_id: null, seat_quantity: 0, seat_status: 'canceled' });
-    console.log(`Seat subscription cancelled with parent: coach=${coachId} seat=${seatId}`);
-    return { cancelled: true };
+
+    // The school has stopped paying, so the access it was buying ends too -
+    // otherwise every athlete on that roster keeps athlete_seat access for
+    // free, forever, with nothing left in Stripe to cancel. An empty billed
+    // set makes reconcileSeatRows a pure revoke pass; athletes still rostered
+    // by ANOTHER Coach Pro coach have their grant handed over rather than cut.
+    const rowResult = await reconcileSeatRows(REST, H, coachId, new Set(), new Map());
+
+    console.log(`Seat subscription cancelled with parent: coach=${coachId} `
+      + `seat=${seatId} access_cleared=${rowResult.cleared}`);
+    return { cancelled: true, ...rowResult };
   } catch (err) {
     // Loud: this one failing means a cancelled customer is still being charged.
     console.error('SEAT CANCEL FAILED - customer may still be billed:', coachId, err.message);
     return { cancelled: false, reason: err.message };
+  }
+}
+
+/**
+ * One athlete's access changed - resync every Coach Pro coach rostering them.
+ *
+ * THIS IS THE HINGE OF THE WHOLE RULE. "Block the seat while they pay, and let
+ * them rejoin the seat when the paid period expires" is only true if something
+ * notices the expiry. Nothing polls: the events already arrive.
+ *
+ *   they buy their own subscription   -> checkout.session.completed
+ *   their period actually ends        -> customer.subscription.deleted
+ *                                        (Stripe sends this for
+ *                                         cancel_at_period_end too, at the end
+ *                                         of the period - not when it is set)
+ *   status moves either way           -> customer.subscription.updated
+ *   App Store / Play equivalents      -> RevenueCat ACTIVE / EXPIRATION
+ *
+ * Each lands here, and syncCoachSeats recomputes from scratch - so the seat
+ * count and the athlete's access both correct themselves without any schedule.
+ *
+ * Never throws: a billing resync must not fail a webhook and make Stripe retry
+ * a delivery that already did its real work.
+ */
+export async function resyncCoachesOfAthlete(athleteId, cfg) {
+  const { supabaseUrl, serviceKey } = cfg || {};
+  try {
+    if (!athleteId || !supabaseUrl || !serviceKey) return { resynced: 0 };
+    const H = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
+    const r = await fetch(
+      `${supabaseUrl}/rest/v1/team_members?athlete_id=eq.${athleteId}`
+      + `&status=eq.active&select=coach_id`, { headers: H });
+    if (!r.ok) return { resynced: 0 };
+    const coaches = [...new Set((await r.json()).map(x => x.coach_id).filter(Boolean))]
+      .slice(0, 25);   // an athlete is on a handful of teams; a cap, not a quota
+    for (const coachId of coaches) await syncCoachSeats(coachId, cfg);
+    if (coaches.length) console.log(`Resynced ${coaches.length} coach(es) for athlete ${athleteId}`);
+    return { resynced: coaches.length };
+  } catch (err) {
+    console.error('resyncCoachesOfAthlete failed (non-fatal):', err.message);
+    return { resynced: 0 };
   }
 }

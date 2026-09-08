@@ -10,6 +10,7 @@
 //   REVENUECAT_WEBHOOK_SECRET   (the value after "Bearer " in RevenueCat)
 // ─────────────────────────────────────────────────────────────
 import { createClient } from '@supabase/supabase-js';
+import { resyncCoachesOfAthlete } from './_seat-sync.js';
 
 // Map App Store product IDs -> plan_name string getUserTier() understands.
 // getUserTier checks: plan.includes('coach') | 'elite' | 'athlete'.
@@ -79,6 +80,10 @@ export default async (req) => {
         status,
         current_period_end: periodEnd,
         platform: 'ios',
+        // This is the user's OWN subscription, so the row stops being a
+        // school-granted seat. Leaving the marker set would make the seat
+        // logic treat their real subscription as a seat it owns.
+        seat_coach_id: null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id' }
@@ -88,5 +93,17 @@ export default async (req) => {
     console.error('Supabase upsert failed:', error);
     return new Response('DB error', { status: 500 });
   }
+
+  // Their access just started or ended, which decides whether a Coach Pro
+  // school should be billed a $4.99 seat for them. An App Store subscription
+  // lapsing is exactly the "paid period expired, roll onto the seat" case, and
+  // without this it is the ONE expiry path with no event behind it.
+  await resyncCoachesOfAthlete(userId, {
+    supabaseUrl: process.env.SUPABASE_URL,
+    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY,
+    stripeSecret: process.env.BETA_MODE === 'true'
+      ? process.env.STRIPE_TEST_SECRET_KEY : process.env.STRIPE_SECRET_KEY,
+  });
+
   return new Response('OK', { status: 200 });
 };
