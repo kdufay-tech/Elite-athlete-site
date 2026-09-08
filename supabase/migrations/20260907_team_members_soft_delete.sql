@@ -24,11 +24,16 @@
 --   particular _seat-sync counts status='active', so a departure correctly
 --   stops costing $4.99/month.
 --
--- REJOINING
---   team_members has UNIQUE (team_id, athlete_id), and the join path upserts
---   with resolution=merge-duplicates. A returning athlete therefore reactivates
---   their existing row rather than failing on the constraint. The payload now
---   sets left_at=null so the old departure does not linger.
+-- REJOINING  (corrected 2026-09-08 after a live test failed)
+--   team_members has UNIQUE (team_id, athlete_id). resolution=merge-duplicates
+--   ALONE IS NOT ENOUGH: PostgREST resolves it against the PRIMARY KEY unless
+--   the conflict target is named, so the first live rejoin died on 23505 and
+--   surfaced to the athlete as "already on this team" while the row stayed
+--   departed. coach-team.js now posts to
+--     /team_members?on_conflict=team_id,athlete_id
+--   and checks for an existing ACTIVE membership first, so a genuine duplicate
+--   join does not burn a single-use invite code. The payload sets left_at=null
+--   so the old departure does not linger on the reused row.
 --
 -- KNOWN LIMITATION
 --   One row per (team, athlete) means joined_at is the FIRST join and left_at

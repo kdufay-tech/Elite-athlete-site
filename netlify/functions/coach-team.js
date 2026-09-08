@@ -132,7 +132,25 @@ export default async (req) => {
         `${REST}/profiles?user_id=eq.${caller.id}&select=sport,position`, { headers: H });
       const prof = (pRes.ok ? await pRes.json() : [])[0] || {};
 
-      const insRes = await fetch(`${REST}/team_members`, {
+      // Look the membership up explicitly instead of letting the insert fail and
+      // reading the error. An ALREADY-ACTIVE athlete must be told so WITHOUT
+      // burning a fresh single-use invite code; a DEPARTED one must be
+      // reactivated. The old code could not tell those apart - both surfaced as
+      // "already on team" and the departed athlete was stuck out of the team.
+      const exRes = await fetch(
+        `${REST}/team_members?team_id=eq.${team.id}&athlete_id=eq.${caller.id}&select=id,status`,
+        { headers: H });
+      const existing = (exRes.ok ? await exRes.json() : [])[0] || null;
+      if (existing && existing.status === 'active') {
+        return json({ team: { id: team.id, name: team.name }, already: true });
+      }
+
+      // on_conflict IS REQUIRED. PostgREST resolves resolution=merge-duplicates
+      // against the PRIMARY KEY unless the target is named, and this payload
+      // carries no id - so without it the insert ignores the
+      // (team_id, athlete_id) unique index entirely and dies on 23505 rather
+      // than reactivating the existing row.
+      const insRes = await fetch(`${REST}/team_members?on_conflict=team_id,athlete_id`, {
         method: 'POST',
         headers: {
           ...H, 'Content-Type': 'application/json',
@@ -141,16 +159,13 @@ export default async (req) => {
         body: JSON.stringify({
           team_id: team.id, coach_id: team.coach_id, athlete_id: caller.id,
           sport: prof.sport || team.sport || null, position: prof.position || null,
-          // left_at:null - a returning athlete reactivates the SAME row
-          // (UNIQUE (team_id, athlete_id) + resolution=merge-duplicates), so the
-          // old departure has to be cleared or they read as departed forever.
+          // left_at:null clears the prior departure. The row is REUSED, so a
+          // stale left_at would leave a rejoined athlete reading as departed.
           status: 'active', left_at: null,
         }),
       });
       if (!insRes.ok) {
         const t = await insRes.text();
-        if (/duplicate key|23505/i.test(t))
-          return json({ team: { id: team.id, name: team.name }, already: true });
         return json({ error: 'Could not join team', detail: t.slice(0, 200) }, 500);
       }
       // Burn the invite so it cannot be reused.
