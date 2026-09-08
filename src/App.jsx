@@ -4208,13 +4208,21 @@ export default function App() {
   const [obStep, setObStep] = useState(1);
   const [obSaving, setObSaving] = useState(false);
   const dataLoadedRef = useRef(false);
-  // WHICH USER the in-memory `profile` belongs to. The profile autosave writes
-  // `profile` to `authUser.id`; if those two ever disagree - which they do for
-  // the whole time loadUserData is awaiting the network after an account
-  // switch - the write lands on the WRONG ACCOUNT and destroys that user's
-  // profile. This ref makes the invariant explicit instead of relying on the
-  // order two async paths happen to finish in.
-  const profileOwnerRef = useRef(null);
+  // WHICH USER every piece of in-memory data belongs to.
+  //
+  // SIX autosave effects share one shape: useEffect([<data>, authUser]) with a
+  // debounce that writes <data> to authUser.id. Those are two independent
+  // pieces of state and nothing tied them together. loadUserData awaits ten
+  // network calls, so after an account switch there is a window - the whole
+  // load - where authUser is the NEW user and every data array still holds the
+  // PREVIOUS one's. Any timer firing in that window writes one athlete's
+  // records into another athlete's account.
+  //
+  // This ref is the missing link. It is set only when loadUserData has the
+  // data, cleared by resetUserState, and checked inside every autosave AT FIRE
+  // TIME. Guarding only the profile - as the first pass did - leaves workouts,
+  // weights, nutrition, journals and notes exposed to exactly the same race.
+  const dataOwnerRef = useRef(null);
   const lastNoteSaved = useRef(null);   // guards the progress-note autosave
   const recoveryHandledRef = useRef(false);
   const [dash, setDash] = useState("nutrition");
@@ -4788,7 +4796,7 @@ export default function App() {
   // the previous user's data on screen — including their subscription, which
   // granted their tier to the next person to sign in.
   const resetUserState = () => {
-    profileOwnerRef.current = null;   // nothing in memory belongs to anyone yet
+    dataOwnerRef.current = null;   // nothing in memory belongs to anyone yet
     setSubscription(null);
     setDash("nutrition");
     setProgressTab("overview");
@@ -4849,7 +4857,7 @@ export default function App() {
       // The loaded profile belongs to userId. Any autosave firing from here on
       // is allowed to write, and any timer still pending from the PREVIOUS
       // account is not (see the owner check in the autosave effect).
-      profileOwnerRef.current = userId;
+      dataOwnerRef.current = userId;
       if (prof) {
         setProfile(p => ({ ...p, ...prof, targetWeight: prof.targetWeight||prof.target_weight||p.targetWeight||"" }));
         if (prof.goal) setMealType(
@@ -4909,7 +4917,7 @@ export default function App() {
       // another account re-runs this effect with the previous user's profile
       // still in state; without this the pending write lands on the new
       // account and overwrites a real profile with someone else's.
-      if (profileOwnerRef.current !== authUser.id) {
+      if (dataOwnerRef.current !== authUser.id) {
         console.warn('profile autosave skipped: profile belongs to another account');
         return;
       }
@@ -4927,6 +4935,7 @@ export default function App() {
   useEffect(() => {
     if (!authUser?.id || wkLog.length === 0) return;
     const timer = setTimeout(() => {
+      if (dataOwnerRef.current !== authUser.id) return;   // belongs to another account
       const latest = wkLog.slice(-5); // only push most recent batch
       saveWorkoutLog(authUser.id, latest.map(e => ({
         ...e, wk_type: e.wkType||e.wk_type||'', wk_focus: e.wkFocus||e.wk_focus||'', total_vol: e.totalVol||0
@@ -4939,6 +4948,7 @@ export default function App() {
   useEffect(() => {
     if (!authUser?.id || weightLog.length === 0) return;
     const timer = setTimeout(() => {
+      if (dataOwnerRef.current !== authUser.id) return;   // belongs to another account
       const latest = weightLog[weightLog.length - 1];
       if (latest) {
         const { bodyFat, ...rest } = latest;
@@ -4953,6 +4963,7 @@ export default function App() {
   useEffect(() => {
     if (!authUser?.id || nutritionLog.length === 0) return;
     const timer = setTimeout(() => {
+      if (dataOwnerRef.current !== authUser.id) return;   // belongs to another account
       const latest = nutritionLog[nutritionLog.length - 1];
       if (latest) saveNutritionEntry(authUser.id, latest).catch(err => console.error('nutritionLog autosave:', err));
     }, 1500);
@@ -4963,6 +4974,7 @@ export default function App() {
   useEffect(() => {
     if (!authUser?.id || jEntries.length === 0) return;
     const timer = setTimeout(async () => {
+      if (dataOwnerRef.current !== authUser.id) return;   // belongs to another account
       const latest = jEntries[0];
       if (!latest?.text) return;
       try {
@@ -4991,6 +5003,7 @@ export default function App() {
     if (!latest?.text) return;
     if (lastNoteSaved.current === latest.text) return;
     const timer = setTimeout(async () => {
+      if (dataOwnerRef.current !== authUser.id) return;   // belongs to another account
       try {
         const saved = await saveProgressNote(authUser.id, { id: latest.id, text: latest.text });
         lastNoteSaved.current = latest.text;
