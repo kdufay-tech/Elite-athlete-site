@@ -1,6 +1,7 @@
 // netlify/functions/stripe-webhook.js
 // ESM format — required for this project (node_bundler = esbuild)
 import { planForPrice } from './_plan-map.js';
+import { cancelCoachSeats } from './_seat-sync.js';
 
 export default async (req) => {
   if (req.method !== 'POST')
@@ -35,7 +36,7 @@ export default async (req) => {
   try {
     if      (type === 'checkout.session.completed')      await onCheckout(data.object, stripeSecret, supabaseUrl, supabaseKey);
     else if (type === 'customer.subscription.updated')   await onSubUpdated(data.object, supabaseUrl, supabaseKey);
-    else if (type === 'customer.subscription.deleted')   await onSubDeleted(data.object, supabaseUrl, supabaseKey);
+    else if (type === 'customer.subscription.deleted')   await onSubDeleted(data.object, supabaseUrl, supabaseKey, stripeSecret);
     else if (type === 'invoice.payment_failed')          await onPayFailed(data.object, supabaseUrl, supabaseKey);
     return new Response(JSON.stringify({ received: true }), { status: 200 });
   } catch (err) {
@@ -79,6 +80,11 @@ async function onCheckout(session, stripeSecret, supabaseUrl, supabaseKey) {
 }
 
 async function onSubUpdated(sub, supabaseUrl, supabaseKey) {
+  // A seat subscription changing status is seat bookkeeping, never a change to
+  // the coach's plan. Its id lives in subscriptions.seat_subscription_id, so
+  // patchSubById would match zero rows and the change would vanish.
+  if (await patchSeatSub(supabaseUrl, supabaseKey, sub.id, { seat_status: sub.status })) return;
+
   const planName = planForPrice(sub.items?.data?.[0]?.price?.id) || sub.metadata?.plan_name || sub.items?.data?.[0]?.price?.nickname || 'elite';
   await patchSubById(supabaseUrl, supabaseKey, sub.id, {
     plan_name: planName, status: sub.status,
@@ -86,13 +92,78 @@ async function onSubUpdated(sub, supabaseUrl, supabaseKey) {
   });
 }
 
-async function onSubDeleted(sub, supabaseUrl, supabaseKey) {
+async function onSubDeleted(sub, supabaseUrl, supabaseKey, stripeSecret) {
+  // 1. THE SEAT SUBSCRIPTION ITSELF ended - cancelled by the coach in the
+  //    Stripe portal, or dunning gave up on a dead card. Clear the stored id
+  //    so the next roster change creates a fresh seat subscription instead of
+  //    trying to adjust a dead one.
+  if (await patchSeatSub(supabaseUrl, supabaseKey, sub.id,
+        { seat_subscription_id: null, seat_quantity: 0, seat_status: 'canceled' })) {
+    console.log('Seat subscription ended at Stripe, cleared:', sub.id);
+    return;
+  }
+
+  // 2. A REAL PLAN ended. If it was Coach Pro, the SEPARATE monthly seat
+  //    subscription is still live and keeps billing $4.99 per athlete every
+  //    month, forever, while the app shows the coach as cancelled.
+  //    syncCoachSeats never catches this: it only runs on a roster change and
+  //    returns early once the base subscription is no longer active. So the
+  //    parent ending is the ONLY moment the seats can be stopped.
+  const owner = await ownerOfSub(supabaseUrl, supabaseKey, sub.id);
+  if (owner?.user_id && owner.seat_subscription_id) {
+    await cancelCoachSeats(owner.user_id,
+      { supabaseUrl, serviceKey: supabaseKey, stripeSecret });
+  }
+
   await patchSubById(supabaseUrl, supabaseKey, sub.id, { status: 'cancelled', plan_name: '' });
 }
 
 async function onPayFailed(invoice, supabaseUrl, supabaseKey) {
-  if (!invoice.subscription) return;
-  await patchSubById(supabaseUrl, supabaseKey, invoice.subscription, { status: 'past_due' });
+  const subId = invoice.subscription;
+  if (!subId) return;
+  // A failed SEAT invoice is not the coach's plan failing. Marking the plan
+  // past_due would strip a paid-up coach's access over a $4.99 charge, so the
+  // failure is recorded on the seat columns instead - Stripe keeps retrying,
+  // and the app can prompt for a new card without touching entitlement.
+  if (await patchSeatSub(supabaseUrl, supabaseKey, subId, { seat_status: 'past_due' })) {
+    console.warn('Seat invoice payment failed for seat subscription:', subId);
+    return;
+  }
+  await patchSubById(supabaseUrl, supabaseKey, subId, { status: 'past_due' });
+}
+
+// Who owns a subscription, and do they carry seats?
+async function ownerOfSub(supabaseUrl, supabaseKey, stripeSubId) {
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/subscriptions?stripe_subscription_id=eq.${stripeSubId}`
+      + `&select=user_id,plan_name,seat_subscription_id&limit=1`,
+      { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } });
+    if (!res.ok) return null;
+    return (await res.json())[0] || null;
+  } catch (e) {
+    console.error('ownerOfSub failed:', e.message);
+    return null;
+  }
+}
+
+// Apply a patch to whichever row carries this id as its SEAT subscription.
+// Returns true when a row matched, which is the ground-truth answer to "is
+// this Stripe event about seat billing?" - no reliance on Stripe metadata.
+async function patchSeatSub(supabaseUrl, supabaseKey, seatSubId, patch) {
+  if (!seatSubId) return false;
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/subscriptions?seat_subscription_id=eq.${seatSubId}`,
+    {
+      method: 'PATCH',
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json', Prefer: 'return=representation' },
+      body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
+    }
+  );
+  if (!res.ok) throw new Error(`Supabase seat patch failed: ${await res.text()}`);
+  const rows = await res.json().catch(() => []);
+  return Array.isArray(rows) && rows.length > 0;
 }
 
 async function findUser(email, supabaseUrl, supabaseKey) {
