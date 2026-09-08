@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { getSession, getFreshToken, onAuthChange, signOut, saveProfile, loadProfile,
          saveJournalEntry, loadJournalEntries, deleteJournalEntry, saveProgressNote, loadProgressNotes,
          loadSubscription, saveCheckIn, loadCheckIns, saveWorkoutLog, loadWorkoutLogs,
@@ -4223,6 +4223,15 @@ export default function App() {
   // TIME. Guarding only the profile - as the first pass did - leaves workouts,
   // weights, nutrition, journals and notes exposed to exactly the same race.
   const dataOwnerRef = useRef(null);
+
+  // Profile save state, surfaced in the UI. Until now a save was entirely
+  // invisible - saved, saving and silently-failed all looked identical, which
+  // is exactly how the recruiting fields could be dropped for months without
+  // anyone noticing. 'idle' | 'saving' | 'saved' | 'error'
+  const [profileSave, setProfileSave] = useState('idle');
+  // A ref mirror of `profile`, so the flush below always reads current state
+  // without re-registering window listeners on every keystroke.
+  const profileRef = useRef(profile);
   const lastNoteSaved = useRef(null);   // guards the progress-note autosave
   const recoveryHandledRef = useRef(false);
   const [dash, setDash] = useState("nutrition");
@@ -4795,6 +4804,39 @@ export default function App() {
   // sign-out (App() never unmounts), so without this an account switch left
   // the previous user's data on screen — including their subscription, which
   // granted their tier to the next person to sign in.
+  useEffect(() => { profileRef.current = profile; }, [profile]);
+
+  // Save NOW rather than waiting out the 1500ms debounce. The debounce alone
+  // meant a user who typed and immediately closed the tab, switched module or
+  // backgrounded the app on a phone lost the write with no warning. Called on
+  // field blur and when the page is hidden.
+  const flushProfile = useCallback(async () => {
+    const p = profileRef.current;
+    if (!authUser?.id || !p?.name) return;
+    if (dataOwnerRef.current !== authUser.id) return;   // same guard as the autosave
+    setProfileSave('saving');
+    try {
+      await saveProfile(authUser.id, p);
+      setProfileSave('saved');
+    } catch (err) {
+      console.error('Profile save failed:', err);
+      setProfileSave('error');
+    }
+  }, [authUser?.id]);
+
+  // visibilitychange + pagehide rather than beforeunload: beforeunload cannot
+  // reliably complete async work and is ignored outright on mobile, which is
+  // where tab-switching loses data most often.
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') flushProfile(); };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', flushProfile);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', flushProfile);
+    };
+  }, [flushProfile]);
+
   const resetUserState = () => {
     dataOwnerRef.current = null;   // nothing in memory belongs to anyone yet
     setSubscription(null);
@@ -4928,8 +4970,10 @@ export default function App() {
       // the coach-email button had just saved correctly a second earlier.
       // saveProfile owns the field mapping; a caller must not maintain a second
       // copy of it, because the two drift and the loser is silent data loss.
+      setProfileSave('saving');
       saveProfile(authUser.id, profile)
-        .catch(err => console.error('Profile save failed:', err));
+        .then(() => setProfileSave('saved'))
+        .catch(err => { console.error('Profile save failed:', err); setProfileSave('error'); });
     }, 1500);
     return () => clearTimeout(timer);
   }, [profile, authUser]);
@@ -9749,7 +9793,19 @@ COACHING GUIDELINES:
 
                         {/* Recruiting-specific fields */}
                         <div className="panel">
-                          <div className="ph"><div className="pt">Recruiting <em>Details</em></div></div>
+                          <div className="ph" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"0.75rem",flexWrap:"wrap"}}>
+                            <div className="pt">Recruiting <em>Details</em></div>
+                            {/* Observable, not a matter of faith. */}
+                            <span style={{fontSize:"0.62rem",letterSpacing:"1.5px",textTransform:"uppercase",
+                                          color: profileSave==='error' ? "#C0695E"
+                                               : profileSave==='saved' ? "#4BAE71"
+                                               : "var(--muted)"}}>
+                              {profileSave==='saving' ? "Saving…"
+                                : profileSave==='saved' ? "✓ Saved"
+                                : profileSave==='error' ? "! Not saved — check your connection"
+                                : ""}
+                            </span>
+                          </div>
                           <div className="pb">
                             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.6rem"}}>
                               {[
@@ -9762,9 +9818,13 @@ COACHING GUIDELINES:
                               ].map(([key,label,type,ph])=>(
                                 <div key={key} className="f" style={{marginBottom:0}}>
                                   <label className="fl">{label}</label>
+                                  {/* onBlur saves immediately: filling a field and
+                                      clicking away must persist without depending on
+                                      the 1500ms debounce still being alive. */}
                                   <input type={type} className="fi" placeholder={ph}
                                     value={profile[key]||""}
                                     onChange={e=>setProfile(p=>({...p,[key]:e.target.value}))}
+                                    onBlur={flushProfile}
                                     style={{fontSize:"0.82rem"}}/>
                                 </div>
                               ))}
