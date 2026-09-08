@@ -13,7 +13,7 @@
 //   can display a URL only immediately after creating it. That is why the new
 //   link gets its own persistent block with a copy button rather than a toast
 //   that can be missed. Lost link = revoke and re-issue.
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 const lab = {
   fontFamily: "'Inter',sans-serif", fontSize: "0.55rem", fontWeight: 700,
@@ -28,6 +28,32 @@ const btnGhost = {
 
 const STATUS_COLOR = { active: "#4BAE71", expired: "var(--muted)", revoked: "#C0695E" };
 
+// QR is loaded from a CDN ON DEMAND rather than bundled.
+//
+// WHY NOT AN npm DEPENDENCY: adding one means every machine that builds this
+// repo must run `npm install` after pulling, and a missing module is a hard
+// build failure. The deploy path is already fragile enough. The CSP in
+// netlify.toml allows script-src from cdn.jsdelivr.net, so this needs no
+// config change and no build change.
+//
+// If the CDN is unreachable the QR simply does not appear - the link, which is
+// the thing that actually matters, is unaffected.
+const QR_SRC = "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js";
+let qrLoading = null;
+function loadQR() {
+  if (window.QRCode) return Promise.resolve(window.QRCode);
+  if (qrLoading) return qrLoading;
+  qrLoading = new Promise((resolve, reject) => {
+    const el = document.createElement("script");
+    el.src = QR_SRC;
+    el.async = true;
+    el.onload = () => resolve(window.QRCode);
+    el.onerror = () => reject(new Error("QR library unavailable"));
+    document.head.appendChild(el);
+  });
+  return qrLoading;
+}
+
 export default function ShareManager({ getFreshToken, shout, nativeShare, apiBase = "" }) {
   const [shares, setShares]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +61,8 @@ export default function ShareManager({ getFreshToken, shout, nativeShare, apiBas
   const [label, setLabel]     = useState("");
   const [busy, setBusy]       = useState(false);
   const [fresh, setFresh]     = useState(null);   // the one link we can still show
+  const [qrFailed, setQrFailed] = useState(false);
+  const qrRef = useRef(null);
 
   const call = useCallback(async (body) => {
     const tok = await getFreshToken();
@@ -56,6 +84,24 @@ export default function ShareManager({ getFreshToken, shout, nativeShare, apiBas
   }, [call, shout]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Draw the QR for the freshly-created link. A coach standing in front of the
+  // athlete at a camp scans it; nobody reads a 43-character token aloud.
+  useEffect(() => {
+    if (!fresh?.url) return;
+    let dead = false;
+    setQrFailed(false);
+    loadQR()
+      .then(QR => {
+        if (dead || !qrRef.current) return;
+        return QR.toCanvas(qrRef.current, fresh.url, {
+          width: 148, margin: 1,
+          color: { dark: "#0D0D0D", light: "#F2EFE7" },
+        });
+      })
+      .catch(() => { if (!dead) setQrFailed(true); });
+    return () => { dead = true; };
+  }, [fresh?.url]);
 
   const create = async () => {
     if (!email.trim()) { shout?.("Enter a coach or scout email", "!"); return; }
@@ -127,9 +173,17 @@ export default function ShareManager({ getFreshToken, shout, nativeShare, apiBas
                           margin: "0.5rem 0 0.8rem", fontFamily: "monospace" }}>
               {fresh.url}
             </div>
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              <button style={btnGhost} onClick={() => shareLink(fresh.url)}>Copy / Share</button>
-              <button style={btnGhost} onClick={() => setFresh(null)}>Done</button>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "flex-start" }}>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", flex: "1 1 160px" }}>
+                <button style={btnGhost} onClick={() => shareLink(fresh.url)}>Copy / Share</button>
+                <button style={btnGhost} onClick={() => setFresh(null)}>Done</button>
+              </div>
+              {!qrFailed && (
+                <div style={{ textAlign: "center" }}>
+                  <canvas ref={qrRef} style={{ borderRadius: "8px", display: "block" }}/>
+                  <div style={{ ...lab, marginTop: "0.4rem" }}>Scan to open</div>
+                </div>
+              )}
             </div>
             <div style={{ fontSize: "0.66rem", color: "var(--muted)", marginTop: "0.8rem", lineHeight: 1.5 }}>
               This link is only shown now. If you lose it, revoke this share and create a new one.
