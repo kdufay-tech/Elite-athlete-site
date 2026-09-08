@@ -4208,6 +4208,13 @@ export default function App() {
   const [obStep, setObStep] = useState(1);
   const [obSaving, setObSaving] = useState(false);
   const dataLoadedRef = useRef(false);
+  // WHICH USER the in-memory `profile` belongs to. The profile autosave writes
+  // `profile` to `authUser.id`; if those two ever disagree - which they do for
+  // the whole time loadUserData is awaiting the network after an account
+  // switch - the write lands on the WRONG ACCOUNT and destroys that user's
+  // profile. This ref makes the invariant explicit instead of relying on the
+  // order two async paths happen to finish in.
+  const profileOwnerRef = useRef(null);
   const lastNoteSaved = useRef(null);   // guards the progress-note autosave
   const recoveryHandledRef = useRef(false);
   const [dash, setDash] = useState("nutrition");
@@ -4781,6 +4788,7 @@ export default function App() {
   // the previous user's data on screen — including their subscription, which
   // granted their tier to the next person to sign in.
   const resetUserState = () => {
+    profileOwnerRef.current = null;   // nothing in memory belongs to anyone yet
     setSubscription(null);
     setDash("nutrition");
     setProgressTab("overview");
@@ -4818,6 +4826,11 @@ export default function App() {
 
   // ── LOAD USER DATA FROM SUPABASE ─────────────────────────────
   const loadUserData = async (userId, isNewSignup = false) => {
+    // Clear the previous account BEFORE the awaits below. The AuthModal
+    // onAuth paths call this directly without resetting, so without this an
+    // account switch spends ten network round trips holding the previous
+    // athlete's profile in memory while authUser already points at the new one.
+    resetUserState();
     setDbLoading(true);
     try {
       const [prof, journals, progNotes, sub, checkInsData, workoutData, weightData, nutritionData, benchmarkData, photoData] = await Promise.all([
@@ -4832,6 +4845,11 @@ export default function App() {
         loadBenchmarks(userId).catch(()=>[]),
         loadProgressPhotos(userId).catch(()=>[]),
       ]);
+
+      // The loaded profile belongs to userId. Any autosave firing from here on
+      // is allowed to write, and any timer still pending from the PREVIOUS
+      // account is not (see the owner check in the autosave effect).
+      profileOwnerRef.current = userId;
       if (prof) {
         setProfile(p => ({ ...p, ...prof, targetWeight: prof.targetWeight||prof.target_weight||p.targetWeight||"" }));
         if (prof.goal) setMealType(
@@ -4887,6 +4905,14 @@ export default function App() {
   useEffect(() => {
     if (!authUser?.id || !profile.name) return;
     const timer = setTimeout(() => {
+      // Checked at FIRE time, not when the timer was scheduled. A switch to
+      // another account re-runs this effect with the previous user's profile
+      // still in state; without this the pending write lands on the new
+      // account and overwrites a real profile with someone else's.
+      if (profileOwnerRef.current !== authUser.id) {
+        console.warn('profile autosave skipped: profile belongs to another account');
+        return;
+      }
       saveProfile(authUser.id, {
         name: profile.name, weight: profile.weight, height: profile.height,
         age: profile.age, sport: profile.sport, position: profile.position, goal: profile.goal,
