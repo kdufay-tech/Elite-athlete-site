@@ -560,7 +560,12 @@ checkout **as a returning customer** - that is the path that would break.
 | | iOS | Android |
 |---|---|---|
 | Live | 1.0.5 (build 17) | 1.0.5 (versionCode 11) |
-| Submitted 2026-09-08 | **1.0.6 (18)** - Waiting for Review | **1.0.6 (vc12)** - AAB built |
+| In review | **1.0.6 (18)** - carries the localhost share bug below | - |
+| Device-tested, ready | - | **1.0.6 (vc13)** - fix verified, coach + athlete accounts |
+
+iOS build 18 went to App Review BEFORE the localhost share-link bug was found,
+so it contains it. Android vc12 did too and was replaced by vc13. Decide
+whether to let 18 ship and follow with 1.0.7, or reject and resubmit.
 
 Both live 1.0.5 builds embed web code from **2026-09-04** (Android 17:55, iOS
 21:26 ET). 28 `src/` commits landed after that, so the live apps are missing the
@@ -584,6 +589,32 @@ to iOS and iOS is built on the Mac. Do not assume identical output.
 Careful with PowerShell verification: **`-AllMatches` is ignored when you pass
 `-SimpleMatch`**, so `$_.Matches.Count` returns 0 even when the text is present.
 Use `[regex]::Matches($c, '...')` on `Get-Content -Raw` instead.
+
+### Share links must never use window.location.origin  (fixed 2026-09-08)
+
+A recruiting share created in the Android app produced
+`https://localhost/s/<token>`, and the QR encoded the same string, so the coach
+who scanned it got ERR_CONNECTION_REFUSED. One defect, both symptoms.
+
+Capacitor serves the bundled app from its OWN scheme - `https://localhost` on
+Android (androidScheme "https"), `capacitor://localhost` on iOS. Both are
+internal to the device, so any link built from `window.location.origin` is
+unreachable by anyone, including the person who created it.
+
+**It passed testing that morning because the testing was on the WEB**, where
+`window.location.origin` is the correct answer. Verifying a native-facing
+feature on the web verifies nothing about this class of bug.
+
+`src/lib/appUrl.js` is now the single source for any URL that LEAVES the device.
+`window.location.origin` is acceptable ONLY for something the same device will
+consume. The same defect was fixed in AuthModal (Supabase `redirectTo`, which
+made password-reset links from a native build unopenable). PayModal and App.jsx
+still build Stripe URLs that way, but `stripe-checkout.js` hardcodes them
+server-side and ignores the client's, so those are inert - left alone rather
+than made to look fixed.
+
+Also: `nativeShare` was passed the url as BOTH `text` and `url`; Android's share
+sheet concatenates them, which printed the link twice in the email.
 
 ### Android has no Play Billing
 `CheckoutModal.jsx` routes iOS to the RevenueCat paywall and **Android to
