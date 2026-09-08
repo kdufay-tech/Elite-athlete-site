@@ -13,6 +13,8 @@ import AICoachConsentModal from "./components/AICoachConsentModal";
 import PayModal from "./components/CheckoutModal";
 import CoachRoster from "./components/CoachRoster";
 import AthleteRecord from "./components/AthleteRecord";
+import ShareManager from "./components/ShareManager";
+import SharedProfile from "./components/SharedProfile";
 import JoinTeam from "./components/JoinTeam";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
@@ -5400,6 +5402,17 @@ COACHING GUIDELINES:
     return <AdminDashboard user={authUser} />;
   }
 
+  // ── PUBLIC SHARE ROUTE ───────────────────────────────────────
+  //   /s/<token> - a recruiter opening an athlete's share link. Sits here,
+  //   ahead of the landing and auth screens, because a college coach has no
+  //   Elite Athlete account and will not make one to look at one athlete.
+  //   Access is still gated: SharedProfile requires a code mailed to the
+  //   address the athlete named.
+  if (window.location.pathname.startsWith('/s/')) {
+    const shareToken = window.location.pathname.slice(3).split('/')[0];
+    if (shareToken) return <SharedProfile token={shareToken} />;
+  }
+
   // ── LANDING ─────────────────────────────────────────────────
   if (screen === "landing") return (
     <>
@@ -9715,7 +9728,15 @@ COACHING GUIDELINES:
                           </div>
                         </div>
 
-                        {/* Send to coach */}
+                        {/* Live, revocable share. Sits ABOVE the email button
+                            because it is the better path: it stays current, it
+                            carries the training record, and it can be taken
+                            back. The mailto below is kept for coaches who just
+                            want a plain email. */}
+                        <ShareManager getFreshToken={getFreshToken} shout={shout}
+                                      nativeShare={nativeShare} apiBase={API_BASE}/>
+
+                        {/* Send to coach — one-shot email, no expiry or recall */}
                         <div className="panel">
                           <div className="ph"><div className="pt">Send to <em>Coach / Scout</em></div></div>
                           <div className="pb">
