@@ -238,20 +238,13 @@ export async function loadCalendarEvents(userId) {
 
 // ── SUBSCRIPTION STATUS ───────────────────────────────────────
 
-export async function saveSubscription(userId, stripeData) {
-  const { error } = await supabase
-    .from('subscriptions')
-    .upsert({
-      user_id:              userId,
-      stripe_customer_id:   stripeData.customerId,
-      stripe_subscription_id: stripeData.subscriptionId,
-      plan_name:            stripeData.planName,
-      status:               stripeData.status,
-      current_period_end:   stripeData.currentPeriodEnd,
-      updated_at:           new Date().toISOString(),
-    });
-  if (error) throw error;
-}
+// saveSubscription() was removed 2026-09-08. It was the ONLY client write to
+// subscriptions and it had zero callers - purchases are recorded server-side by
+// stripe-webhook.js and revenuecat-webhook.js. It is gone rather than left dead
+// because the RLS policy it needed (own_sub, ALL on auth.uid() = user_id) let
+// any user PATCH their own plan_name and status to 'coach_annual'/'active' and
+// grant themselves a paid tier for free. That policy is now SELECT-only
+// (20260908_rls_write_lockdown.sql); a client write here would fail anyway.
 
 export async function loadSubscription(userId) {
   const { data, error } = await supabase
