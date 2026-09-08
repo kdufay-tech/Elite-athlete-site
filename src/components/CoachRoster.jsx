@@ -223,6 +223,20 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
     } catch (e) { shout(e.message, "!"); }
   };
 
+  // Level was set once at creation and never again - teams created before
+  // teams.level existed are stuck at the default cap of 55. This is the edit
+  // path that was simply missing.
+  const setLevel = async (team, level) => {
+    try {
+      const d = await call("coach-team", {
+        method: "POST",
+        body: JSON.stringify({ action: "set_level", team_id: team.id, level }),
+      });
+      shout(`Roster cap now ${d.cap} athletes`, "\u25C6");
+      await load({ teamId: team.id, offset: 0 });
+    } catch (e) { shout(e.message, "!"); }
+  };
+
   const shareCode = async (team) => {
     // coach-team.js queries teams with join_code_enabled=is.true, so sharing the
     // code while it is OFF hands the athlete something the server will reject
@@ -362,9 +376,23 @@ export default function CoachRoster({ authUser, getFreshToken, shout, nativeShar
               onClick={() => { setShowInvites(v => !v); if (!showInvites) loadInvites(team.id); }}>
               {showInvites ? "Hide Invites" : "Invite Athletes"}
             </button>
-            <div style={{ fontSize: "0.72rem", color: "var(--muted)" }}>
-              {page.total ?? 0} of {capFor(team?.level)} athletes
-              {" · "}${(((page.total ?? 0)) * SEAT_COST).toFixed(2)}/month in seats
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap",
+                          fontSize: "0.72rem", color: "var(--muted)" }}>
+              <span>{page.total ?? 0} of {capFor(team?.level)} athletes
+                {" · "}${(((page.total ?? 0)) * SEAT_COST).toFixed(2)}/month in seats</span>
+              {/* The cap is editable here because this is the line where a coach
+                  actually reads it. team.level is null on every team created
+                  before the column existed, hence the explicit placeholder. */}
+              <select value={team?.level || ""} onChange={e => setLevel(team, e.target.value)}
+                style={{ background: "transparent", color: "var(--ivory2)", cursor: "pointer",
+                         border: "1px solid rgba(255,255,255,0.14)", borderRadius: "var(--r)",
+                         fontFamily: "'Inter',sans-serif", fontSize: "0.62rem",
+                         padding: "0.3rem 0.4rem", outline: "none" }}>
+                {!team?.level && <option value="" disabled>Set level…</option>}
+                {LEVELS.map(l => (
+                  <option key={l.v} value={l.v}>{l.label} — {l.cap}</option>
+                ))}
+              </select>
             </div>
           </div>
 

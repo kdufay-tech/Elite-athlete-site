@@ -290,6 +290,41 @@ export default async (req) => {
       return json({ ok: true, join_code_enabled: enabled });
     }
 
+    // ── SET LEVEL (roster cap on an EXISTING team) ───────────────
+    //   level was write-once at creation. Every team created before
+    //   20260907_team_invites added the column has level=null and is pinned to
+    //   the smallest cap forever, and a coach who picked wrong - or whose
+    //   program moves HS -> club - had no way to change it. There was no
+    //   endpoint at all, so this is a missing capability, not a broken one.
+    if (action === 'set_level') {
+      const teamId = String(body.team_id || '');
+      if (!teamId) return json({ error: 'team_id required' }, 400);
+      const lv = String(body.level || '').toLowerCase();
+      if (!ROSTER_CAPS[lv]) return json({ error: 'Unknown level' }, 400);
+
+      // Refuse to drop the cap below the roster that already exists. Allowing it
+      // would leave a team permanently over its own limit: joins would be
+      // blocked with "team is full" while the coach is looking at a roster that
+      // is plainly under the number the screen shows.
+      const cntRes = await fetch(
+        `${REST}/team_members?team_id=eq.${teamId}&coach_id=eq.${caller.id}&status=eq.active&select=athlete_id`,
+        { headers: H });
+      const current = (cntRes.ok ? await cntRes.json() : []).length;
+      if (current > ROSTER_CAPS[lv]) {
+        return json({ error: `You have ${current} athletes. ${lv} caps at ${ROSTER_CAPS[lv]} - remove athletes first.` }, 400);
+      }
+
+      // coach_id in the filter is the authorisation: a coach can only ever
+      // relevel a team they own.
+      const r = await fetch(`${REST}/teams?id=eq.${teamId}&coach_id=eq.${caller.id}`, {
+        method: 'PATCH',
+        headers: { ...H, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level: lv }),
+      });
+      if (!r.ok) return json({ error: 'Could not update level' }, 500);
+      return json({ ok: true, level: lv, cap: ROSTER_CAPS[lv] });
+    }
+
     // ── LIST (coach's own teams, with member counts) ─────────────
     if (action === 'list') {
       const tRes = await fetch(
