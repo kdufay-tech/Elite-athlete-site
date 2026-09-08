@@ -101,6 +101,7 @@ export async function saveProfile(userId, profile) {
     gpa:             profile.gpa            || null,
     gpa_scale:       profile.gpaScale       || profile.gpa_scale       || null,
     hudl_link:       profile.hudlLink       || profile.hudl_link       || null,
+    location:        profile.location       || null,
     updated_at:   new Date().toISOString(),
   };
   const { error } = await supabase
@@ -127,6 +128,7 @@ export async function loadProfile(userId) {
     gpaScale:       data.gpa_scale       ?? '',
     hudlLink:       data.hudl_link       ?? '',
     gpa:            data.gpa             ?? '',
+    location:       data.location        ?? '',
   };
 }
 
