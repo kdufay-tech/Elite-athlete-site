@@ -214,6 +214,19 @@ unrecognised price, and logs any client/price disagreement. The webhook derives
 from the subscription's actual price ID and uses metadata only as a fallback for
 rows created before this change.
 
+### A retired price was still buyable  (fixed 2026-09-08)
+`_plan-map.js` carried a comment claiming that leaving COACH_MONTHLY out of
+PLAN_BY_PRICE made checkout "REFUSE the price even if it is still Active in
+Stripe". **It did not.** An unmapped price falls through to
+`planFromStripePrice`, which reads the price NICKNAME - and a nickname containing
+"coach" without "annual" resolved to `'coach'`. The retired $99/mo Coach Pro was
+therefore still buyable by anyone holding that price id, and `plan_name='coach'`
+carries NO seat billing, so it would have sold unlimited athletes for $99/month.
+
+Two layers now: `RETIRED_PRICES` blocks that id in both lookup paths, and
+`planFromStripePrice` refuses ANY price with `active:false` - so a future
+retirement needs no code edit. The price is also archived in Stripe.
+
 ### Still open on this endpoint
 `stripe-checkout` has no caller authentication, and stripe-webhook attributes the
 subscription via the client-supplied `customer_email` rather than
@@ -227,14 +240,20 @@ still direct a subscription they pay for at an email they do not control.
 
 | Plan | Base | Seats |
 |------|------|-------|
-| Coach Pro monthly (`coach`) | $99/mo | **+ $4.99 per active athlete per month** |
-| Coach Pro annual (`coach_annual`) | $899/yr | **flat - no seat charge** |
+| Coach Pro annual (`coach_annual`) | $899/yr | **+ $4.99 per active athlete per month** |
+| Coach Pro monthly (`coach`) | RETIRED 2026-09-07 | not sellable |
 | `coach_comp` | comp | never billed |
 
-Annual is flat by decision AND by constraint: Stripe requires every item in one
-subscription to share a billing interval, so a monthly seat price cannot sit on
-an annual base. There is no annual seat price and none should be created unless
-that decision changes.
+`planHasSeats()` returns true for `coach_annual` ONLY. An earlier version of this
+table said the opposite - monthly carried the seats and annual was flat. That was
+wrong from 2026-09-07 onward and is the kind of doc rot that produces a real
+billing bug, so check `_plan-map.js` before trusting any pricing written here.
+
+Stripe requires every item in one subscription to share a billing interval, so a
+$4.99/MONTH seat cannot be a line item on the $899/YEAR base. The seats therefore
+ride a SECOND monthly subscription against the same Stripe customer, tracked by
+`subscriptions.seat_subscription_id`. The coach sees one annual charge and one
+monthly charge that follows headcount.
 
 **What was wrong.** The UI advertised "+$4.99/athlete/month" but
 `stripe-checkout.js` sent a single line item at quantity 1 and nothing anywhere
@@ -257,11 +276,59 @@ athlete). Adding a fourth mutation path without a sync call is how this drifts.
 Failures are logged and swallowed. A Stripe outage must never stop an athlete
 joining a team.
 
-### Follow-up - not built
-No periodic reconcile. If a sync fails and that coach never changes their roster
-again, their seat count stays stale. A scheduled reconcile is the obvious fix but
-scheduled functions are paused by the council decision, so this is deliberately
-manual for now.
+### Rebuilt 2026-09-08 - four ways it charged the wrong amount
+
+1. **Cancelling Coach Pro never cancelled the seats.** `syncCoachSeats` only runs
+   on a roster change and returns early once the base subscription is inactive,
+   so NO path could reach the seat subscription after a cancellation. The coach
+   saw "cancelled" while Stripe billed $4.99 x roster every month, forever.
+   `stripe-webhook.onSubDeleted` now calls `cancelCoachSeats()`.
+2. **Concurrent joins created duplicate seat subscriptions.** Check-then-create
+   with nothing stored and no idempotency key: two athletes redeeming invites in
+   the same second each created one (A qty 1 + B qty 2 = 3 seats for 2 athletes),
+   and it never self-corrected because the lookup broke on the first match.
+   Now: lookup by stored id, plus a Stripe idempotency key on create.
+3. **`past_due` was invisible** - the old lookup filtered `status=active`, so a
+   seat subscription with a failed card was not found and the next roster change
+   created a second one beside it. Now retrieved by id in any live status.
+4. **A failed SEAT invoice marked the COACH'S PLAN `past_due`**, stripping a
+   paid-up coach's access over a $4.99 decline. Seat events now route by
+   `seat_subscription_id` and never touch the plan row.
+
+### School seats now grant access  (2026-09-08)
+Until this, a school paid $4.99/athlete and the athlete got NOTHING: `getUserTier()`
+reads `subscriptions.plan_name` for THAT user, and the seat lived only on the
+coach's row. Seat athletes now get their own row with `plan_name='athlete_seat'`,
+which `getUserTier` already resolves to the athlete tier - full athlete access
+paid by the school, no client change.
+
+`subscriptions.seat_coach_id` is the safety rail, not bookkeeping: seat logic may
+only write or clear rows where it is NOT NULL. A self-purchased subscription has
+it null and is untouchable by that code path.
+
+**Kiszo's rule, 2026-09-08:** block the seat while an athlete holds their own live
+access; when that period expires they roll onto the seat. Comped and beta plans
+count as live access - a school pays nothing for an athlete who already has it.
+
+The rejoin needs no cron. Stripe sends `customer.subscription.deleted` when a
+period actually ends (including `cancel_at_period_end`, at the end, not when it is
+set), `checkout.session.completed` when they buy their own, and RevenueCat sends
+ACTIVE/EXPIRATION for IAP. All four call `resyncCoachesOfAthlete()`, which
+recomputes from scratch. It works in reverse too: an athlete on a seat who buys
+their own subscription drops off the school's bill on the same event.
+
+### Still not reconciled
+A roster-change sync that fails silently still leaves `seat_quantity` stale if
+that coach never changes their roster again. `seat_quantity` / `seat_status` are
+written on every sync precisely so the drift is DETECTABLE - a row disagreeing
+with the live roster is a sync that has been failing unnoticed. Scheduled
+functions remain paused by the council decision, so this stays manual.
+
+### Known edge, accepted
+An athlete on two Coach Pro rosters bills BOTH schools. Each pays for their own
+roster, and the cleanup pass hands the access grant to the other coach rather
+than cutting the athlete off. If only one school should pay, that is a rule
+change, not a bug fix.
 
 ---
 
@@ -339,12 +406,25 @@ DATE; `workout_logs`, `nutrition_logs`, `weight_logs` and `benchmarks` all store
 `coach_roster_page()`. The summary returns raw component averages and the client
 applies the formula it already owns; a third copy would drift.
 
-### Not built yet
-Coach access to history, scoped to the window a coach actually had the athlete
-on their roster, and athlete-granted sharing for recruiting. Both need
-`team_members` soft-deleted first (`left_at` + `status='departed'`) - today
-`leave` and `remove` hard DELETE the row, so there is no record an athlete was
-ever on a team.
+### Built 2026-09-08
+`team_members` is now soft-deleted (`left_at` + `status='departed'`), which
+unblocked both follow-ups:
+
+**Coach tenure scoping** (`coach-history.js`, `CoachAthleteHistory.jsx`) - a coach
+sees the period they actually coached the athlete, plus a summary of what came
+before. Access ends at departure.
+
+**Recruiting shares** (`share-manage.js`, `share-view.js`, `ShareManager.jsx`,
+`SharedProfile.jsx`, `/s/<token>`) - the athlete issues a private link to one
+named coach. The recipient must enter the email the link was issued to and
+exchange a 6-digit code (sha-256 stored, 10-minute TTL, 5-attempt cap) for a
+24-hour viewer session. 90-day default expiry, revocable, view-counted.
+
+`share_grants` has RLS on with ZERO policies - the service-role function is the
+only way in, because a client-readable `share_grants` would hand out every live
+share token in the system. Failure responses are deliberately identical whether
+the token is unknown, expired, revoked, or the email simply does not match;
+otherwise the endpoint is an oracle for who an athlete is talking to.
 
 ---
 
@@ -354,14 +434,17 @@ ever on a team.
   - Mac: `/Users/taradomeentertainmentgroup/App Development/elite-athlete-v3`
 - Supabase (auth + Postgres + RLS), Stripe, RevenueCat, Resend, EmailJS, jsPDF
 - Capacitor: web / iOS / Android from one codebase. `android/` and `ios/` are both tracked in git.
-- Netlify Functions: 37 in `netlify/functions/`. `ls netlify/functions` is the source of truth;
+- Netlify Functions: 45 in `netlify/functions/`. `ls netlify/functions` is the source of truth;
   10 of them send mail (see Email section above).
 - EmailJS template ID: `template_b4rv0ur` (Contact Us type)
 - Test account: Emeka Ugokwe (username: kdufay)
 
 ## App Structure
-- Single file: `src/App.jsx` (~12206 lines, one App() component, ~90 useState)
-- Components: `src/components/PayModal.jsx`, `src/components/AuthModal.jsx`
+- Main file: `src/App.jsx` (~12,520 lines, one App() component, ~90 useState)
+- Components (`src/components/`): AICoachConsentModal, AthleteDetail, AthleteRecord,
+  AuthModal, CheckoutModal, CoachAthleteHistory, CoachRoster, DeleteAccountModal,
+  IOSPaywall, JoinTeam, PayModal, PracticeBoard, ReadinessChart, ShareManager,
+  SharedProfile, TeamPrograms
 - Pricing lib: `src/lib/stripe.js`
 
 ## Pricing (4-tier)
@@ -370,7 +453,7 @@ ever on a team.
 | Free | $0 | $0 | |
 | Athlete | $29/mo | $199/yr | Save $149/yr — 43% off |
 | Elite | $69/mo | $529/yr | Save $299/yr — 35% off |
-| Coach Pro | $99/mo | $899/yr | Waitlist — Q3 2026 |
+| Coach Pro | RETIRED | $899/yr | **+ $4.99/athlete/mo.** Annual only. Live, web purchase only. |
 
 ---
 
@@ -417,8 +500,173 @@ ever on a team.
 
 ---
 
+## Row-level security lockdown  (2026-09-08)
+
+Every paid tier was **self-grantable from the browser**: `subscriptions` was
+client-writable, so any authenticated user could insert their own row with
+`plan_name='coach_annual'` and `getUserTier()` would hand them Coach Pro. Deleting
+a team also hard-destroyed roster history, and `team_members` was client-writable
+so any user could join any team or delete a membership.
+
+Seven tables now carry **zero client write policies** - all writes go through
+service-role functions. Migrations: `20260908_team_members_rls_lockdown`,
+`20260908_rls_write_lockdown`, `20260908_teams_rls_lockdown`.
+
+Note the PostgREST/RLS trap this exposed: an `ALL` policy with only `USING` and no
+`WITH CHECK` applies that same expression as the INSERT/UPDATE check - which reads
+like a read rule but silently authorises writes.
+
+---
+
+## Stripe Tax  (wired 2026-09-08, OFF)
+
+**$0 tax has been collected on every subscription ever sold.** `automatic_tax`
+appeared nowhere in the checkout payload. The prices are `tax_behavior: Exclusive`,
+which reads like tax was being added - but Exclusive only means "add tax IF tax is
+calculated". Nothing calculated it, so the setting was inert.
+
+`_tax.js` holds the switch. Everything is gated on `STRIPE_TAX_ENABLED`, which is
+**not set**, so behaviour is byte-for-byte unchanged until it is.
+
+Three things had to be enabled together, which is why they live in one function:
+- `automatic_tax` - the calculation
+- `billing_address_collection: 'required'` - it was `'auto'`, which only asks when
+  the payment method demands it, and cards usually do not, leaving Stripe with no
+  location to tax
+- `customer_update: {address:'auto'}` - **Checkout REJECTS a session** that sets
+  `automatic_tax` while reusing an existing `customer` without it. Enabling tax
+  without this breaks checkout for every returning customer.
+
+Plus `tax_id_collection`, so an exempt school enters its number rather than being
+charged tax on $899 and refunded by hand. The seat subscription is created
+directly against `/v1/subscriptions`, not through Checkout, so it carries its own
+`automatic_tax` - miss that and the $899 is taxed while the $4.99/athlete is not.
+
+Account state as of 2026-09-08: head office Georgia, registered in Georgia since
+2026-04-22, preset product category "Software as a service", tax behavior
+Automatic. Georgia does not tax SaaS (it taxes tangible personal property; DOR
+rulings LR SUT 2014-01 / 2014-05), so the real value of enabling this is
+**threshold monitoring** - nothing currently watches economic nexus in states that
+DO tax SaaS (NY, TX, PA, WA). Registration decisions are Kiszo's accountant's, not
+a code decision.
+
+To turn on: set `STRIPE_TAX_ENABLED=true` in Netlify, redeploy, then test one
+checkout **as a returning customer** - that is the path that would break.
+
+---
+
+## Native releases
+
+| | iOS | Android |
+|---|---|---|
+| Live | 1.0.5 (build 17) | 1.0.5 (versionCode 11) |
+| Submitted 2026-09-08 | **1.0.6 (18)** - Waiting for Review | **1.0.6 (vc12)** - AAB built |
+
+Both live 1.0.5 builds embed web code from **2026-09-04** (Android 17:55, iOS
+21:26 ET). 28 `src/` commits landed after that, so the live apps are missing the
+account-switch fix - and that one is not a missing feature: a 09-04 client writes
+the PREVIOUS account's profile over the new account's, **server-side**, wherever a
+user has more than one account on a device. That is the reason to update.
+
+**Verify a native build from the artifact, not only the device.** The synced
+bundle is ground truth:
+- iOS: `ios/App/App/public/assets/index-*.js`
+- Android: `android/app/src/main/assets/public/assets/index-*.js`
+Compare it byte-for-byte against `dist/`, then grep it for what you expect to be
+present or absent. This caught more than the on-device pass did.
+
+Two builds of the same commit on different machines produce **different hashes** -
+Vite inlines `VITE_*` at build time and the two machines' `.env.local` differ
+(the Mac has `VITE_REVENUECAT_APPLE_KEY`, Windows does not: 34 chars vs `void 0`
+= exactly the 28-byte delta observed). Harmless here because RevenueCat is gated
+to iOS and iOS is built on the Mac. Do not assume identical output.
+
+Careful with PowerShell verification: **`-AllMatches` is ignored when you pass
+`-SimpleMatch`**, so `$_.Matches.Count` returns 0 even when the text is present.
+Use `[regex]::Matches($c, '...')` on `Get-Content -Raw` instead.
+
+### Android has no Play Billing
+`CheckoutModal.jsx` routes iOS to the RevenueCat paywall and **Android to
+`PayModal` -> Stripe Checkout**, same as web. Android users therefore leave the
+app to a browser to subscribe - a real conversion cost, and it was a default
+rather than a decision (the Apple constraint was applied only to iOS).
+
+Google's US policy since 2025-10-29 no longer prohibits alternative in-app
+payments or external links (Epic injunction, upheld by the Ninth Circuit
+2025-09-12). Two programs opened 2025-12-09, and from **2026-10-01** enrolled
+developers must report transactions and pay Google a service fee.
+
+Not built. The decision is Play Billing (~15% of Android subscription revenue,
+no hop) versus staying on Stripe (~3% + a Google service fee from October, plus
+the hop). Coach Pro stays web-only either way - Play Billing cannot bill $4.99 x
+a changing roster.
+
+### Runtime CDN loads - App Review 2.5.2 exposure
+`ShareManager` used to fetch the QR library from `cdn.jsdelivr.net` at runtime,
+justified by "the CSP in netlify.toml allows it" - reasoning that only ever
+covered the website. Bundled as an npm dependency 2026-09-08.
+
+**`AdminDashboard.jsx` still does this for `xlsx` and `pdfjs`.** Present since
+2026-08-25 and already approved in build 17 and vc11, so it is not a new risk -
+but it is downloaded executable code in a shipped app. Preferred fix is to
+exclude the admin dashboard from native builds entirely rather than bundle ~1MB
+of libraries into a phone app.
+
+---
+
+## Account-switch data corruption  (fixed 2026-09-08)
+
+Switching accounts on one device wrote the PREVIOUS account's data into the NEW
+account's rows. Root cause: six autosave effects fired against whichever
+`authUser.id` was current when they ran, with no ownership check. Fixing one of
+them made it look solved while five kept corrupting.
+
+Now every autosave is guarded by `dataOwnerRef.current !== authUser.id`, sign-out
+resets all 33 pieces of per-user state (it reset six), and the nav chip renders
+the profile name rather than the email local part - four different accounts all
+read "kiszo" because they shared a local part.
+
+**Not fully recoverable.** Coach `645ac7e1`'s profile was overwritten twice and no
+clean source exists - only `public.profiles` stores names, auth metadata has none.
+`14d8685a` was restored from a `team_members` join-time snapshot.
+
+Related: the profile autosave was ERASING the recruiting fields it was meant to
+save, because it wrote a hand-picked subset of the profile object. It now saves
+the whole object, plus save-on-blur and a visible save state.
+
+---
+
+## Verification standard
+
+Set 2026-09-08 after a `useRef(profile)` reading state from its temporal dead zone
+white-screened production. **A clean esbuild transform proves nothing.** It caught
+none of: that white screen, an un-awaited fire-and-forget promise silently killed
+when a serverless handler returns, the erasing autosave, or a `coachTeams`
+under-select.
+
+Every non-trivial change in this session ships with assertions run against stubbed
+`fetch` and, for webhooks, a real signed payload - 8 for the seat webhook paths,
+15 for seat grants and access, 6 for the retired price, and a byte-diff of the
+actual form body Stripe receives in both tax env states. Keep that bar.
+
+---
+
 ## Key Patterns / Rules
 - Always `git pull` before making changes
+- **After every deploy, HARD REFRESH (Ctrl+Shift+R) before judging whether it worked.**
+  Signing out and back in does NOT reload the page - a cached index.html keeps
+  serving the previous hashed bundle, so a fix looks like it failed or "reversed".
+  Rule out a stale bundle BEFORE diagnosing a reported UI bug as a code defect.
+- Deploy with functions explicitly: `netlify deploy --prod --dir=dist --functions=netlify/functions`
+- PowerShell `;` does NOT short-circuit on failure. A failed `git pull` still runs
+  the build and deploy behind it, shipping stale `dist` under a fresh deploy id.
+  Run deploy steps ONE COMMAND AT A TIME and read each result.
+- Every DB change gets a matching migration file committed in `supabase/migrations/`.
+  Applied-only is not done - the repo alone must show what exists.
+- PostgREST `resolution=merge-duplicates` resolves against the PRIMARY KEY unless
+  `on_conflict=` names the constraint. A comment claiming otherwise cost a session.
+- Compare subscription `status` case-insensitively (`lower(trim(status))`). A live
+  row held `'Active'`, which every `status='active'` filter silently missed.
 - Build: `npm run build` (warns about chunk size — normal, ignore)
 - Push to GitHub triggers nothing — site is Netlify Drop, must run `DEPLOY.ps1` or drag dist
 - Mac deploy: `npx netlify deploy --prod --dir=dist` (DEPLOY.ps1 is Windows-only)
