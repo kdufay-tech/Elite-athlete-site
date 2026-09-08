@@ -4231,7 +4231,13 @@ export default function App() {
   const [profileSave, setProfileSave] = useState('idle');
   // A ref mirror of `profile`, so the flush below always reads current state
   // without re-registering window listeners on every keystroke.
-  const profileRef = useRef(profile);
+  //
+  // Initialised to null, NOT to `profile`. The profile state is declared ~200
+  // lines below this point, so useRef(profile) read it inside its temporal
+  // dead zone and threw "Cannot access 'profile' before initialization" on
+  // first render - a white screen for every user. The effect below populates
+  // it on the first render anyway, so nothing is lost.
+  const profileRef = useRef(null);
   const lastNoteSaved = useRef(null);   // guards the progress-note autosave
   const recoveryHandledRef = useRef(false);
   const [dash, setDash] = useState("nutrition");
