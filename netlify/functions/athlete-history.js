@@ -9,6 +9,9 @@
 //   college -> pro, whose record is the thing that travels with them.
 //
 // SHAPE - pagination first, aggregation on demand
+//   'teams' returns the athlete's membership spans, departed ones included, so
+//     the timeline can be grouped by team and era rather than being a flat run
+//     of months. Depends on the soft-delete in 20260907_team_members_soft_delete.
 //   'summary' returns ONE ROW PER MONTH via athlete_history_summary(). A four
 //     year career costs 48 rows, not tens of thousands.
 //   'page' returns raw rows for one table and one window, with limit/offset and
@@ -84,6 +87,38 @@ export default async (req) => {
           (m.check_ins + m.sessions + m.weight_entries + m.nutrition_days +
            m.benchmarks + m.notes + m.journals) > 0),
         from: from.toISOString(), to: to.toISOString(),
+      });
+    }
+
+    // ── TEAMS - the spans that turn months into a career ─────
+    //   Every membership the athlete has ever held, departed ones included.
+    //   This is the ONLY reason soft-delete exists: without it there is no
+    //   "Luella HS 2023-26, then State U", just undifferentiated months.
+    //   Unpaginated on purpose - one row per team an athlete has belonged to
+    //   is a handful over a whole career, not a table that grows without
+    //   bound. joined_at ascending so the client renders a timeline, not a
+    //   reverse-chronological list.
+    if (action === 'teams') {
+      const r = await fetch(
+        `${REST}/team_members?athlete_id=eq.${caller.id}`
+        + `&select=id,team_id,status,joined_at,left_at,sport,position,teams(name,sport,level)`
+        + `&order=joined_at.asc`,
+        { headers: H });
+      if (!r.ok) return json({ error: 'Could not read team history', detail: (await r.text()).slice(0, 200) }, 500);
+      const rows = await r.json();
+      return json({
+        teams: rows.map(m => ({
+          membership_id: m.id,
+          team_id:  m.team_id,
+          name:     m.teams?.name || 'Team',
+          level:    m.teams?.level || null,
+          sport:    m.sport || m.teams?.sport || null,
+          position: m.position || null,
+          status:   m.status,
+          joined_at: m.joined_at,
+          left_at:   m.left_at,
+          current:   m.status === 'active',
+        })),
       });
     }
 

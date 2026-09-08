@@ -12,6 +12,7 @@ import DeleteAccountModal from "./components/DeleteAccountModal";
 import AICoachConsentModal from "./components/AICoachConsentModal";
 import PayModal from "./components/CheckoutModal";
 import CoachRoster from "./components/CoachRoster";
+import AthleteRecord from "./components/AthleteRecord";
 import JoinTeam from "./components/JoinTeam";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
@@ -5733,6 +5734,10 @@ COACHING GUIDELINES:
     {id:"progress",  label:"Progress",   sub:"Analytics",       icon:"P", img:"https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&q=85"},
     {id:"journal",   label:"Journal",    sub:"Personal Notes",  icon:"J", img:"https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=85"},
     {id:"calendar",  label:"Calendar",   sub:"Schedule",        icon:"C", img:"https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&q=85"},
+    // Deliberately NOT tier-gated. This is the athlete's own history, and the
+    // whole pitch is that the record travels with them - paywalling a person's
+    // own past is the one thing that would make it worthless.
+    {id:"record",    label:"My Record",  sub:"Career History",  icon:"\u25C8", img:"https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&q=85"},
     // Coach-only module — hidden entirely for athlete/elite/free tiers.
     ...(canAccess('coach') ? [{id:"team", label:"My Team", sub:"Roster", icon:"T", img:"https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800&q=85"}] : []),
     {id:"profile",   label:"Profile",    sub:"Settings",        icon:"✦", img:sport.img},
@@ -10763,6 +10768,14 @@ ${recruitingNote}`:null,
                 <div style={{marginBottom:"2rem"}}><div className="eyebrow">Coaching</div><h2 className="sh2">My <em>Team</em></h2></div>
                 <CoachRoster authUser={authUser} getFreshToken={getFreshToken} shout={shout} nativeShare={nativeShare} apiBase={API_BASE}/>
               </>
+          )}
+
+          {/* MY RECORD — the athlete's career beyond the 90-day window */}
+          {dash==="record" && (
+            <>
+              <div style={{marginBottom:"2rem"}}><div className="eyebrow">Your History</div><h2 className="sh2">My <em>Record</em></h2></div>
+              <AthleteRecord getFreshToken={getFreshToken} shout={shout} apiBase={API_BASE} sport={profile.sport}/>
+            </>
           )}
 
           {/* PROFILE */}
