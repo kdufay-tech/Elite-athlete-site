@@ -28,31 +28,27 @@ const btnGhost = {
 
 const STATUS_COLOR = { active: "#4BAE71", expired: "var(--muted)", revoked: "#C0695E" };
 
-// QR is loaded from a CDN ON DEMAND rather than bundled.
+// QR is BUNDLED, not fetched from a CDN.
 //
-// WHY NOT AN npm DEPENDENCY: adding one means every machine that builds this
-// repo must run `npm install` after pulling, and a missing module is a hard
-// build failure. The deploy path is already fragile enough. The CSP in
-// netlify.toml allows script-src from cdn.jsdelivr.net, so this needs no
-// config change and no build change.
+// It used to be a script tag pointing at cdn.jsdelivr.net, justified by "the
+// CSP in netlify.toml allows script-src from cdn.jsdelivr.net". That reasoning
+// only ever covered the WEBSITE. This screen also ships inside the iOS and
+// Android apps, where netlify.toml governs nothing, and two things follow:
 //
-// If the CDN is unreachable the QR simply does not appear - the link, which is
-// the thing that actually matters, is unaffected.
-const QR_SRC = "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js";
-let qrLoading = null;
-function loadQR() {
-  if (window.QRCode) return Promise.resolve(window.QRCode);
-  if (qrLoading) return qrLoading;
-  qrLoading = new Promise((resolve, reject) => {
-    const el = document.createElement("script");
-    el.src = QR_SRC;
-    el.async = true;
-    el.onload = () => resolve(window.QRCode);
-    el.onerror = () => reject(new Error("QR library unavailable"));
-    document.head.appendChild(el);
-  });
-  return qrLoading;
-}
+//   APP REVIEW - Apple guideline 2.5.2 requires an app to be self-contained
+//     and not download or execute code at runtime. Pulling a JS library from a
+//     CDN on demand is exactly that pattern, and it is a rejection risk on a
+//     submission that has to land.
+//
+//   OFFLINE - an athlete at a camp with no signal opened Recruiting and got no
+//     QR code and no explanation. "The link still works" is no comfort when the
+//     coach is standing in front of them waiting to scan.
+//
+// The original objection to an npm dependency was that every build machine
+// then has to run npm install, and a missing module is a hard build failure.
+// That is true, and it is the better failure: it stops the build on a laptop
+// instead of failing silently in front of a recruiter.
+import QRCode from "qrcode";
 
 export default function ShareManager({ getFreshToken, shout, nativeShare, apiBase = "" }) {
   const [shares, setShares]   = useState([]);
@@ -91,15 +87,11 @@ export default function ShareManager({ getFreshToken, shout, nativeShare, apiBas
     if (!fresh?.url) return;
     let dead = false;
     setQrFailed(false);
-    loadQR()
-      .then(QR => {
-        if (dead || !qrRef.current) return;
-        return QR.toCanvas(qrRef.current, fresh.url, {
-          width: 148, margin: 1,
-          color: { dark: "#0D0D0D", light: "#F2EFE7" },
-        });
-      })
-      .catch(() => { if (!dead) setQrFailed(true); });
+    if (!qrRef.current) return;                 // canvas not mounted yet
+    QRCode.toCanvas(qrRef.current, fresh.url, {
+      width: 148, margin: 1,
+      color: { dark: "#0D0D0D", light: "#F2EFE7" },
+    }).catch(() => { if (!dead) setQrFailed(true); });
     return () => { dead = true; };
   }, [fresh?.url]);
 
