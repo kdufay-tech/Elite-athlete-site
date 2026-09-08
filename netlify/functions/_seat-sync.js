@@ -45,6 +45,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { SEAT_PRICE_MONTHLY, planHasSeats } from './_plan-map.js';
+import { taxSubscriptionFields } from './_tax.js';
 
 const STRIPE = 'https://api.stripe.com/v1';
 
@@ -306,6 +307,10 @@ export async function syncCoachSeats(coachId, { supabaseUrl, serviceKey, stripeS
         'metadata[coach_id]': coachId,
         'metadata[base_subscription]': sub.stripe_subscription_id,
         off_session: 'true',
+        // Seats are created here, not through Checkout, so they need their own
+        // automatic_tax - otherwise the $899 is taxed and the $4.99/athlete is
+        // not, on every monthly invoice. Empty while tax is off.
+        ...taxSubscriptionFields(),
       }, `seat-create-${coachId}-${seats}`);
       await recordSeatState(REST, H, coachId, {
         seat_subscription_id: created.id, seat_quantity: seats, seat_status: created.status,

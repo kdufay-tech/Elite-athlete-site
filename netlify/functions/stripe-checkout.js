@@ -12,6 +12,7 @@ const ALLOWED_ORIGINS = [
 ];
 
 import { planForPrice, planFromStripePrice } from './_plan-map.js';
+import { taxCheckoutFields } from './_tax.js';
 
 // VALID_PLAN_NAMES used to allowlist the CLIENT's planName. That constrained
 // the name to a known set but never tied it to the price being charged, so
@@ -137,6 +138,13 @@ export default async (req) => {
   } else if (safeEmail) {
     payload.customer_email = safeEmail;
   }
+
+  // Stripe Tax. Adds nothing at all while STRIPE_TAX_ENABLED is unset, so this
+  // is inert until the Stripe account can actually calculate tax. Applied
+  // AFTER the customer branch because customer_update is mandatory when - and
+  // only when - an existing customer is reused; Checkout rejects the session
+  // otherwise, which would break every repeat purchase.
+  Object.assign(payload, taxCheckoutFields(Boolean(existingCustomerId)));
   if (body.userId) payload.client_reference_id = String(body.userId).slice(0, 200);
 
   try {
