@@ -64,9 +64,24 @@ export async function coachOwnsAthlete(supabaseUrl, serviceKey, coachId, athlete
   return rows[0]?.team_id || null;
 }
 
+// The team objects the coach UI renders from. coach-roster.js is the ONLY
+// loader CoachRoster calls, so anything missing here is undefined on screen no
+// matter what the database holds.
+//
+// level and join_code_enabled were both absent, which broke three things at
+// once and made each look like a different bug:
+//   - capFor(team.level) always fell through to the 55 default, so the roster
+//     line lied about the cap for college, pro and club teams
+//   - the level picker could write to the database and still snap back to
+//     "Set level..." on reload, because the value it re-read was undefined
+//   - the ON/OFF badge always read OFF and shareCode() always warned the code
+//     was disabled - including right now, with join_code_enabled true in the
+//     database
+// coach-team.js 'list' selected the full set all along; nothing calls it.
 export async function coachTeams(supabaseUrl, serviceKey, coachId) {
   const res = await fetch(
-    `${supabaseUrl}/rest/v1/teams?coach_id=eq.${coachId}&order=created_at.asc&select=id,name,sport,join_code,active`,
+    `${supabaseUrl}/rest/v1/teams?coach_id=eq.${coachId}&order=created_at.asc`
+    + `&select=id,name,sport,join_code,join_code_enabled,level,active,created_at`,
     { headers: svc(serviceKey) });
   return res.ok ? res.json() : [];
 }
