@@ -92,6 +92,15 @@ export async function saveProfile(userId, profile) {
     goal:         profile.goal         || null,
     level:        profile.level        || null,
     target_weight: profile.targetWeight ? parseFloat(profile.targetWeight) : (profile.target_weight ? parseFloat(profile.target_weight) : null),
+    // Recruiting fields. These were absent from this allow-list AND from the
+    // profiles table until 2026-09-08, so everything an athlete typed into
+    // Recruiting Details was silently dropped on save and survived only in
+    // React state for that session.
+    high_school:     profile.highSchool     || profile.high_school     || null,
+    graduation_year: profile.graduationYear || profile.graduation_year || null,
+    gpa:             profile.gpa            || null,
+    gpa_scale:       profile.gpaScale       || profile.gpa_scale       || null,
+    hudl_link:       profile.hudlLink       || profile.hudl_link       || null,
     updated_at:   new Date().toISOString(),
   };
   const { error } = await supabase
@@ -107,7 +116,18 @@ export async function loadProfile(userId) {
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
-  return data;
+  if (!data) return data;
+  // App.jsx does setProfile(p => ({ ...p, ...prof })), so the row is spread
+  // raw into state and the UI reads camelCase. Without these aliases the
+  // recruiting fields would round-trip to the database and never come back.
+  return {
+    ...data,
+    highSchool:     data.high_school     ?? '',
+    graduationYear: data.graduation_year ?? '',
+    gpaScale:       data.gpa_scale       ?? '',
+    hudlLink:       data.hudl_link       ?? '',
+    gpa:            data.gpa             ?? '',
+  };
 }
 
 export async function saveAIConsent(userId) {

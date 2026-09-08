@@ -28,6 +28,12 @@
   timeout = 26
 [functions."coach-ops-metrics"]
   timeout = 26
+# share-view sends a one-time access code through Resend on request_code.
+# Transactional only - it fires in direct response to someone opening an
+# athlete's own share link. It has NO schedule and is unrelated to the paused
+# outreach functions above; do not add a [functions] schedule to it.
+[functions."share-view"]
+  timeout = 26
 
 [dev]
   command    = "npm run dev"
