@@ -5868,10 +5868,21 @@ COACHING GUIDELINES:
           </button>
           {authUser ? (
             <>
-              <span style={{fontSize:"0.74rem",color:"var(--gold)",letterSpacing:"1.5px",border:"1px solid rgba(255,255,255,0.07)",padding:"0.3rem 0.7rem",borderRadius:"var(--r)"}}>
-                ✓ {authUser.email?.split('@')[0]}
+              {/* Identify by PROFILE NAME, falling back to the email local part.
+                  It used to show only the local part, which cannot tell apart
+                  several accounts sharing one - e.g. four kiszo@ accounts whose
+                  profiles are different athletes. The chip then contradicted the
+                  name on the page and made it impossible to see which account
+                  you were actually in. */}
+              <span style={{fontSize:"0.74rem",color:"var(--gold)",letterSpacing:"1.5px",border:"1px solid rgba(255,255,255,0.07)",padding:"0.3rem 0.7rem",borderRadius:"var(--r)",maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={authUser.email || ""}>
+                ✓ {profile.name?.trim() || authUser.email?.split('@')[0]}
               </span>
-              <button className="bgh" onClick={()=>{signOut();setAuthUser(null);setSubscription(null);setProfile({ name:"", weight:"", height:"", age:"", sport:"football", position:"", goal:"Weight Maintenance" });setProfilePhotoBefore(null);setProfilePhotoAfter(null);setScreen("landing");}} style={{fontSize:"0.8rem",padding:"0.5rem 1rem"}}>Sign Out</button>
+              {/* resetUserState() clears all 33 per-user values. This handler
+                  used to clear six by hand, leaving the previous athlete's
+                  check-ins, workouts, journals and notes in memory after sign
+                  out - the same class of leak fixed on the LOGIN path in
+                  b8f37b8. One reset, both paths. */}
+              <button className="bgh" onClick={()=>{signOut();setAuthUser(null);resetUserState();setScreen("landing");}} style={{fontSize:"0.8rem",padding:"0.5rem 1rem"}}>Sign Out</button>
             </>
           ) : (
             <>
