@@ -40,8 +40,8 @@ export const PLAN_BY_PRICE = {
   [e.VITE_STRIPE_PRICE_ELITE_MONTHLY   || 'price_1TDtxVEJzVyHAKH8ripHGexG']: 'elite',
   [e.VITE_STRIPE_PRICE_ELITE_ANNUAL    || 'price_1TDtyPEJzVyHAKH8K0s74tQC']: 'elite_annual',
   // RETIRED 2026-09-07. Coach Pro is annual-only ($899/yr + $4.99/athlete/mo).
-  // Deliberately absent from this map so stripe-checkout REFUSES the price
-  // even if it is still Active in Stripe. Archive it there too.
+  // Absent from this map, and listed in RETIRED_PRICES below - being absent
+  // was NOT enough on its own. See the note there.
   // [COACH_MONTHLY price_1TDtzdEJzVyHAKH8NbNZ2kf6] -> retired, not sellable
   [e.VITE_STRIPE_PRICE_COACH_ANNUAL    || 'price_1TDu0VEJzVyHAKH8x8A17fkc']: 'coach_annual',
   [e.VITE_STRIPE_PRICE_ATHLETE_SEAT    || 'price_1TDxgUEJzVyHAKH8DuXr4sVF']: 'athlete_seat',
@@ -60,9 +60,30 @@ for (const [key, plan] of [
   if (e[key]) PLAN_BY_PRICE[e[key]] = plan;
 }
 
-/** Plan for a price ID, or null if the price is not one of ours. */
+// ── PRICES THAT MUST NEVER SELL AGAIN ────────────────────────
+// Leaving a price out of PLAN_BY_PRICE does NOT stop it being bought. The
+// comment above this map used to claim stripe-checkout "REFUSES the price even
+// if it is still Active in Stripe". That was false: an unmapped price falls
+// through to planFromStripePrice, which asks Stripe for the price NICKNAME -
+// and a nickname containing "coach" without "annual" resolved to 'coach'.
+//
+// So the retired $99/month Coach Pro was still buyable from any client holding
+// that price id - and worse than merely wrong: plan_name 'coach' carries NO
+// seat billing at all (planHasSeats only covers coach_annual), so it would
+// have sold unlimited athletes for $99/month on a plan that no longer exists.
+// The price ids are compiled into every shipped bundle, and the two live store
+// builds still carry the retired one.
+//
+// Archiving the price in Stripe closes it at the source, and it has been
+// archived. This list is the code half: it must not depend on remembering.
+const RETIRED_PRICES = new Set([
+  'price_1TDtzdEJzVyHAKH8NbNZ2kf6',   // COACH_MONTHLY $99/mo, retired 2026-09-07
+]);
+
+/** Plan for a price ID, or null if the price is not one of ours (or retired). */
 export function planForPrice(priceId) {
   if (!priceId || typeof priceId !== 'string') return null;
+  if (RETIRED_PRICES.has(priceId)) return null;
   return PLAN_BY_PRICE[priceId] || null;
 }
 
@@ -73,11 +94,19 @@ export function planForPrice(priceId) {
  */
 export async function planFromStripePrice(priceId, stripeSecret) {
   try {
+    if (RETIRED_PRICES.has(priceId)) return null;
     const r = await fetch(`https://api.stripe.com/v1/prices/${encodeURIComponent(priceId)}`, {
       headers: { Authorization: `Bearer ${stripeSecret}` },
     });
     if (!r.ok) return null;
     const p = await r.json();
+    // The general rule behind RETIRED_PRICES: an archived price is a decision
+    // already made in Stripe, and no nickname should be able to reverse it.
+    // This catches every FUTURE retirement without anyone editing this file.
+    if (p.active === false) {
+      console.warn('Refused checkout for an archived Stripe price:', priceId);
+      return null;
+    }
     const n = (p.nickname || '').toLowerCase();
     if (!n) return null;
     if (n.includes('coach'))   return n.includes('annual') || n.includes('year') ? 'coach_annual'   : 'coach';
