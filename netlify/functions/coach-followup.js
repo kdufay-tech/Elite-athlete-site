@@ -1,6 +1,15 @@
 // netlify/functions/coach-followup.js
 // Sport-tailored 3/5/7-day follow-up sequence for coach marketing tranches.
-// Scheduled daily 23:00 UTC (~7pm ET). Also supports manual POST trigger.
+//
+// NOT SCHEDULED. This header used to read "Scheduled daily 23:00 UTC"; that
+// schedule was removed by adf0a2d for the council pause on coach cold email.
+// The comment outlived the schedule and made the endpoint look supervised when
+// it was actually public and unauthenticated - see _ops-guard.js.
+//
+// Now requires OPS_TRIGGER_SECRET, and refuses to send unless
+// coach_ops_settings permits outreach. These are later steps of the SAME cold
+// sequence marketing-blast begins, so pausing the first email while these still
+// ran would have been a pause in name only.
 //
 // For each step N in {3,5,7}: find coaches who were sent an original marketing
 // blast (blast_id like 'blast_%') exactly N days ago and have NOT:
@@ -18,7 +27,9 @@
 // Manual: POST { step?: 3|5|7, dry_run?: true } — dry_run reports candidate
 // counts per step without sending.
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Content-Type': 'application/json' };
+import { requireOpsSecret, outreachAllowed } from './_ops-guard.js';
+
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Ops-Secret', 'Content-Type': 'application/json' };
 
 const POSTAL_ADDRESS = 'Taradome Technologies · 1366 Athens Ave SW, Atlanta, GA 30310';
 const STEPS = [3, 5, 7];
@@ -119,6 +130,10 @@ async function fetchAllEmails(url, headers) {
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 204, headers: CORS });
 
+  // Caller auth FIRST - this endpoint sends cold email from our domain.
+  const denied = requireOpsSecret(req);
+  if (denied) return denied;
+
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   const resendKey = process.env.RESEND_API_KEY;
@@ -128,6 +143,18 @@ export default async (req) => {
   let onlyStep = null, dryRun = false;
   if (req.method === 'POST') {
     try { const b = await req.json(); if (b.step) onlyStep = parseInt(b.step); if (b.dry_run) dryRun = true; } catch {}
+  }
+
+  // The kill switch. dry_run is allowed through because it sends nothing and
+  // is how you inspect who WOULD be mailed while outreach stays paused.
+  if (!dryRun) {
+    const gate = await outreachAllowed(supabaseUrl, serviceKey);
+    if (!gate.allowed) {
+      console.warn('coach-followup refused by outreach kill switch:', gate.reason);
+      return new Response(JSON.stringify({
+        error: 'Coach outreach is paused', reason: gate.reason, sent: 0,
+      }), { status: 409, headers: CORS });
+    }
   }
 
   // Global skip sets (fetched once, reused across steps).

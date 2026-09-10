@@ -1,5 +1,8 @@
 // netlify/functions/beta-expiry-reminder.js
-// Runs daily via Netlify scheduled functions.
+import { requireOpsSecret } from './_ops-guard.js';
+// NOT SCHEDULED - the daily schedule was removed by adf0a2d. Requires
+// OPS_TRIGGER_SECRET: removing the schedule left this deployed as a public,
+// unauthenticated send endpoint. See _ops-guard.js.
 // Sends expiry reminder emails at 7, 3, and 0 days before beta expires.
 // Tracks sent reminders to avoid duplicates.
 
@@ -99,6 +102,11 @@ async function supabaseFetch(path, opts = {}) {
 }
 
 export default async (req) => {
+  // Was schedule-only and therefore never authenticated. The schedule is
+  // gone; without this the endpoint is a public send button.
+  const denied = requireOpsSecret(req);
+  if (denied) return denied;
+
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   try {

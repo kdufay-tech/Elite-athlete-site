@@ -1,5 +1,9 @@
 ﻿// netlify/functions/beta-followup.js
-// Scheduled: daily 9am UTC. Finds invites sent N days ago with no signup, sends follow-up via Resend.
+import { requireOpsSecret } from './_ops-guard.js';
+// NOT SCHEDULED - the daily 9am UTC schedule was removed by adf0a2d. Finds
+// invites sent N days ago with no signup and mails a follow-up via Resend.
+// Requires OPS_TRIGGER_SECRET: removing the schedule left this deployed as a
+// public, unauthenticated send endpoint. See _ops-guard.js.
 // Also handles manual trigger from admin panel.
 const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Authorization, Content-Type','Content-Type':'application/json'};
 
@@ -30,6 +34,11 @@ function buildContent(betaType, daysLeft, inviteUrl, originalTemplate){
 }
 
 export default async(req)=>{
+  // Was schedule-only and therefore never authenticated. The schedule is
+  // gone; without this the endpoint is a public send button.
+  const denied = requireOpsSecret(req);
+  if (denied) return denied;
+
   if(req.method==='OPTIONS')return new Response('',{status:204,headers:CORS});
   const supabaseUrl=process.env.SUPABASE_URL;
   const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY;
