@@ -92,6 +92,24 @@ const sanitizeHtml = (str) => String(str || '')
 // ─────────────────────────────────────────────────────────────
 // DATA
 // ─────────────────────────────────────────────────────────────
+// ── Age gate (2026-09-15) ────────────────────────────────────────────────────
+// Elite Athlete is for athletes 13 and older (COPPA: no under-13 accounts).
+// 13-17 must give a parent/guardian email - the only address a payment ask may
+// go to for a minor. dob is authoritative; the legacy free-text age is derived.
+const MIN_AGE = 13;
+function ageFromDob(dob) {
+  if (!dob) return null;
+  const d = new Date(dob + 'T00:00:00');
+  if (isNaN(d)) return null;
+  const now = new Date();
+  let a = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
+  return a;
+}
+const isMinor = (dob) => { const a = ageFromDob(dob); return a !== null && a >= MIN_AGE && a < 18; };
+const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e || '').trim());
+
 const SPORTS = {
   football:   { icon: "FB", label: "Football",   img: "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&q=80", positions: ["Quarterback","Running Back","Wide Receiver","Tight End","Offensive Lineman","Defensive End","Linebacker","Cornerback","Safety","Kicker"], injuries: ["ACL Tear","MCL Sprain","Hamstring Strain","Rotator Cuff","Concussion","Ankle Sprain","Turf Toe","Shoulder Dislocation"] },
   basketball: { icon: "BB", label: "Basketball", img: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80", positions: ["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"], injuries: ["Ankle Sprain","Knee Tendinitis","Finger Dislocation","ACL Tear","Back Spasm","Patellar Tendinitis"] },
@@ -9585,8 +9603,13 @@ COACHING GUIDELINES:
 
 
               {/* ══ RECRUITING PROFILE ════════════════════════════ */}
-              {progressTab==="recruiting" && !canAccess('elite') && <UpgradePrompt feature="Recruiting Profile" desc="Build your athletic profile and send it directly to college coaches and scouts." onUpgrade={()=>setScreen("pricing")}/>}
-              {progressTab==="recruiting" && canAccess('elite') && (()=>{
+              {/* Recruiting Profile + share links moved from Elite to Athlete on
+                  2026-09-15 (Kiszo, council delta). athlete_seat maps to the
+                  'athlete' tier in getUserTier, so a coach-paid roster seat can
+                  now create a share link - the thing the coach pitch sells.
+                  Elite keeps AI Coach, injury, benchmarks, supplements. */}
+              {progressTab==="recruiting" && !canAccess('athlete') && <UpgradePrompt feature="Recruiting Profile" desc="Build your athletic profile and send a live, revocable share link to college coaches and scouts. Included with Athlete, and with a seat on your coach's roster." onUpgrade={()=>setScreen("pricing")}/>}
+              {progressTab==="recruiting" && canAccess('athlete') && (()=>{
                 // Compute PRs from workout log
                 const prs = Object.entries(
                   wkLog.reduce((acc,l)=>{
@@ -9858,8 +9881,43 @@ COACHING GUIDELINES:
                             carries the training record, and it can be taken
                             back. The mailto below is kept for coaches who just
                             want a plain email. */}
+                        {/* Age gate before any share link exists (2026-09-15): accounts
+                            created before dob was collected fill it in here once. A minor
+                            must name a parent/guardian email first - that is the consent
+                            record a recruiting share of a 13-17-year-old's data rests on. */}
+                        {(!profile.dob || ageFromDob(profile.dob) < MIN_AGE || (isMinor(profile.dob) && !validEmail(profile.parentEmail||profile.parent_email))) ? (
+                          <div className="panel">
+                            <div className="ph"><div className="pt">Before you <em>share</em></div></div>
+                            <div className="pb" style={{display:"flex",flexDirection:"column",gap:"0.75rem"}}>
+                              <div className="f">
+                                <label className="fl">Date of birth <span style={{color:"var(--gold)"}}>*</span></label>
+                                <input type="date" className="fi" max={new Date().toISOString().slice(0,10)} value={profile.dob||""}
+                                  onChange={e=>{ const dob=e.target.value; const a=ageFromDob(dob); setProfile(p=>({...p,dob,age:a!==null?String(a):p.age})); }}/>
+                                {profile.dob && ageFromDob(profile.dob) < MIN_AGE && <div style={{fontSize:"0.72rem",color:"#E0685B",marginTop:"0.3rem"}}>Elite Athlete is for athletes {MIN_AGE} and older.</div>}
+                              </div>
+                              {isMinor(profile.dob) && (
+                                <div className="f">
+                                  <label className="fl">Parent or guardian email <span style={{color:"var(--gold)"}}>*</span></label>
+                                  <input type="email" className="fi" autoComplete="email" autoCapitalize="none" inputMode="email" placeholder="parent@example.com"
+                                    value={profile.parentEmail||profile.parent_email||""} onChange={e=>setProfile(p=>({...p,parentEmail:e.target.value}))}/>
+                                </div>
+                              )}
+                              <button className="btn" onClick={async()=>{
+                                  if(!profile.dob || ageFromDob(profile.dob) < MIN_AGE){shout(`Date of birth required - athletes ${MIN_AGE} and older`,"!");return;}
+                                  if(isMinor(profile.dob) && !validEmail(profile.parentEmail||profile.parent_email)){shout("A parent or guardian email is required under 18","!");return;}
+                                  const consented = { ...profile, consentAt: profile.consentAt || profile.consent_at || new Date().toISOString() };
+                                  try{ if(authUser?.id) await saveProfile(authUser.id, consented); setProfile(p=>({...p, consentAt: consented.consentAt})); shout("Saved - sharing unlocked","◆"); }
+                                  catch(e){ shout("Could not save - try again","!"); }
+                                }}
+                                style={{padding:"0.75rem",borderRadius:"var(--r)",border:"1px solid var(--gold)",background:"rgba(168,130,42,0.15)",color:"var(--gold)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:"0.8rem",fontWeight:600,letterSpacing:"2px",textTransform:"uppercase"}}>
+                                Save and continue
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
                         <ShareManager getFreshToken={getFreshToken} shout={shout}
                                       nativeShare={nativeShare} apiBase={API_BASE}/>
+                        )}
 
                         {/* Send to coach — one-shot email, no expiry or recall */}
                         <div className="panel">
@@ -11150,8 +11208,12 @@ ${recruitingNote}`:null,
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
                   <div className="f">
-                    <label className="fl">Age</label>
-                    <input type="number" className="fi" placeholder="e.g. 22" min="10" max="100" value={profile.age||""} onChange={e=>setProfile(p=>({...p,age:e.target.value}))}/>
+                    <label className="fl">Date of birth <span style={{color:"var(--gold)"}}>*</span></label>
+                    <input type="date" className="fi" max={new Date().toISOString().slice(0,10)} value={profile.dob||""}
+                      onChange={e=>{ const dob=e.target.value; const a=ageFromDob(dob); setProfile(p=>({...p,dob,age:a!==null?String(a):p.age})); }}/>
+                    {profile.dob && ageFromDob(profile.dob)!==null && ageFromDob(profile.dob) < MIN_AGE && (
+                      <div style={{fontSize:"0.72rem",color:"#E0685B",marginTop:"0.3rem"}}>Elite Athlete is for athletes {MIN_AGE} and older.</div>
+                    )}
                   </div>
                   <div className="f">
                     <label className="fl">Weight (lbs)</label>
@@ -11167,6 +11229,14 @@ ${recruitingNote}`:null,
                     </div>
                   )}
                 </div>
+                {isMinor(profile.dob) && (
+                  <div className="f">
+                    <label className="fl">Parent or guardian email <span style={{color:"var(--gold)"}}>*</span></label>
+                    <input type="email" className="fi" autoComplete="email" autoCapitalize="none" inputMode="email" placeholder="parent@example.com"
+                      value={profile.parentEmail||profile.parent_email||""} onChange={e=>setProfile(p=>({...p,parentEmail:e.target.value}))}/>
+                    <div style={{fontSize:"0.7rem",color:"var(--muted)",marginTop:"0.3rem"}}>Under 18: we send anything about payment to your parent or guardian, never to you.</div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -11260,6 +11330,9 @@ ${recruitingNote}`:null,
               {obStep<3 && (
                 <button onClick={()=>{
                   if(obStep===1 && !profile.name?.trim()){shout("Please enter your name","!");return;}
+                  if(obStep===1 && !profile.dob){shout("Please enter your date of birth","!");return;}
+                  if(obStep===1 && ageFromDob(profile.dob) < MIN_AGE){shout(`Elite Athlete is for athletes ${MIN_AGE} and older`,"!");return;}
+                  if(obStep===1 && isMinor(profile.dob) && !validEmail(profile.parentEmail||profile.parent_email)){shout("A parent or guardian email is required under 18","!");return;}
                   if(obStep===2 && !profile.sport){shout("Please select a sport","!");return;}
                   if(obStep===2 && !profile.position){shout("Please select your position","!");return;}
                   setObStep(s=>s+1);
@@ -11274,9 +11347,15 @@ ${recruitingNote}`:null,
                   if(!profile.sport){shout("Please select a sport","!");setObStep(2);return;}
                   if(!profile.position){shout("Please select your position","!");setObStep(2);return;}
                   if(!profile.goal){shout("Please select a goal","!");return;}
+                  if(!profile.dob || ageFromDob(profile.dob) < MIN_AGE){shout(`Date of birth required - athletes ${MIN_AGE} and older`,"!");setObStep(1);return;}
+                  if(isMinor(profile.dob) && !validEmail(profile.parentEmail||profile.parent_email)){shout("A parent or guardian email is required under 18","!");setObStep(1);return;}
                   setObSaving(true);
                   try{
-                    if(authUser?.id) await saveProfile(authUser.id, profile);
+                    // consent_at: the moment the athlete (and, for a minor, the
+                    // named parent email) completed onboarding with a date of birth.
+                    const consented = { ...profile, consentAt: profile.consentAt || profile.consent_at || new Date().toISOString() };
+                    setProfile(p=>({...p, consentAt: consented.consentAt}));
+                    if(authUser?.id) await saveProfile(authUser.id, consented);
                     // New signup finishing onboarding → fire the tailored welcome now that
                     // name/sport/level are saved. Gated by pending_role (set only at signup),
                     // idempotent server-side so it can never double-send.
@@ -11648,6 +11727,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
         'Progress photos + body tracking',
         'PDF downloads + email to self',
         'Push notifications + calendar',
+        'Recruiting profile + live share links',
       ],
       cta: 'Get Athlete',
       ctaClass: 'bgh',
@@ -11665,7 +11745,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
         'Injury recovery (100+ protocols)',
         'Supplement stack + full dosing (180+)',
         '16-week periodization plan',
-        '90-day history + recruiting profile',
+        '90-day history',
         'Progress Report + Report Card PDFs',
         'Email everything to coach',
       ],
@@ -12321,10 +12401,12 @@ function BetaSignupSection({ onSignup }) {
     if (!waitEmail) return;
     setWaitBusy(true);
     try {
-      const res = await fetch(`${API_BASE}/.netlify/functions/coach-waitlist`, {
+      // lead-capture writes the capture ledger and returns 500 if it cannot -
+      // success is only ever reported when the row exists (council 2026-09-10).
+      const res = await fetch(`${API_BASE}/.netlify/functions/lead-capture`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: waitEmail, source: 'beta_full_waitlist' }),
+        body: JSON.stringify({ email: waitEmail, source: 'coach_waitlist', intent: 'raised_hand', meta: { form: 'beta_full_waitlist' } }),
       });
       setWaitMsg(res.ok ? 'success' : 'error');
     } catch { setWaitMsg('error'); }

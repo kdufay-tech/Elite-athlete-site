@@ -2,6 +2,7 @@
 // ESM format — required for this project (node_bundler = esbuild)
 import { planForPrice } from './_plan-map.js';
 import { cancelCoachSeats, resyncCoachesOfAthlete } from './_seat-sync.js';
+import { logLead } from './_lead.js';
 
 export default async (req) => {
   if (req.method !== 'POST')
@@ -81,6 +82,13 @@ async function onCheckout(session, stripeSecret, supabaseUrl, supabaseKey) {
   // They now pay for themselves, so no school should still be billed a seat
   // for them. Recomputing their coaches' rosters removes it.
   await resyncCoachesOfAthlete(userId, { supabaseUrl, serviceKey: supabaseKey, stripeSecret });
+
+  // Capture ledger: a real sale. This row is the only kind of 'traction' the
+  // company may quote (council 2026-09-10).
+  await logLead(supabaseUrl, supabaseKey, {
+    email: customerEmail, user_id: userId, source: 'stripe', channel: 'web', intent: 'paid',
+    meta: { plan: planName, stripe_subscription_id: subscriptionId, interval: sub.items?.data?.[0]?.price?.recurring?.interval || null },
+  });
 
   console.log(`Subscription saved: user=${userId} plan=${planName}`);
 }

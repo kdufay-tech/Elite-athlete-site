@@ -34,6 +34,15 @@
 # outreach functions above; do not add a [functions] schedule to it.
 [functions."share-view"]
   timeout = 26
+# lead-canary is the ONLY scheduled function. It is a health check on the
+# capture ledger (posts one canary row, reads it back, emails the founder on
+# failure). It sends nothing to any coach, athlete or contact and is unrelated
+# to the paused outreach schedules removed in adf0a2d. Council 2026-09-10 gate 2.
+[functions."lead-canary"]
+  schedule = "0 12 * * *"
+  timeout  = 26
+[functions."lead-capture"]
+  timeout = 26
 
 [dev]
   command    = "npm run dev"

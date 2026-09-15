@@ -1,6 +1,11 @@
 // netlify/functions/coach-waitlist.js
 // Saves Coach Pro waitlist emails to Supabase + sends confirmation via EmailJS
 // EmailJS public key is intentionally embedded — it is a public-facing credential
+//
+// 2026-09-15: ALSO writes the capture ledger (lead_events). The native builds in
+// both stores still call this endpoint, so it cannot be retired; the web app now
+// calls lead-capture. Either path lands in the same ledger.
+import { logLead, contactIdFor } from './_lead.js';
 
 const ALLOWED_ORIGINS = [
   'https://the-elite-athlete.netlify.app',
@@ -80,6 +85,19 @@ export default async (req) => {
   } catch (err) {
     console.error('Supabase error:', err.message);
     return new Response(JSON.stringify({ error: 'Server error' }), { status: 500, headers });
+  }
+
+  // 1b. Capture ledger - the row that proves the hand was raised. A ledger
+  // failure is reported honestly (500) so the UI never claims success falsely.
+  {
+    const contact_id = await contactIdFor(supabaseUrl, supabaseKey, safeEmail);
+    const led = await logLead(supabaseUrl, supabaseKey, {
+      email: safeEmail, contact_id, source: 'coach_waitlist',
+      channel: /localhost/i.test(origin) ? 'native' : 'web', intent: 'raised_hand',
+      meta: { origin, form_source: body.source || null },
+    });
+    if (!led.ok)
+      return new Response(JSON.stringify({ error: 'Could not record your request - please try again' }), { status: 500, headers });
   }
 
   // 2. Send confirmation email via EmailJS REST API

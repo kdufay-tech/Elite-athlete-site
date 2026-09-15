@@ -102,6 +102,12 @@ export async function saveProfile(userId, profile) {
     gpa_scale:       profile.gpaScale       || profile.gpa_scale       || null,
     hudl_link:       profile.hudlLink       || profile.hudl_link       || null,
     location:        profile.location       || null,
+    // Age gate + minor consent (2026-09-15). dob is authoritative; age stays
+    // as the derived legacy field. parent_email is required under 18 and is
+    // the only address a payment ask may be sent to for a minor.
+    dob:             profile.dob            || null,
+    parent_email:    (profile.parentEmail   || profile.parent_email || null)?.trim?.().toLowerCase() || null,
+    consent_at:      profile.consentAt      || profile.consent_at   || null,
     updated_at:   new Date().toISOString(),
   };
   const { error } = await supabase
@@ -129,6 +135,8 @@ export async function loadProfile(userId) {
     hudlLink:       data.hudl_link       ?? '',
     gpa:            data.gpa             ?? '',
     location:       data.location        ?? '',
+    parentEmail:    data.parent_email    ?? '',
+    consentAt:      data.consent_at      ?? null,
   };
 }
 

@@ -79,6 +79,9 @@ export const TIER_INFO = {
       'Calendar + ICS export',
       'PDF downloads + email to self',
       'Push notifications',
+      // Moved from Elite 2026-09-15 (council delta): a $29 athlete or a
+      // coach-seated athlete can build a record and share it with a coach.
+      'Recruiting profile + live share links (QR, expiry, revoke)',
     ],
   },
   elite: {
@@ -92,7 +95,7 @@ export const TIER_INFO = {
       'Injury recovery protocols (100+ injuries)',
       'Supplement stack + full dosing (180+)',
       '16-week periodization plan',
-      '90-day history + recruiting profile',
+      '90-day history',
       'Progress Report + Report Card PDFs',
       'Email everything to coach',
     ],

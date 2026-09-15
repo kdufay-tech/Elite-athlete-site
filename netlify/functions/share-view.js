@@ -38,6 +38,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { CORS, json, env, rpc } from './_coach-auth.js';
+import { logLead } from './_lead.js';
 
 const FROM         = 'Elite Athlete <support@elite-athlete.app>';
 const CODE_TTL_MS  = 10 * 60 * 1000;       // 10 minutes
@@ -179,6 +180,13 @@ export default async (req) => {
           grant_id: grant.id, token: session,
           expires_at: new Date(Date.now() + SESSION_TTL).toISOString(),
         }),
+      });
+      // A verified human at the recipient's address just opened an athlete's
+      // record. This is (a) the event the athlete/parent sequence keys on and
+      // (b) one row of the passively-built college list (share_open_domains).
+      await logLead(supabaseUrl, serviceKey, {
+        email: grant.recipient_email, source: 'share_view', channel: 'web', intent: 'coach_opened_share',
+        meta: { grant_id: grant.id, athlete_id: grant.athlete_id, label: grant.recipient_label || null },
       });
       return json({ session, expires_in: SESSION_TTL / 1000 });
     }

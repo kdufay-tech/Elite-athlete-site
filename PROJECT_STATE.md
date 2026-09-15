@@ -455,7 +455,19 @@ otherwise the endpoint is an oracle for who an athlete is talking to.
 | Elite | $69/mo | $529/yr | Save $299/yr — 35% off |
 | Coach Pro | RETIRED | $899/yr | **+ $4.99/athlete/mo.** Annual only. Live, web purchase only. |
 
+**Frozen and dated 2026-09-15** (docs/adr/2026-09-15-retraction-of-traction-figures.md). No discount codes exist.
+**Feature move 2026-09-15:** Recruiting Profile + share links are now in **Athlete** (and coach-paid `athlete_seat`), not Elite. Gate in `src/App.jsx` recruiting tab is `canAccess('athlete')`; `getUserTier` maps `athlete_seat` → `athlete`. Elite keeps AI Coach, injury, supplements, periodization, report PDFs, email-to-coach.
+
 ---
+
+## Capture ledger + age gate  (built 2026-09-15)
+Why: `coach_waitlist` had 0 rows after 602 engagements — the front end reported success on a swallowed catch. Council 2026-09-10 made a ledger + canary the first pre-send gate.
+- `public.lead_events` (migration `20260915_lead_events_and_minor_consent.sql`): append-only, RLS on with no policies (service-role only). Intents: raised_hand, reply, reply_yes, reply_not_now, reply_stop, call, demo, checkout_started, paid, objection, coach_opened_share, share_created, invite_redeemed, spring, club, canary, note. View `share_open_domains` = the passively-built sub-D1 college list.
+- Writers (all via `netlify/functions/_lead.js` `logLead`): `lead-capture` (public POST, honeypot, returns 500 when the row cannot be written, sends one Resend acknowledgement as proof of write); `coach-waitlist` (still called by the native builds in both stores — also writes the ledger and now fails honestly); `stripe-webhook` → `paid` on checkout; `share-view` → `coach_opened_share` when a recipient verifies a code.
+- `lead-canary` — the ONLY scheduled function (`netlify.toml`, 12:00 UTC daily): posts a canary through the public door, reads it back, emails eku@taradome.com on failure. Not outreach; unrelated to the adf0a2d pause.
+- Web waitlist form now posts to `lead-capture`.
+- Age gate: onboarding step 1 takes **date of birth** (replaces free-text age; `profiles.age` still derived). Under 13 cannot proceed. 13–17 must give a parent/guardian email. `profiles.dob / parent_email / consent_at / consent_ip` added. The recruiting tab shows the same mini-form before `ShareManager` for accounts that pre-date the gate — no share link exists without dob (+ parent email if a minor).
+- The weekly count from `lead_events` is the only traction figure anyone may quote.
 
 ## Bug Fix Log
 
