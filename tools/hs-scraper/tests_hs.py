@@ -11,6 +11,7 @@ import traceback
 
 import _shared  # noqa: F401  -- must import first; puts coach-scraper on sys.path
 import registry_hs
+import associations.ghsa as ghsa
 
 FAILURES: list[str] = []
 
@@ -74,6 +75,48 @@ def test_merge_still_fills_zero_enrollment():
                                      enrollment=1500)]
     merged = registry_hs.merge(existing, incoming)
     check("zero enrollment is fillable", merged[0].enrollment, 1500)
+
+
+ENTRY = [
+    "ACE CHARTER (2-AA)",
+    "5665 New Forsyth Road",
+    "Macon, GA 31210",
+    "Phone:\t478-238-5757",
+    "www.acemacon.org",
+    "gryphon@acemacon.org",
+    "Colors:\tRoyal Blue & Emerald Green",
+    "Mascot:\tGryphon",
+    "Robby Jones P",
+    "Thomas Darrah AD*,1",
+    "Henry Avery 1,5*",
+    "Andrea Blair 13",
+]
+
+
+def test_ghsa_parses_school_fields():
+    school, _ = ghsa.parse_entry(ENTRY)
+    check("school name", school.school, "ACE CHARTER")
+    check("classification", school.classification, "2-AA")
+    check("city", school.city, "Macon")
+    check("state", school.state, "GA")
+    check("site_url", school.site_url, "https://www.acemacon.org")
+    check("school_id", school.school_id, "ga-ace-charter")
+
+
+def test_ghsa_parses_roster_with_sports():
+    _, roster = ghsa.parse_entry(ENTRY)
+    by_name = {r.name: r for r in roster}
+    check("roster size", len(roster), 4)
+    check("AD also coaches football", by_name["Thomas Darrah"].sports, ["football"])
+    check("star means head", by_name["Thomas Darrah"].is_head, True)
+    check("track code 5 is not a target", by_name["Henry Avery"].sports, ["football"])
+    check("code 13 is volleyball", by_name["Andrea Blair"].sports, ["volleyball"])
+    check("principal coaches nothing", by_name["Robby Jones"].sports, [])
+
+
+def test_ghsa_rejects_a_non_entry():
+    check("front matter is not an entry",
+          ghsa.parse_entry(["GHSA Staff", "Tim Scott, Executive Director"]), None)
 
 
 def main():
