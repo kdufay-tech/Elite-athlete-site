@@ -35,3 +35,7 @@ tools/coach-scraper/out/
 # HS scraper: same pattern -- regenerable artifacts, not source.
 tools/hs-scraper/data/
 tools/hs-scraper/out/
+
+# Python bytecode cache, wherever it turns up.
+__pycache__/
+*.pyc

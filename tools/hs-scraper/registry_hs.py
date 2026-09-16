@@ -115,6 +115,11 @@ def merge(existing: list[HSSchool], incoming: list[HSSchool]) -> list[HSSchool]:
         if cur is None:
             by_id[new.school_id] = new
             continue
+        # NOTE: is_public is first-write-wins. _is_blank() treats no bool as blank,
+        # so once a row exists its is_public cannot be corrected here -- not even
+        # from the dataclass default True. Set it correctly at CONSTRUCTION (as the
+        # GHSA parser does, reading public/private from the classification column);
+        # do not expect a later merge to fix it.
         for f in fields(HSSchool):
             nv = getattr(new, f.name)
             if _is_blank(nv):
