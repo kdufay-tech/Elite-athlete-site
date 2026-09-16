@@ -88,6 +88,34 @@ export default async (req) => {
         subject: isComplaint ? 'complained' : `bounced:${bounceType || 'unknown'}`,
       }),
     }).catch(() => {});
+
+    // 3) Keep the contact record in step with the suppression list.
+    //
+    // The list above is what actually blocks sends. This is what makes
+    // coach_contacts tell the truth, so folder counts and previews stop
+    // describing dead addresses as mailable. Without it every bounce had to be
+    // reconciled by hand - seven manual passes on 2026-09-15 alone.
+    //
+    // A complaint is an opt-out, not a delivery failure, so it maps to
+    // 'unsubscribed'; only a hard bounce means the mailbox is gone.
+    //
+    // Scoped to status=eq.active so it can never overwrite a deliberate state
+    // such as 'excluded' (the fabricated-address tranche).
+    //
+    // `email` is lowercased above and every address in coach_contacts is
+    // stored lowercase, so eq is an exact match. Deliberately NOT ilike: 513
+    // addresses contain an underscore, which ILIKE would treat as a
+    // single-character wildcard and could match the wrong person.
+    //
+    // Best-effort, like the writes above: Resend retries any non-200, so a
+    // failed status sync must never turn into a redelivery storm.
+    if (email) {
+      await fetch(`${supabaseUrl}/rest/v1/coach_contacts?status=eq.active&email=eq.${encodeURIComponent(email)}`, {
+        method: 'PATCH',
+        headers: { ...h, Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: isComplaint ? 'unsubscribed' : 'bounced' }),
+      }).catch(() => {});
+    }
   }
 
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers: CORS });

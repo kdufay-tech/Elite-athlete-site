@@ -33,6 +33,16 @@ async function doUnsubscribe(email) {
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates' },
     body: JSON.stringify({ blast_id: 'unsubscribed', email, subject: 'unsubscribed' }),
   }).catch(() => {});
+  // Mark the coach contact itself. This function patched beta_invites and the
+  // suppression list but never coach_contacts, which is why 37 coaches who had
+  // unsubscribed still read as 'active' on 2026-09-15. Scoped to active rows so
+  // a deliberate state is never overwritten; eq (not ilike) because addresses
+  // are stored lowercase and 513 of them contain an underscore.
+  await fetch(`${supabaseUrl}/rest/v1/coach_contacts?status=eq.active&email=eq.${encodeURIComponent(String(email).toLowerCase().trim())}`, {
+    method: 'PATCH',
+    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ status: 'unsubscribed' }),
+  }).catch(() => {});
 }
 
 export default async (req) => {
