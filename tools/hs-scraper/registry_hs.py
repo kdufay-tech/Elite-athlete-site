@@ -18,8 +18,8 @@ from registry import slugify  # college package -- same slug rules, one definiti
 DATA_DIR = Path(__file__).parent / "data"
 FIELDS = [
     "school_id", "school", "state", "city", "classification",
-    "is_public", "district", "district_domain", "site_url", "staff_url",
-    "nces_id", "enrollment",
+    "is_public", "district", "district_domain", "site_url", "email_domain",
+    "staff_url", "nces_id", "enrollment",
 ]
 
 
@@ -34,6 +34,7 @@ class HSSchool:
     district: str = ""
     district_domain: str = ""     # where public coaches' mail actually lives
     site_url: str = ""
+    email_domain: str = ""        # observed domain of the school's published address
     staff_url: str = ""
     nces_id: str = ""
     enrollment: int = 0
@@ -88,6 +89,7 @@ def load(path: Path | str) -> list[HSSchool]:
                 district=row.get("district", ""),
                 district_domain=row.get("district_domain", ""),
                 site_url=row.get("site_url", ""),
+                email_domain=row.get("email_domain", ""),
                 staff_url=row.get("staff_url", ""),
                 nces_id=row.get("nces_id", ""),
                 enrollment=int(row.get("enrollment") or 0),

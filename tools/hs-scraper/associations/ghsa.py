@@ -35,6 +35,21 @@ _HEAD = re.compile(r"^([A-Z][A-Z0-9 .,&'\-/]+?)\s*\((\d+-[A-Z0-9]+)\)\s*$")
 _CITY = re.compile(r"^(.+?),\s*GA\s+(\d{5})")
 _SITE = re.compile(r"^(?:www\.|https?://)\S+$", re.I)
 
+# The association prints a generic school inbox per entry. We keep the DOMAIN
+# only -- it is where the coaches' mail lives, which is what the crawl needs.
+# The address itself is a front-desk mailbox, not a contact, and storing it
+# would invite something downstream to mail it.
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})")
+
+# A school on free mail tells us nothing about where its colleagues are. Georgia
+# has exactly one today, but rural districts nationally use these, and grouping
+# on "gmail.com" would merge unrelated schools into one enormous fake district.
+FREE_MAIL = frozenset({
+    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com",
+    "icloud.com", "comcast.net", "bellsouth.net", "att.net", "windstream.net",
+    "msn.com", "live.com", "me.com", "mail.com", "charter.net", "earthlink.net",
+})
+
 # "Thomas Darrah AD*,1" / "Henry Avery 1,5*" / "Robby Jones P"
 _CODE = r"(?:[A-Z]{1,4}|\d{1,2}[FB]?)\*?"
 _PERSON = re.compile(
@@ -103,6 +118,12 @@ def parse_entry(lines: list[str]) -> "tuple[HSSchool, list[RosterEntry]] | None"
             school.site_url = line if line.lower().startswith("http") else "https://" + line
             continue
         if line.startswith(("Phone:", "AD:", "BD:", "Fax:", "Colors:", "Mascot:")):
+            continue
+        email = _EMAIL.match(line)
+        if email:
+            domain = email.group(1).lower()
+            if not school.email_domain and domain not in FREE_MAIL:
+                school.email_domain = domain
             continue
         person = _PERSON.match(line)
         if person:

@@ -5,8 +5,9 @@ carry 187 of 410 schools, and one of them (dekalb.k12.ga.us) carries 19 across
 12 cities. Fetch a district's staff directory once and you have resolved a
 dozen schools.
 
-This is measured, never inferred. The school's own published site_url decides
-its unit -- no step anywhere turns a district NAME into a district DOMAIN,
+This is measured, never inferred. The school's own published email domain
+decides its unit, falling back to its site_url only when no email was
+captured -- no step anywhere turns a district NAME into a district DOMAIN,
 because that guess is the same move that produced this project's worst-
 bouncing cohort.
 """
@@ -75,12 +76,15 @@ def unit_key(url: str) -> str:
 def assign(schools: list[HSSchool]) -> "dict[str, list[HSSchool]]":
     """Set district_domain in place; return units, largest first.
 
-    A school with no site_url gets no unit and keeps a blank district_domain.
-    It is unresolved, and Task 4 resolves it -- it is never guessed at.
+    Keys on the school's email domain when the association published one --
+    it is the domain that actually receives mail -- and falls back to the
+    website otherwise. A school with neither gets no unit and keeps a blank
+    district_domain. It is unresolved, and Task 4 resolves it -- it is never
+    guessed at.
     """
     units: dict[str, list[HSSchool]] = collections.defaultdict(list)
     for s in schools:
-        key = unit_key(s.site_url)
+        key = unit_key(s.email_domain or s.site_url)
         if not key:
             continue
         s.district_domain = key

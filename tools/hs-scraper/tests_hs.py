@@ -120,6 +120,25 @@ def test_ghsa_parses_roster_with_sports():
     check("baseball code 4 is not a target", by_name["Cal Cee"].sports, [])
 
 
+def test_ghsa_captures_the_email_domain_not_the_address():
+    school, _ = ghsa.parse_entry(ENTRY)
+    check("domain captured", school.email_domain, "acemacon.org")
+    check("no address stored anywhere on the school",
+          any("@" in str(v) for v in vars(school).values()), False)
+
+
+def test_ghsa_ignores_a_free_mail_address():
+    entry = [l for l in ENTRY if "@" not in l] + ["coachbob@gmail.com"]
+    school, _ = ghsa.parse_entry(entry)
+    check("free mail is not a school domain", school.email_domain, "")
+
+
+def test_an_email_line_is_not_parsed_as_a_person():
+    _, roster = ghsa.parse_entry(ENTRY)
+    check("no roster entry came from the email line",
+          any("@" in r.name for r in roster), False)
+
+
 def test_ghsa_rejects_a_non_entry():
     check("front matter is not an entry",
           ghsa.parse_entry(["GHSA Staff", "Tim Scott, Executive Director"]), None)
@@ -191,6 +210,23 @@ def test_assign_sets_district_domain_and_orders_by_size():
     check("no site_url yields no unit", schools[3].district_domain, "")
     check("unresolved school is in no unit",
           any(schools[3] in v for v in units.values()), False)
+
+
+def test_assign_prefers_the_email_domain_over_the_website():
+    # ALLATOONA: booster site, district mail. The mail domain must win.
+    s = registry_hs.HSSchool(school_id="ga-a", school="A", state="GA",
+                             site_url="http://allatoonabucs.com",
+                             email_domain="cobbk12.org")
+    units = domains.assign([s])
+    check("keyed on mail, not the booster site", s.district_domain, "cobbk12.org")
+    check("unit is the district", list(units), ["cobbk12.org"])
+
+
+def test_assign_falls_back_to_the_website_when_no_email():
+    s = registry_hs.HSSchool(school_id="ga-b", school="B", state="GA",
+                             site_url="http://wesleyan.org", email_domain="")
+    domains.assign([s])
+    check("website used as fallback", s.district_domain, "wesleyan.org")
 
 
 def test_mail_domain_no_longer_branches_on_is_public():
