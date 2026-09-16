@@ -53,6 +53,29 @@ def test_merge_never_blanks_existing():
     check("merge does not blank a populated field", merged[0].nces_id, "123")
 
 
+def test_merge_never_flips_is_public():
+    # False == 0 in Python, so a naive blank-check reads is_public=False as
+    # "unset" and lets a later pass overwrite it. is_public decides the whole
+    # discovery path, so this must hold.
+    existing = [registry_hs.HSSchool(school_id="ga-priv", school="Priv", state="GA",
+                                     is_public=False)]
+    incoming = [registry_hs.HSSchool(school_id="ga-priv", school="Priv", state="GA",
+                                     is_public=True, nces_id="999")]
+    merged = registry_hs.merge(existing, incoming)
+    check("private school stays private", merged[0].is_public, False)
+    check("other fields still fill", merged[0].nces_id, "999")
+
+
+def test_merge_still_fills_zero_enrollment():
+    # enrollment 0 genuinely means "not known", so 0 must remain fillable.
+    existing = [registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
+                                     enrollment=0)]
+    incoming = [registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
+                                     enrollment=1500)]
+    merged = registry_hs.merge(existing, incoming)
+    check("zero enrollment is fillable", merged[0].enrollment, 1500)
+
+
 def main():
     """Auto-discovers every global named test_*.
 

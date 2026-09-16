@@ -88,6 +88,21 @@ def load(path: Path | str) -> list[HSSchool]:
     return out
 
 
+def _is_blank(value) -> bool:
+    """Is this field unset, for merge purposes?
+
+    A bool is NEVER unset -- False is a real answer. Without this check,
+    `value in ("", 0, None)` treats is_public=False as blank, because in
+    Python False == 0. That would let a later pass silently flip a private
+    school to public, and an explicit False would never propagate.
+
+    An int 0 IS blank: enrollment=0 means "not known yet".
+    """
+    if isinstance(value, bool):
+        return False
+    return value in ("", 0, None)
+
+
 def merge(existing: list[HSSchool], incoming: list[HSSchool]) -> list[HSSchool]:
     """Fill blanks from `incoming`; never blank a field that is already set.
 
@@ -102,8 +117,8 @@ def merge(existing: list[HSSchool], incoming: list[HSSchool]) -> list[HSSchool]:
             continue
         for f in fields(HSSchool):
             nv = getattr(new, f.name)
-            if nv in ("", 0, None):
+            if _is_blank(nv):
                 continue
-            if getattr(cur, f.name) in ("", 0, None):
+            if _is_blank(getattr(cur, f.name)):
                 setattr(cur, f.name, nv)
     return list(by_id.values())
