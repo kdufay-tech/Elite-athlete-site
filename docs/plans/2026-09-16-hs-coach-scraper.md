@@ -1017,6 +1017,9 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   `manifest.CrawlUnit` dataclass (`domain, schools, targets, is_shared`),
   `manifest.build(schools, roster) -> list[CrawlUnit]` (largest first),
   `manifest.unresolved(schools) -> list[HSSchool]`,
+  `manifest.norm_person(s: str) -> str`,
+  `manifest.attribute(records, unit) -> dict[str, int]` (sets `school`/`school_id`
+  in place from a name match; returns counts `matched, unmatched`),
   `manifest.save(units, path) -> None`.
 
 **What changed, and why this replaces "domain resolution".** Task 4 was written to
@@ -1116,6 +1119,36 @@ def test_build_never_synthesises_an_address():
     t = units[0].targets[0]
     check("no address anywhere on the target",
           any("@" in str(v) for v in vars(t).values()), False)
+
+
+def test_attribute_resolves_a_district_page_to_the_right_school():
+    # One cobbk12.org staff page serves many schools. Which school a coach
+    # belongs to must come from MATCHING THEIR NAME, not from which url we
+    # happened to fetch.
+    from adapters.base import CoachRecord
+    schools = [_school(1, "cobbk12.org"), _school(2, "cobbk12.org")]
+    schools[0].school, schools[1].school = "Allatoona", "Kennesaw Mountain"
+    roster = [_entry("ga-1", "Ann Reed", ["football"]),
+              _entry("ga-2", "Bo Katz", ["volleyball"])]
+    unit = manifest.build(schools, roster)[0]
+    recs = [CoachRecord(name="Bo Katz", email="b@cobbk12.org", school=""),
+            CoachRecord(name="Ann Reed", email="a@cobbk12.org", school=""),
+            CoachRecord(name="Nobody Here", email="n@cobbk12.org", school="")]
+    counts = manifest.attribute(recs, unit)
+    check("bo went to his own school", recs[0].school, "Kennesaw Mountain")
+    check("ann went to hers", recs[1].school, "Allatoona")
+    check("unlisted person is NOT guessed into a school", recs[2].school, "")
+    check("matched counted", counts["matched"], 2)
+    check("unmatched counted", counts["unmatched"], 1)
+
+
+def test_attribute_matches_names_case_and_punctuation_insensitively():
+    from adapters.base import CoachRecord
+    s = _school(1, "cobbk12.org"); s.school = "Allatoona"
+    unit = manifest.build([s], [_entry("ga-1", "Ann O'Reed-Smith", ["football"])])[0]
+    rec = CoachRecord(name="  ANN OREED SMITH ", email="a@cobbk12.org", school="")
+    manifest.attribute([rec], unit)
+    check("normalised match still lands", rec.school, "Allatoona")
 ```
 
 - [ ] **Step 2: Run it to verify it fails**
@@ -1146,6 +1179,7 @@ from __future__ import annotations
 
 import collections
 import csv
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -1201,6 +1235,56 @@ def build(schools: list[HSSchool], roster: list) -> list[CrawlUnit]:
     return sorted(units.values(), key=lambda u: (-len(u.schools), u.domain))
 
 
+_PERSON_PUNCT = re.compile(r"[^a-z ]+")
+
+
+def norm_person(s: str) -> str:
+    """Fold a name for comparison. Deliberately conservative."""
+    s = _PERSON_PUNCT.sub(" ", (s or "").lower())
+    return " ".join(s.split())
+
+
+def attribute(records: list, unit: CrawlUnit) -> dict[str, int]:
+    """Resolve each record's school by matching its name against the unit.
+
+    A shared district domain serves many schools from ONE staff page, so the
+    url a record came from cannot say which school it belongs to. The
+    association named every coach and said where they work, so the name is the
+    evidence and the url is not.
+
+    An exact normalised match only. A fuzzy match here would attach a coach to
+    a neighbouring school in the same district -- a wrong row that looks
+    completely well-formed and that no downstream filter can catch. A record
+    matching nobody keeps a blank school, is reported, and is exported
+    `unverified`; it is never assigned to the unit's largest school or any
+    other convenient default.
+    """
+    by_name: dict[str, str] = {}
+    schools = {s.school_id: s for s in unit.schools}
+    for t in unit.targets:
+        key = norm_person(getattr(t, "name", ""))
+        school = schools.get(getattr(t, "school_id", ""))
+        if not key or school is None:
+            continue
+        if key in by_name and by_name[key] != school.school_id:
+            by_name[key] = ""          # same name at two schools: ambiguous
+        else:
+            by_name.setdefault(key, school.school_id)
+
+    counts = {"matched": 0, "unmatched": 0}
+    for r in records:
+        sid = by_name.get(norm_person(getattr(r, "name", "")), "")
+        school = schools.get(sid)
+        if school is None:
+            counts["unmatched"] += 1
+            continue
+        r.school = school.school
+        if hasattr(r, "school_id"):
+            r.school_id = school.school_id
+        counts["matched"] += 1
+    return counts
+
+
 def save(units: list[CrawlUnit], path: Path | str) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1215,7 +1299,7 @@ def save(units: list[CrawlUnit], path: Path | str) -> None:
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `cd tools/hs-scraper && python tests_hs.py`
-Expected: all passing, count increased by 4.
+Expected: all passing, count increased by 6.
 
 - [ ] **Step 5: Build the real manifest and record the shape**
 
