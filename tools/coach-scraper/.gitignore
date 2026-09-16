@@ -1,0 +1,7 @@
+data/archive.sqlite
+data/archive.sqlite-wal
+data/archive.sqlite-shm
+out/
+__pycache__/
+*.pyc
+gv_fixture.html

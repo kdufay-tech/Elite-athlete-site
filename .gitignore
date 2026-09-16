@@ -26,3 +26,8 @@ _backups/
 # Staging area for dead folders pending manual deletion, and vite temp files
 _to_delete/
 vite.config.js.timestamp-*.mjs
+
+# Coach scraper: regenerable artifacts, not source.
+# archive.sqlite is a 29MB compressed HTML cache; out/ is generated CSV/SQL.
+tools/coach-scraper/data/
+tools/coach-scraper/out/

@@ -1,0 +1,170 @@
+ok   Adrian                             sidearm
+ok   Akron                              generic
+ok   Appalachian State                  sidearm
+ok   Arcadia                            sidearm
+ok   Augustana (IL)                     sidearm
+ok   Aurora                             sidearm
+ok   Averett University                 sidearm
+ok   Bard College                       sidearm
+ok   Barry                              sidearm
+ok   Barton                             sidearm
+ok   Baruch                             sidearm
+ok   Belmont Abbey                      sidearm
+ok   Benedict College                   sidearm
+ok   Benedictine (IL)                   sidearm
+ok   Bowling Green                      sidearm
+ok   Buffalo State                      sidearm
+ok   Cairn                              sidearm
+ok   Cal State Northridge               generic
+ok   California Lutheran University     sidearm
+ok   Catawba                            sidearm
+ok   Carthage                           sidearm
+ok   Central Michigan                   generic
+ok   Bethany (WV)                       sidearm
+ok   Central State University           sidearm
+ok   Chatham University                 sidearm
+ok   Colby-Sawyer College               sidearm
+ok   Charleston (WV)                    sidearm
+ok   College of Staten Island           sidearm
+ok   Concordia Chicago                  sidearm
+ok   Concordia University Irvine        sidearm
+ok   Daemen                             sidearm
+ok   Dean College                       sidearm
+ok   Dominican (IL)                     sidearm
+ok   Drew                               sidearm
+ok   Eastern Mennonite University       sidearm
+failed Arizona                            HTTP 404
+ok   Eastern                            sidearm
+ok   Edgewood                           sidearm
+failed Arizona State                      HTTP 404
+ok   Elizabethtown                      sidearm
+ok   Emmanuel College (MA)              sidearm
+ok   Elmira                             sidearm
+ok   Fairleigh Dickinson                sidearm
+ok   Fort Valley State University       sidearm
+ok   George Mason                       sidearm
+ok   Geneva College                     sidearm
+ok   Georgia State                      sidearm
+ok   Grove City College                 sidearm
+robots.txt disallows https://governmentjobs.com/staff-directory
+ok   Hiram College                      sidearm
+ok   Hobart                             sidearm
+ok   Hilbert                            sidearm
+ok   Houghton                           sidearm
+ok   Hunter College                     sidearm
+ok   Illinois Wesleyan                  sidearm
+ok   Jacksonville State                 generic
+ok   Jamestown                          sidearm
+ok   John Jay College                   sidearm
+ok   Jessup University                  sidearm
+ok   Kean                               sidearm
+ok   Kennesaw State                     sidearm
+ok   Georgia Southern                   presto
+ok   King (TN)                          sidearm
+ok   Kentucky State University          sidearm
+ok   King's College                     sidearm
+ok   Lakeland University                sidearm
+ok   Lancaster Bible                    sidearm
+failed FIU                                HTTP 404
+ok   Liberty                            generic
+ok   Lincoln Memorial                   sidearm
+ok   Lees-McRae College                 sidearm
+ok   Lindenwood                         sidearm
+ok   LIU                                sidearm
+ok   Long Beach State                   generic
+failed Hartwick                           HTTP 404
+ok   Loras                              sidearm
+ok   Loyola Chicago                     sidearm
+ok   Manhattan                          sidearm
+ok   Maranatha Baptist                  sidearm
+ok   Marian University (WI)             sidearm
+ok   Marymount                          sidearm
+ok   Maryville                          sidearm
+ok   Menlo                              sidearm
+ok   McKendree                          sidearm
+ok   Merrimack                          sidearm
+ok   Messiah University                 sidearm
+ok   Middle Tennessee                   generic
+ok   Milwaukee School of Engineering    sidearm
+ok   Misericordia University            sidearm
+ok   Missouri State                     generic
+ok   Mount Aloysius                     sidearm
+ok   Mount Union                        sidearm
+ok   Morehouse College                  sidearm
+ok   New Mexico State                   sidearm
+ok   New Mexico                         wmt
+ok   NJIT                               sidearm
+ok   Neumann                            sidearm
+ok   North Greenville University        sidearm
+ok   North Texas                        generic
+ok   Northern Illinois                  sidearm
+ok   Ohio                               generic
+ok   Old Dominion                       wmt
+ok   Pepperdine                         generic
+ok   Purdue Fort Wayne                  generic
+failed Louisiana                          HTTP 404
+ok   Randolph-Macon                     sidearm
+ok   Rice                               generic
+ok   Ramapo College                     sidearm
+ok   Roanoke                            sidearm
+ok   Rivier University                  sidearm
+ok   Rockford University                sidearm
+ok   Roosevelt University               sidearm
+ok   Rockhurst                          sidearm
+ok   Rutgers-Newark                     generic
+ok   Sacred Heart                       generic
+ok   Saint Francis (PA)                 sidearm
+ok   Sam Houston                        generic
+ok   San Jose State                     wmt
+ok   Sarah Lawrence College             sidearm
+ok   Saint Vincent College              sidearm
+no-directory Nazareth                           no-directory-content
+ok   Shenandoah                         sidearm
+ok   Simpson                            sidearm
+ok   South Alabama                      sidearm
+ok   South Florida                      generic
+ok   Southern Miss                      generic
+ok   SMU                                generic
+ok   Southern Virginia University       sidearm
+ok   Southwest Baptist                  sidearm
+ok   Stevens Institute of Technology    sidearm
+ok   SUNY New Paltz                     sidearm
+ok   St. Norbert College                sidearm
+failed D'Youville                         SSLError: HTTPSConnectionPool(host='athletics.dyc.edu', port=443): Max retries exceeded with url: /directory (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))
+ok   SUNY Polytechnic Institute         sidearm
+ok   SUNY Purchase                      sidearm
+ok   Texas State                        sidearm
+ok   Thomas More                        sidearm
+ok   Trine                              sidearm
+failed Pratt                              HTTP 404
+ok   SUNY Potsdam                       sidearm
+ok   Tulsa                              generic
+ok   UAB                                generic
+ok   UC San Diego                       sidearm
+ok   UC Irvine                          generic
+ok   UL Monroe                          sidearm
+ok   University of Lynchburg            sidearm
+ok   UMass                              generic
+ok   University of Mount Olive          sidearm
+ok   Utah State                         sidearm
+ok   UTSA                               wmt
+ok   Vanguard University                sidearm
+ok   Vassar                             sidearm
+ok   Wabash                             sidearm
+ok   Western Kentucky                   generic
+ok   Western Michigan                   sidearm
+ok   Widener                            sidearm
+ok   Wilkes University                  sidearm
+ok   Wisconsin Lutheran College         sidearm
+ok   York College                       sidearm
+ok   Wisconsin-Stevens Point            sidearm
+failed Utah                               HTTP 404
+failed UNLV                               HTTP 404
+ok   Yeshiva                            sidearm
+no-directory Wichita State                      no-directory-content
+
+=== crawl states ===
+  ok               152
+  failed           9
+  no-directory     2
+  disallowed       1

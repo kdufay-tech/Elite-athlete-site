@@ -1,0 +1,253 @@
+  OK   Adrian                             https://adrianbulldogs.com
+  --   Air Force                          home:ConnectionError: HTTPSConnectionPool(host='afacademy.af.edu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='afacademy.af.edu', port=443): Failed to resolve 'afacademy.af.edu' ([Errno 11001] getaddrinfo failed)"))
+  OK   Akron                              https://gozips.com
+  --   Alvernia                           no-link-found
+  --   American International             no-link-found
+  OK   Appalachian State                  https://appstatesports.com
+  OK   Arcadia                            https://arcadiaknights.com
+  OK   Arizona State                      https://sundevils.com
+  OK   Arizona                            https://arizonawildcats.com
+  --   Arkansas State                     no-link-found
+  OK   Arkansas                           https://arkansasrazorbacks.com
+  OK   Augustana (IL)                     https://athletics.augustana.edu
+  OK   Aurora                             https://athletics.aurora.edu
+  OK   Averett University                 https://averettcougars.com
+  OK   Baldwin Wallace                    https://bwyellowjackets.com
+  --   Ball State                         home:403
+  OK   Bard College                       https://bardathletics.com
+  OK   Barry                              https://gobarrybucs.com
+  OK   Barton                             https://bartonbulldogs.com
+  OK   Baruch                             https://athletics.baruch.cuny.edu
+  OK   Baylor                             https://baylorbears.com
+  OK   Belmont Abbey                      https://abbeyathletics.com
+  OK   Benedict College                   https://benedicttigers.com
+  OK   Benedictine (IL)                   https://benuredhawks.com
+  OK   Bethany (WV)                       https://bethanybison.com
+  OK   Boise State                        https://broncosports.com
+  OK   Boston College                     https://bceagles.com
+  OK   Bowling Green                      https://bgsuclubsports.com
+  OK   Buffalo State                      https://buffalostateathletics.com
+  --   Buffalo                            no-link-found
+  OK   Cairn                              https://cairnhighlanders.com
+  OK   Cal State Northridge               https://gomatadors.com
+  OK   California Lutheran University     https://clusports.com
+  OK   Carthage                           https://athletics.carthage.edu
+  OK   Catawba                            https://catawbaathletics.com
+  OK   Central Michigan                   https://cmuchippewas.com
+  OK   Central State University           https://maraudersports.com
+  OK   Charleston (WV)                    https://ucgoldeneagles.com
+  OK   Chatham University                 https://gochathamcougars.com
+  OK   Cincinnati                         https://gobearcats.com
+  --   Coastal Carolina                   home:robots-disallowed
+  OK   Colby-Sawyer College               https://colby-sawyerathletics.com
+  OK   College of Staten Island           https://csidolphins.com
+  OK   Concordia Chicago                  https://cucougars.com
+  OK   Concordia University Irvine        https://cuigoldeneagles.com
+  --   Concordia Wisconsin                home:ConnectionError: HTTPSConnectionPool(host='cuw.edu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='cuw.edu', port=443): Failed to resolve 'cuw.edu' ([Errno 11001] getaddrinfo failed)"))
+  OK   D'Youville                         https://athletics.dyc.edu
+  OK   Daemen                             https://daemenwildcats.com
+  OK   Dean College                       https://deanbulldogs.com
+  --   Delaware                           no-link-found
+  OK   Dominican (IL)                     https://dustars.com
+  OK   Drew                               https://drewrangers.com
+  OK   Duke                               https://goduke.com
+  --   East Carolina                      home:403
+  OK   Eastern Mennonite University       https://emuroyals.com
+  --   Eastern Michigan                   home:403
+  OK   Eastern                            https://goeasterneagles.com
+  OK   Edgewood                           https://edgewoodeagles.com
+  --   Edward Waters                      no-link-found
+  OK   Elizabethtown                      https://etownbluejays.com
+  OK   Elmira                             https://athletics.elmira.edu
+  --   Emerson College                    no-link-found
+  OK   Emmanuel College (MA)              https://goecsaints.com
+  --   Emmanuel University (GA)           home:SSLError: HTTPSConnectionPool(host='ec.edu', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))
+  --   Erskine                            home:ConnectionError: HTTPSConnectionPool(host='erskine.edu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='erskine.edu', port=443): Failed to resolve 'erskine.edu' ([Errno 11001] getaddrinfo failed)"))
+  OK   Fairleigh Dickinson                https://fdudevils.com
+  OK   FIU                                https://fiutickets.com
+  --   Florida Atlantic                   no-link-found
+  OK   Fort Valley State University       https://fvsusports.com
+  OK   Fresno State                       https://gobulldogs.com
+  --   Gallaudet                          home:403
+  OK   Geneva College                     https://athletics.geneva.edu
+  OK   George Mason                       https://gomason.com
+  OK   Georgia Southern                   https://gogoldeneagles.com
+  OK   Georgia State                      https://georgiastatesports.com
+  --   Georgia Tech                       home:ConnectionError: HTTPSConnectionPool(host='athletics.gatech.edu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='athletics.gatech.edu', port=443): Failed to resolve 'athletics.gatech.edu' ([Errno 11001] getaddrinfo failed)"))
+  OK   Grove City College                 https://athletics.gcc.edu
+  OK   Hartwick                           https://google.com
+  OK   Hawaii                             https://governmentjobs.com
+  OK   Hilbert                            https://hilberthawks.com
+  OK   Hiram College                      https://hiramterriers.com
+  OK   Hobart                             https://hwsathletics.com
+  --   Hood College                       home:SSLError: HTTPSConnectionPool(host='hood.edu', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'hood.edu'. (_ssl.c:1081)")))
+  OK   Houghton                           https://athletics.houghton.edu
+  OK   Houston                            https://uhcougars.com
+  OK   Hunter College                     https://huntercollegeathletics.com
+  --   Illinois Tech                      home:SSLError: HTTPSConnectionPool(host='illinoistech.edu', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'illinoistech.edu'. (_ssl.c:1081)")))
+  OK   Illinois Wesleyan                  https://iwusports.com
+  --   Illinois                           no-link-found
+  --   Immaculata                         home:SSLError: HTTPSConnectionPool(host='immaculata.edu', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1081)')))
+  --   Indiana                            no-link-found
+  OK   Iowa State                         https://cyclones.com
+  OK   Jacksonville State                 https://jaxstatesports.com
+  OK   James Madison                      https://jmusports.com
+  OK   Jamestown                          https://jimmiepride.com
+  OK   Jessup University                  https://jessupathletics.com
+  OK   John Jay College                   https://johnjayathletics.com
+  OK   Kansas State                       https://sidearmsports.com
+  OK   Kean                               https://keanathletics.com
+  OK   Kennesaw State                     https://ksuowls.com
+  --   Kent State                         home:ConnectionError: HTTPSConnectionPool(host='kent.edu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='kent.edu', port=443): Failed to resolve 'kent.edu' ([Errno 11001] getaddrinfo failed)"))
+  OK   Kentucky State University          https://ksuthorobreds.com
+  OK   King (TN)                          https://kingtornado.com
+  OK   King's College                     https://kingscollegeathletics.com
+  OK   Lakeland University                https://lakelandmuskies.com
+  OK   Lancaster Bible                    https://lbcchargers.com
+  OK   Lees-McRae College                 https://lmcbobcats.com
+  --   Lehman College                     home:ConnectionError: HTTPSConnectionPool(host='lehman.cuny.edu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='lehman.cuny.edu', port=443): Failed to resolve 'lehman.cuny.edu' ([Errno 11001] getaddrinfo failed)"))
+  --   LeMoyne-Owen College               home:ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+  --   Lewis                              home:ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+  OK   Liberty                            https://libertyclubsports.com
+  OK   Lincoln Memorial                   https://lmurailsplitters.com
+  OK   Lindenwood                         https://lindenwoodlions.com
+  OK   LIU                                https://liuathletics.com
+  OK   Long Beach State                   https://longbeachstate.com
+  OK   Loras                              https://duhawks.com
+  OK   Louisiana                          https://athleticnetwork.net
+  OK   Loyola Chicago                     https://loyolaramblers.com
+  OK   Manhattan                          https://gojaspers.com
+  OK   Maranatha Baptist                  https://mbusabercats.com
+  OK   Marian University (WI)             https://sabreathletics.com
+  OK   Marshall                           https://herdzone.com
+  OK   Maryland                           https://umterps.com
+  OK   Marymount                          https://marymountsaints.com
+  OK   Maryville                          https://maryvillesaints.com
+  OK   McKendree                          https://mckbearcats.com
+  OK   Memphis                            https://gotigersgo.com
+  OK   Menlo                              https://menloathletics.com
+  OK   Merrimack                          https://merrimackathletics.com
+  OK   Messiah University                 https://gomessiah.com
+  --   Miami (OH)                         no-link-found
+  OK   Michigan State                     https://msuspartans.com
+  --   Michigan                           home:403
+  OK   Middle Tennessee                   https://goblueraiders.com
+  OK   Milwaukee School of Engineering    https://msoeraiders.com
+  OK   Misericordia University            https://athletics.misericordia.edu
+  OK   Mississippi State                  https://hailstate.com
+  OK   Missouri S&T                       https://google.com
+  OK   Missouri State                     https://missouristatebears.com
+  OK   Morehouse College                  https://morehouseathletics.com
+  OK   Mount Aloysius                     https://mountieathletics.com
+  OK   Mount Union                        https://athletics.mountunion.edu
+  OK   Navy                               https://navysports.com
+  OK   Nazareth                           https://www2.naz.edu
+  --   NC State                           home:202
+  OK   Neumann                            https://neumannathletics.com
+  --   Nevada                             home:SSLError: HTTPSConnectionPool(host='unr.edu', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'unr.edu'. (_ssl.c:1081)")))
+  OK   New Mexico State                   https://nmstatesports.com
+  OK   New Mexico                         https://golobos.com
+  --   Newberry                           no-link-found
+  OK   Nichols College                    https://google.com
+  OK   NJIT                               https://njithighlanders.com
+  OK   North Greenville University        https://nguathletics.com
+  --   North Park                         home:ConnectTimeout: HTTPSConnectionPool(host='northpark.edu', port=443): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<HTTPSConnection(host='northpark.edu', port=443) at 0x1ace438bd90>, 'Connection to northpark.edu timed out. (connect timeout=30)'))
+  OK   North Texas                        https://meangreensports.com
+  OK   Northern Illinois                  https://niuhuskies.com
+  --   Northern Kentucky                  home:SSLError: HTTPSConnectionPool(host='nku.edu', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'nku.edu'. (_ssl.c:1081)")))
+  OK   Northwestern                       https://nusports.com
+  OK   Notre Dame                         https://fightingirish.com
+  OK   Ohio State                         https://recsports.osu.edu
+  OK   Ohio                               https://ohiobobcats.com
+  --   Oklahoma State                     home:403
+  OK   Oklahoma                           https://soonersports.com
+  OK   Old Dominion                       https://odusports.com
+  OK   Ole Miss                           https://olemisssports.com
+  --   Oregon                             no-link-found
+  OK   Pepperdine                         https://pepperdinewaves.com
+  OK   Pittsburgh                         https://pittsburghpanthers.com
+  OK   Pratt                              https://gothamist.com
+  OK   Purdue Fort Wayne                  https://gomastodons.com
+  --   Queens (Charlotte)                 no-link-found
+  --   Quincy                             no-link-found
+  OK   Ramapo College                     https://ramapoathletics.com
+  OK   Randolph-Macon                     https://rmcathletics.com
+  --   Randolph                           home:403
+  OK   Rice                               https://riceowls.com
+  OK   Rivier University                  https://rivierathletics.com
+  OK   Roanoke                            https://roanokemaroons.com
+  --   Roberts Wesleyan                   home:SSLError: HTTPSConnectionPool(host='roberts.edu', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1081)')))
+  OK   Rockford University                https://rockfordregents.com
+  OK   Rockhurst                          https://rockhursthawks.com
+  OK   Roosevelt University               https://rooseveltlakers.com
+  OK   Rutgers-Newark                     https://scarletknights.com
+  OK   Sacred Heart                       https://sacredheartpioneers.com
+  OK   Saint Francis (PA)                 https://sfuathletics.com
+  OK   Saint Vincent College              https://athletics.stvincent.edu
+  OK   Sam Houston                        https://gobearkats.com
+  OK   San Diego State                    https://goaztecs.com
+  OK   San Jose State                     https://sjsuspartans.com
+  OK   Sarah Lawrence College             https://gogryphons.com
+  OK   Shenandoah                         https://suhornets.com
+  OK   Simpson                            https://simpsonredhawks.com
+  OK   SMU                                https://smumustangs.com
+  OK   South Alabama                      https://usajaguars.com
+  --   South Carolina                     no-link-found
+  OK   South Florida                      https://gousfbulls.com
+  OK   Southern Miss                      https://southernmiss.com
+  OK   Southern Virginia University       https://knightathletics.com
+  OK   Southwest Baptist                  https://sbubearcats.com
+  OK   St. Norbert College                https://athletics.snc.edu
+  OK   Stevens Institute of Technology    https://stevensducks.com
+  OK   SUNY New Paltz                     https://nphawks.com
+  OK   SUNY Polytechnic Institute         https://wildcats.sunypoly.edu
+  OK   SUNY Potsdam                       https://potsdambears.com
+  OK   SUNY Purchase                      https://purchasecollegeathletics.com
+  OK   Syracuse                           https://cuse.com
+  OK   Temple                             https://google.com
+  OK   Tennessee                          https://utsports.com
+  OK   Texas State                        https://txstatebobcats.com
+  OK   Thiel College                      https://google.com
+  OK   Thomas More                        https://thomasmoresaints.com
+  --   Toledo                             home:SSLError: HTTPSConnectionPool(host='utoledo.edu', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))
+  OK   Trine                              https://trinethunder.com
+  OK   Troy                               https://troytrojans.com
+  OK   Tulane                             https://tulanegreenwave.com
+  OK   Tulsa                              https://tulsahurricane.com
+  --   Tusculum                           home:ConnectionError: HTTPSConnectionPool(host='tusculum.edu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='tusculum.edu', port=443): Failed to resolve 'tusculum.edu' ([Errno 11001] getaddrinfo failed)"))
+  OK   UAB                                https://uabsports.com
+  OK   UC Irvine                          https://ucirvinesports.com
+  --   UC Merced                          home:ConnectTimeout: HTTPSConnectionPool(host='ucmerced.edu', port=443): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<HTTPSConnection(host='ucmerced.edu', port=443) at 0x1ace4507c50>, 'Connection to ucmerced.edu timed out. (connect timeout=30)'))
+  OK   UC San Diego                       https://ucsdtritons.com
+  --   UC Santa Barbara                   home:ConnectionError: HTTPSConnectionPool(host='athletics.ucsb.edu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='athletics.ucsb.edu', port=443): Failed to resolve 'athletics.ucsb.edu' ([Errno 11001] getaddrinfo failed)"))
+  --   UC Santa Cruz                      home:403
+  --   UConn                              no-link-found
+  OK   UL Monroe                          https://ulmwarhawks.com
+  OK   UMass                              https://umassathletics.com
+  OK   University of Lynchburg            https://lynchburgsports.com
+  OK   University of Mount Olive          https://umotrojans.com
+  OK   UNLV                               https://unlvtickets.com
+  OK   Utah State                         https://utahstateaggies.com
+  OK   Utah                               https://utahtickets.com
+  OK   UTSA                               https://goutsa.com
+  OK   Vanguard University                https://vanguardlions.com
+  OK   Vassar                             https://vassarathletics.com
+  --   Virginia Tech                      no-link-found
+  --   Virginia Wesleyan                  home:ConnectionError: HTTPSConnectionPool(host='edu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='edu', port=443): Failed to resolve 'edu' ([Errno 11001] getaddrinfo failed)"))
+  OK   Wabash                             https://sports.wabash.edu
+  OK   Wake Forest                        https://godeacs.com
+  OK   Washington                         https://gohuskies.com
+  --   West Virginia                      home:403
+  OK   Western Kentucky                   https://wkusports.com
+  OK   Western Michigan                   https://wmubroncos.com
+  OK   Wichita State                      https://sidearmsports.com
+  OK   Widener                            https://widenerpride.com
+  OK   Wilkes University                  https://gowilkesu.com
+  OK   Wisconsin Lutheran College         https://wlcsports.com
+  OK   Wisconsin-Stevens Point            https://athletics.uwsp.edu
+  --   Wisconsin                          no-link-found
+  --   Wyoming                            home:ConnectTimeout: HTTPSConnectionPool(host='uwyo.edu', port=443): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<HTTPSConnection(host='uwyo.edu', port=443) at 0x1ace47b0690>, 'Connection to uwyo.edu timed out. (connect timeout=30)'))
+  OK   Yeshiva                            https://yumacs.com
+  OK   York College                       https://yorkathletics.com
+
+found 199 of 251 (79%)
