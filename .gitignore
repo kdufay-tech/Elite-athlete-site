@@ -10,6 +10,11 @@ dist/
 resend api key.txt
 *.txt
 stripe cupon id.txt
+# The blanket *.txt above is deliberate -- it catches stray secret/scratch text
+# files. But it also swallowed every requirements.txt, so a fresh clone could not
+# rebuild the scraper Python envs. Re-include dependency manifests only.
+# (Must stay AFTER *.txt: within one .gitignore, the last matching pattern wins.)
+!**/requirements*.txt
 Assets/
 .netlify/
 .env.local
