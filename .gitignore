@@ -31,3 +31,7 @@ vite.config.js.timestamp-*.mjs
 # archive.sqlite is a 29MB compressed HTML cache; out/ is generated CSV/SQL.
 tools/coach-scraper/data/
 tools/coach-scraper/out/
+
+# HS scraper: same pattern -- regenerable artifacts, not source.
+tools/hs-scraper/data/
+tools/hs-scraper/out/
