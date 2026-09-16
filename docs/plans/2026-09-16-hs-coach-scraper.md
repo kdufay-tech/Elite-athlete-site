@@ -707,424 +707,573 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 ---
 
-### Task 3: NCES join — resolve public vs private, and the district
+### Task 3: Crawl units — group schools by the domain that actually serves them
 
 **Files:**
-- Create: `tools/hs-scraper/nces.py`
+- Create: `tools/hs-scraper/domains.py`
+- Modify: `tools/hs-scraper/registry_hs.py` (the `mail_domain` property)
 - Modify: `tools/hs-scraper/tests_hs.py`
 
 **Interfaces:**
 - Consumes: `registry_hs.HSSchool`.
 - Produces:
-  `nces.norm_name(s: str) -> str`,
-  `nces.load_directory(path) -> list[dict]`,
-  `nces.join(schools, public_rows, private_rows) -> dict[str, int]` (mutates `schools`
-  in place, returns a counts summary with keys `public, private, unmatched`).
+  `domains.SHARED_CMS: frozenset[str]`,
+  `domains.registrable(url: str) -> str`,
+  `domains.unit_key(url: str) -> str`,
+  `domains.assign(schools) -> dict[str, list[HSSchool]]` (sets `district_domain`
+  in place; returns unit key -> schools, largest first).
 
-**What changed and why.** The original plan had this task supply the mailing
-address, because the association was assumed to give only a name. The GHSA PDF
-gives street, city, ZIP and the school's own website for 410 of 456 schools, so
-address is no longer the point.
+**What changed, and why this replaces the NCES join.** The original Task 3 joined
+NCES/CCD to learn each school's district. Measured against the real data, that is
+the wrong source for this question:
 
-The point is now **`is_public`**, and it is load-bearing: it decides whether a
-school is crawled at its **district** domain (public — 8 domains carried 78 Metro
-Atlanta schools) or at its own (private). Task 1 made `is_public` first-write-wins
-in `merge()` precisely so it would be set once, deliberately, by whoever actually
-knows — and that is NCES, not a guess from the school's name.
+*NCES gives a district NAME. The crawl needs a DOMAIN.* "Bibb County" does not
+tell you where the mail lives; `bibb.k12.ga.us` does. Turning the name into a
+domain would be a guess — the exact class of move that produced the 3.86%-bouncing
+Autobuild remainder.
 
-NCES answers it by construction: the **CCD** directory contains public schools
-only, the **PSS** survey private schools only. Membership *is* the answer, and CCD
-additionally carries `LEA_NAME`, the district — the other thing the crawl needs.
+Meanwhile GHSA already hands us `site_url` for **410 of 456** schools, and
+grouping those by domain reproduces the district structure directly, measured:
 
-Source files (download once; they are static):
-- public CCD: <https://nces.ed.gov/ccd/files.asp> → school directory CSV →
-  `data/ccd_schools.csv`
-- private PSS: <https://nces.ed.gov/surveys/pss/pssdata.asp> →
-  `data/pss_schools.csv`
+| domain | schools | |
+|---|---|---|
+| `dekalb.k12.ga.us` | 19 | 12 different cities, one county system |
+| `cobbk12.org` | 14 | **exactly** the 14 BookYourData found on that domain |
+| `fultonschools.org` | 10 | |
+| 94 `*.k12.ga.us` domains | 159 | Georgia's public-district suffix |
 
-**This task never gates anything.** A school NCES cannot match keeps its GHSA
-data and is reported as unmatched; Task 4 resolves those by other means. A wrong
-address is worse than a blank one, and a wrong `is_public` is worse still.
+**44 domains carry 187 schools; 223 schools hold a domain alone.** That 44 is the
+crawl budget for 187 schools — the cost inversion the ADR predicted, now measured
+rather than assumed.
+
+**The trap this task exists to avoid.** Grouping naively on the registrable domain
+merges schools that share a *CMS host* but nothing else:
+
+    colquitt.high.schooldesk.net     Colquitt County
+    clayton.315.schooldesk.net       Clayton County
+    emanuel2.eci.schooldesk.net      Emanuel County
+    emanuel2.shs.schooldesk.net      Emanuel County
+    mcintosh.mcs.schooldesk.net      McIntosh County
+
+`schooldesk.net` is not a district — it is a vendor. Four unrelated county systems
+would collapse into one unit, and the crawler would fetch one staff directory and
+attribute it to all of them. Note also that the *leftmost* label is the real
+district (`emanuel2` appears twice, correctly). So for a shared-CMS host the unit
+key is the full hostname: each host stands alone. That over-splits Emanuel into
+two units — one wasted fetch — which is the safe direction to err.
+
+**`is_public` is no longer load-bearing.** It stays as description. The crawl
+distinction the ADR framed as public-vs-private is answered better by measurement:
+a unit holding several schools is a district directory, a unit holding one is a
+school site. NCES moves to Task 4, where it belongs — resolving the 46 schools
+that have no `site_url` at all.
 
 - [ ] **Step 1: Write the failing test**
 
 Add to `tests_hs.py` (auto-discovered; no registration):
 
 ```python
-import nces
-
-CCD_ROW = {"NCESSCH": "1302640", "SCH_NAME": "Marietta High School",
-           "LCITY": "Marietta", "LSTATE": "GA", "LEA_NAME": "Marietta City",
-           "TOTAL": "2600"}
-PSS_ROW = {"PPIN": "A0900123", "PINST": "Wesleyan School",
-           "PCITY": "Peachtree Corners", "PSTABB": "GA", "NUMSTUDS": "1200"}
+import domains
 
 
-def test_norm_name_strips_school_noise():
-    check("drops High School", nces.norm_name("Marietta High School"), "marietta")
-    check("drops spaced H S", nces.norm_name("Marietta H S"), "marietta")
-    check("drops punctuation", nces.norm_name("St. Pius X Catholic"), "st pius x catholic")
-    check("collapses spaces", nces.norm_name("  North   Cobb  "), "north cobb")
+def test_registrable_handles_the_k12_public_suffix():
+    check("k12.ga.us keeps the district label",
+          domains.registrable("https://www.dekalb.k12.ga.us/staff"), "dekalb.k12.ga.us")
+    check("ordinary domain", domains.registrable("http://cobbk12.org/x"), "cobbk12.org")
+    check("strips www", domains.registrable("https://www.hallco.org"), "hallco.org")
+    check("blank url", domains.registrable(""), "")
 
 
-def test_join_marks_ccd_schools_public_with_district():
-    s = registry_hs.HSSchool(school_id="ga-marietta", school="Marietta",
-                             state="GA", city="Marietta")
-    counts = nces.join([s], [CCD_ROW], [])
-    check("public", s.is_public, True)
-    check("district from LEA_NAME", s.district, "Marietta City")
-    check("nces id", s.nces_id, "1302640")
-    check("enrollment", s.enrollment, 2600)
-    check("counted public", counts["public"], 1)
+def test_unit_key_keeps_shared_cms_hosts_apart():
+    # Four unrelated county systems live on schooldesk.net. They are not one unit.
+    a = domains.unit_key("http://colquitt.high.schooldesk.net")
+    b = domains.unit_key("http://clayton.315.schooldesk.net")
+    check("colquitt keeps its own host", a, "colquitt.high.schooldesk.net")
+    check("clayton does not join it", b, "clayton.315.schooldesk.net")
+    check("they are different units", a == b, False)
 
 
-def test_join_marks_pss_schools_private_and_leaves_district_blank():
-    s = registry_hs.HSSchool(school_id="ga-wesleyan", school="Wesleyan",
-                             state="GA", city="Peachtree Corners")
-    counts = nces.join([s], [], [PSS_ROW])
-    check("private", s.is_public, False)
-    check("private has no district", s.district, "")
-    check("counted private", counts["private"], 1)
+def test_unit_key_groups_a_real_district():
+    check("same district, different schools",
+          domains.unit_key("https://www.dekalb.k12.ga.us/a")
+          == domains.unit_key("http://dekalb.k12.ga.us/b"), True)
 
 
-def test_join_reports_unmatched_and_changes_nothing():
-    s = registry_hs.HSSchool(school_id="ga-nowhere", school="Nowhere",
-                             state="GA", city="Nowhere")
-    counts = nces.join([s], [CCD_ROW], [PSS_ROW])
-    check("unmatched counted", counts["unmatched"], 1)
-    check("unmatched keeps default is_public", s.is_public, True)
-    check("unmatched gains no district", s.district, "")
-    check("unmatched gains no nces id", s.nces_id, "")
+def test_assign_sets_district_domain_and_orders_by_size():
+    mk = lambda i, u: registry_hs.HSSchool(school_id=f"ga-{i}", school=str(i),
+                                           state="GA", site_url=u)
+    schools = [mk(1, "http://cobbk12.org/a"), mk(2, "http://cobbk12.org/b"),
+               mk(3, "http://wesleyan.org"), mk(4, "")]
+    units = domains.assign(schools)
+    check("largest unit first", list(units)[0], "cobbk12.org")
+    check("shared unit has both", len(units["cobbk12.org"]), 2)
+    check("district_domain set", schools[0].district_domain, "cobbk12.org")
+    check("solo school gets its own", schools[2].district_domain, "wesleyan.org")
+    check("no site_url yields no unit", schools[3].district_domain, "")
+    check("unresolved school is in no unit",
+          any(schools[3] in v for v in units.values()), False)
 
 
-def test_join_prefers_public_when_a_name_collides():
-    # "Central" exists in both lists in different cities. City is in the key, so
-    # only the row from the SAME city may match.
-    s = registry_hs.HSSchool(school_id="ga-central", school="Central",
-                             state="GA", city="Macon")
-    ccd = dict(CCD_ROW, SCH_NAME="Central High School", LCITY="Macon",
-               LEA_NAME="Bibb County", NCESSCH="1300111")
-    pss = dict(PSS_ROW, PINST="Central Academy", PCITY="Carrollton")
-    nces.join([s], [ccd], [pss])
-    check("matched the same-city public row", s.district, "Bibb County")
-    check("did not match the other city's private row", s.is_public, True)
+def test_mail_domain_no_longer_branches_on_is_public():
+    # A public school whose district_domain was never resolved must NOT report a
+    # blank mail domain while it has a site_url of its own.
+    s = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
+                             is_public=True, site_url="https://bowdon.org")
+    check("falls back to its own host", s.mail_domain, "bowdon.org")
 ```
 
 - [ ] **Step 2: Run it to verify it fails**
 
 Run: `cd tools/hs-scraper && python tests_hs.py`
-Expected: FAIL — `ModuleNotFoundError: No module named 'nces'`
+Expected: FAIL — `ModuleNotFoundError: No module named 'domains'`
 
-- [ ] **Step 3: Write `nces.py`**
+- [ ] **Step 3: Write `domains.py`**
 
 ```python
-"""NCES join: the authoritative answer to public-vs-private, plus the district.
+"""Group schools by the domain that actually serves their mail.
 
-The association says which schools field these sports. NCES says what kind of
-school each one is -- and that decides the entire crawl strategy, because a
-public school's coaches sit on a DISTRICT mail domain shared with a dozen other
-schools, while a private school has its own.
+The crawl unit is the domain, not the school. Georgia proves why: 44 domains
+carry 187 of 410 schools, and one of them (dekalb.k12.ga.us) carries 19 across
+12 cities. Fetch a district's staff directory once and you have resolved a
+dozen schools.
 
-Membership is the answer: the Common Core of Data covers public schools only,
-the Private School Survey covers private only. No heuristic on the school's
-name can beat that, and a heuristic that gets it wrong sends the crawler to a
-domain that does not hold the addresses.
-
-An unmatched school is REPORTED, never guessed at. It keeps its GHSA data and
-its default is_public, and Task 4 resolves it another way.
+This is measured, never inferred. The school's own published site_url decides
+its unit -- no step anywhere turns a district NAME into a district DOMAIN,
+because that guess is the same move that produced this project's worst-
+bouncing cohort.
 """
 
 from __future__ import annotations
 
-import csv
+import collections
 import re
-from pathlib import Path
 
 import _shared  # noqa: F401
 from registry_hs import HSSchool
 
-# "Marietta High School", "Marietta H S" and "Marietta HS" are one school.
-_NOISE = re.compile(
-    r"\b(high\s+school|high|h\s*\.?\s*s\s*\.?|senior|secondary|academy\s+school)\b", re.I
-)
-_PUNCT = re.compile(r"[^a-z0-9 ]+")
-_SPACE = re.compile(r"\s+")
+# Hosts that serve many unrelated districts. A school on one of these shares a
+# VENDOR, not an organisation -- four separate Georgia county systems sit on
+# schooldesk.net. Treating them as one unit would attribute one staff directory
+# to all of them, so each keeps its own full hostname and is crawled alone.
+SHARED_CMS = frozenset({
+    "schooldesk.net", "schoolinsites.com", "edlio.net", "edlioschool.com",
+    "finalsite.com", "sharpschool.com", "sharpschool.net", "schoolwires.net",
+    "apptegy.io", "thrillshare.com", "squarespace.com", "wixsite.com",
+    "weebly.com", "godaddysites.com", "wordpress.com", "blogspot.com",
+})
+
+# Multi-label public suffixes. "dekalb.k12.ga.us" is one organisation; taking
+# the last two labels would collapse all 94 Georgia district domains into
+# "ga.us" -- a single fake unit holding 159 schools.
+_MULTI = ("co.us", "ga.us", "sch.uk")
+_K12 = re.compile(r"\.k12\.[a-z]{2}\.us$")
 
 
-def norm_name(s: str) -> str:
-    s = (s or "").lower()
-    s = _NOISE.sub(" ", s)
-    s = _PUNCT.sub(" ", s)
-    return _SPACE.sub(" ", s).strip()
+def _host(url: str) -> str:
+    h = re.sub(r"^https?://", "", (url or "").strip()).split("/")[0].lower()
+    return re.sub(r"^www\.", "", h).strip().rstrip(".")
 
 
-def load_directory(path: Path | str) -> list[dict]:
-    """Read an NCES CSV. utf-8-sig because their exports carry a BOM."""
-    with Path(path).open(newline="", encoding="utf-8-sig", errors="replace") as fh:
-        return list(csv.DictReader(fh))
+def registrable(url: str) -> str:
+    """The organisation's domain, respecting k12.XX.us as a public suffix."""
+    h = _host(url)
+    if not h:
+        return ""
+    if _K12.search(h):
+        # a.b.dekalb.k12.ga.us -> dekalb.k12.ga.us
+        head, _, tail = h.rpartition(".k12.")
+        return f"{head.split('.')[-1]}.k12.{tail}" if head else h
+    for suf in _MULTI:
+        if h.endswith("." + suf):
+            return f"{h[: -(len(suf) + 1)].split('.')[-1]}.{suf}"
+    parts = h.split(".")
+    return ".".join(parts[-2:]) if len(parts) > 1 else h
 
 
-def _key(state: str, city: str, name: str) -> tuple[str, str, str]:
-    return ((state or "").strip().upper(), (city or "").strip().lower(), norm_name(name))
+def unit_key(url: str) -> str:
+    """The crawl unit. Shared-CMS hosts stay whole; everything else collapses.
 
-
-def join(schools: list[HSSchool],
-         public_rows: list[dict],
-         private_rows: list[dict]) -> dict[str, int]:
-    """Set is_public/district/nces_id/enrollment in place. Returns counts.
-
-    Keyed on (state, city, normalized name). City is in the key because
-    high-school names repeat relentlessly within a state -- Georgia has several
-    "Central" and "Washington" high schools -- and matching on name alone would
-    attach one school's district to another, sending its crawl to the wrong
-    domain.
-
-    Public is checked first: a school appearing in both lists is a data error in
-    one of them, and CCD is the larger and better maintained.
+    Over-splitting costs one extra fetch. Under-splitting attributes one
+    school's staff directory to another school entirely, which is a data
+    error that no later filter can detect.
     """
-    pub = {}
-    for row in public_rows:
-        pub.setdefault(_key(row.get("LSTATE", ""), row.get("LCITY", ""),
-                            row.get("SCH_NAME", "")), row)
-    priv = {}
-    for row in private_rows:
-        priv.setdefault(_key(row.get("PSTABB", ""), row.get("PCITY", ""),
-                             row.get("PINST", "")), row)
+    h = _host(url)
+    if not h:
+        return ""
+    reg = registrable(url)
+    return h if reg in SHARED_CMS else reg
 
-    counts = {"public": 0, "private": 0, "unmatched": 0}
+
+def assign(schools: list[HSSchool]) -> "dict[str, list[HSSchool]]":
+    """Set district_domain in place; return units, largest first.
+
+    A school with no site_url gets no unit and keeps a blank district_domain.
+    It is unresolved, and Task 4 resolves it -- it is never guessed at.
+    """
+    units: dict[str, list[HSSchool]] = collections.defaultdict(list)
     for s in schools:
-        k = _key(s.state, s.city, s.school)
-        row = pub.get(k)
-        if row is not None:
-            s.is_public = True
-            s.district = (row.get("LEA_NAME") or "").strip()
-            s.nces_id = (row.get("NCESSCH") or "").strip()
-            s.enrollment = _int(row.get("TOTAL"))
-            counts["public"] += 1
+        key = unit_key(s.site_url)
+        if not key:
             continue
-        row = priv.get(k)
-        if row is not None:
-            s.is_public = False
-            s.district = ""                       # a private school is its own
-            s.nces_id = (row.get("PPIN") or "").strip()
-            s.enrollment = _int(row.get("NUMSTUDS"))
-            counts["private"] += 1
-            continue
-        counts["unmatched"] += 1
-    return counts
-
-
-def _int(raw) -> int:
-    try:
-        return int(float(raw or 0))
-    except (TypeError, ValueError):
-        return 0
+        s.district_domain = key
+        units[key].append(s)
+    return dict(sorted(units.items(), key=lambda kv: (-len(kv[1]), kv[0])))
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [ ] **Step 4: Fix `mail_domain` in `registry_hs.py`**
+
+The property currently reads:
+
+```python
+    @property
+    def mail_domain(self) -> str:
+        """The domain this school's coach addresses are expected to be on."""
+        return self.district_domain if self.is_public else _host(self.site_url)
+```
+
+Replace its body with:
+
+```python
+    @property
+    def mail_domain(self) -> str:
+        """The domain this school's coach addresses are expected to be on.
+
+        Measured, not inferred: district_domain is assigned from the school's
+        own published site in Task 3, so a public school and a private one are
+        resolved the same way. is_public no longer steers this -- a public
+        school whose district was never resolved must still fall back to its
+        own host rather than report nothing.
+        """
+        return self.district_domain or _host(self.site_url)
+```
+
+- [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `cd tools/hs-scraper && python tests_hs.py`
 Expected: all passing, count increased by 5.
 
-- [ ] **Step 5: Run the real join and record the rates**
-
-Download both CSVs to `data/` first, then:
+- [ ] **Step 6: Assign the real units and record the shape**
 
 ```bash
 cd tools/hs-scraper && python -c "
-import _shared, registry_hs, nces
+import _shared, registry_hs, domains
 schools = registry_hs.load('data/ga_schools.csv')
-ccd = [r for r in nces.load_directory('data/ccd_schools.csv') if r.get('LSTATE')=='GA']
-pss = [r for r in nces.load_directory('data/pss_schools.csv') if r.get('PSTABB')=='GA']
-counts = nces.join(schools, ccd, pss)
+units = domains.assign(schools)
 registry_hs.save(schools, 'data/ga_schools.csv')
-print(counts, ' of', len(schools))
-print('districts found:', len({s.district for s in schools if s.district}))
-for s in [x for x in schools if not x.nces_id][:10]:
-    print('  UNMATCHED', s.school, '|', s.city or '(no city)')
+multi = {k: v for k, v in units.items() if len(v) > 1}
+print('schools:', len(schools), ' resolved:', sum(1 for s in schools if s.district_domain))
+print('units:', len(units), ' shared:', len(multi), 'carrying',
+      sum(len(v) for v in multi.values()), 'schools')
+print('unresolved (no site_url):', sum(1 for s in schools if not s.district_domain))
+for k, v in list(units.items())[:12]:
+    print(f'  {len(v):3}  {k}')
+cms = [k for k in units if any(k.endswith(c) for c in domains.SHARED_CMS)]
+print('shared-CMS units kept separate:', len(cms))
 "
 ```
 
-Expected: most of the 456 matched, and the public ones collapsing into far fewer
-districts than schools — that ratio is the whole reason the crawl is cheap. The
-10 schools the GHSA parser found without a city cannot match on a city key; they
-will appear in the unmatched list, which is correct behaviour, not a bug to fix
-by loosening the key.
+Expected: ~267 units for 410 resolved schools, ~44 of them shared and carrying
+~187 schools, 46 unresolved. `dekalb.k12.ga.us` leads with 19. If any unit
+exceeds ~25 schools, check it is a real county system and not a vendor host that
+belongs in `SHARED_CMS`.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add tools/hs-scraper/nces.py tools/hs-scraper/tests_hs.py
-git commit -m "feat(hs-scraper): NCES join sets public-vs-private and the district
+git add tools/hs-scraper/domains.py tools/hs-scraper/registry_hs.py tools/hs-scraper/tests_hs.py
+git commit -m "feat(hs-scraper): crawl units measured from the domains schools publish
 
-GHSA already gives street, city and ZIP, so this is no longer about the address.
-It is about is_public, which decides whether a school is crawled at its DISTRICT
-domain or its own - and NCES answers that by construction, because CCD is public
-schools only and PSS is private only. Membership is the answer; no heuristic on a
-school's name beats it, and a wrong answer sends the crawler to a domain that
-does not hold the addresses.
+Replaces the planned NCES district join. NCES gives a district NAME; the crawl
+needs a DOMAIN, and turning one into the other is a guess - the same move that
+produced this project's worst-bouncing cohort. GHSA already publishes site_url
+for 410 of 456 schools, so the district structure can be measured instead.
 
-Keyed on (state, city, normalized name). City is in the key because high-school
-names repeat relentlessly within a state - Georgia has several Central and
-Washington highs - and matching on name alone attaches one school's district to
-another.
+It reproduces exactly: 44 domains carry 187 schools, dekalb.k12.ga.us leads with
+19 across 12 cities, and cobbk12.org shows 14 - the same 14 BookYourData found
+on that domain independently.
 
-Unmatched schools keep their GHSA data and are reported, never guessed at. This
-task gates nothing.
+Two traps handled. k12.ga.us is a public suffix, so naive last-two-labels would
+collapse 94 Georgia district domains into one fake unit of 159 schools. And
+schooldesk.net is a VENDOR carrying four unrelated county systems, so shared-CMS
+hosts keep their full hostname and are crawled alone - over-splitting costs one
+fetch, under-splitting attributes one school's directory to another.
+
+is_public stops steering mail_domain; it is description now, not routing.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 4: Domain resolution — district for public, school for private
+### Task 4: The crawl manifest — named coaches, grouped by the domain that serves them
 
 **Files:**
-- Create: `tools/hs-scraper/resolve_hs.py`
+- Create: `tools/hs-scraper/manifest.py`
 - Modify: `tools/hs-scraper/tests_hs.py`
 
 **Interfaces:**
-- Consumes: `registry_hs.HSSchool`, `net.Fetcher`, `config_hs.STAFF_PATHS`.
-- Produces: `resolve_hs.district_groups(schools) -> dict[str, list[HSSchool]]`,
-  `resolve_hs.apply_domain(schools, district, domain) -> int`.
+- Consumes: `registry_hs.HSSchool`, `domains.assign`, `associations.ghsa.RosterEntry`.
+- Produces:
+  `manifest.CrawlUnit` dataclass (`domain, schools, targets, is_shared`),
+  `manifest.build(schools, roster) -> list[CrawlUnit]` (largest first),
+  `manifest.unresolved(schools) -> list[HSSchool]`,
+  `manifest.save(units, path) -> None`.
+
+**What changed, and why this replaces "domain resolution".** Task 4 was written to
+resolve each school to a district or school domain, with NCES as the source. Two
+measurements since have removed almost all of that work:
+
+- Task 3 now assigns the domain directly from what each school publishes.
+- Probing the GHSA PDF found a school-level email on 416 of 456 blocks, a website
+  on 410, and **at least one of the two on 449 — 98.5%.**
+
+**Seven schools have neither**: DALTON ACADEMY, DECATUR, DISCOVERY,
+GEORGIA-CUMBERLAND ACADEMY, SOUTH EFFINGHAM, UTOPIAN ACADEMY, WILSON ACADEMY.
+Seven does not justify a national NCES download, a fuzzy name join, or a network
+probe. They are **recorded as unresolved and skipped**, and if they matter later a
+human can paste seven domains into the registry by hand in two minutes.
+
+**Name-matching is banned here, and this is why.** Resolving an unresolved school
+by matching its name against known district labels was probed and produced 11
+matches of which at least 5 were wrong — `CENTRAL, CARROLL` → `centralgwinnett.net`
+(Carroll County matched to Gwinnett on the word "central"), `RANDOLPH-CLAY` →
+`clayton.k12.ga.us`, `SAVANNAH EARLY COLLEGE` → `early.k12.ga.us` ("Early" is a
+county; here it is a school type), and `SOUTHWEST ATLANTA CHRISTIAN`, a private
+school, → `atlantapublicschools.us`. Every one of those would send a crawl to a
+domain holding other people's addresses. **No code in this task may infer a domain
+from a name.**
+
+**What this task is actually for.** Task 2 gave us something the ADR did not
+anticipate: **8,282 roster rows naming a real coach and their sport.** Combined
+with Task 3's domains, the crawl's job stops being "find whoever is on this page"
+and becomes "find the address for *this named person* on *this domain*". The
+manifest is that work list, and it is what makes the later scoring meaningful —
+a hit is a named person matched, not a stray address scraped.
+
+**The names in this manifest are for MATCHING, never for CONSTRUCTING.** Nothing
+downstream may combine a name with a domain to synthesise an address. The manifest
+holds names so a crawler can *recognise* them on a page it fetched.
 
 - [ ] **Step 1: Write the failing test**
 
-Add to `tests_hs.py`:
+Add to `tests_hs.py` (auto-discovered; no registration):
 
 ```python
-import resolve_hs
+import manifest
+import associations.ghsa as _ghsa
 
 
-def test_district_groups_collapse_public_schools():
-    schools = [
-        registry_hs.HSSchool(school_id="ga-a", school="A", state="GA",
-                             district="Gwinnett County", is_public=True),
-        registry_hs.HSSchool(school_id="ga-b", school="B", state="GA",
-                             district="Gwinnett County", is_public=True),
-        registry_hs.HSSchool(school_id="ga-c", school="C", state="GA",
-                             district="Cobb County", is_public=True),
-        registry_hs.HSSchool(school_id="ga-p", school="P", state="GA",
-                             district="Gwinnett County", is_public=False),
-    ]
-    groups = resolve_hs.district_groups(schools)
-    check("two districts grouped", sorted(groups), ["Cobb County", "Gwinnett County"])
-    check("gwinnett holds two", len(groups["Gwinnett County"]), 2)
-    check("private excluded from district grouping",
-          [s.school_id for s in groups["Gwinnett County"]], ["ga-a", "ga-b"])
+def _school(i, dom, site=""):
+    return registry_hs.HSSchool(school_id=f"ga-{i}", school=str(i), state="GA",
+                                district_domain=dom, site_url=site)
 
 
-def test_apply_domain_sets_every_school_in_district():
-    schools = [
-        registry_hs.HSSchool(school_id="ga-a", school="A", state="GA",
-                             district="Gwinnett County", is_public=True),
-        registry_hs.HSSchool(school_id="ga-b", school="B", state="GA",
-                             district="Gwinnett County", is_public=True),
-    ]
-    n = resolve_hs.apply_domain(schools, "Gwinnett County", "gcpsk12.org")
-    check("applied to both", n, 2)
-    check("mail_domain now resolves", schools[0].mail_domain, "gcpsk12.org")
+def _entry(sid, name, sports):
+    return _ghsa.RosterEntry(school_id=sid, name=name, codes=[], sports=sports)
+
+
+def test_build_groups_targets_under_their_school_domain():
+    schools = [_school(1, "cobbk12.org"), _school(2, "cobbk12.org"),
+               _school(3, "wesleyan.org")]
+    roster = [_entry("ga-1", "Ann Reed", ["football"]),
+              _entry("ga-2", "Bo Katz", ["volleyball"]),
+              _entry("ga-3", "Cy Doe", ["soccer"])]
+    units = manifest.build(schools, roster)
+    check("two units", len(units), 2)
+    check("largest first", units[0].domain, "cobbk12.org")
+    check("shared unit holds both schools", len(units[0].schools), 2)
+    check("and both their coaches", len(units[0].targets), 2)
+    check("shared flag set", units[0].is_shared, True)
+    check("solo unit not flagged shared", units[1].is_shared, False)
+
+
+def test_build_drops_roster_rows_with_no_target_sport():
+    schools = [_school(1, "cobbk12.org")]
+    roster = [_entry("ga-1", "Ann Reed", ["football"]),
+              _entry("ga-1", "Pat Null", [])]          # principal, AD-only, band
+    units = manifest.build(schools, roster)
+    check("only the coach is a target", [t.name for t in units[0].targets],
+          ["Ann Reed"])
+
+
+def test_build_skips_schools_with_no_domain():
+    schools = [_school(1, ""), _school(2, "cobbk12.org")]
+    roster = [_entry("ga-1", "Ghost Coach", ["football"]),
+              _entry("ga-2", "Real Coach", ["football"])]
+    units = manifest.build(schools, roster)
+    check("one unit only", len(units), 1)
+    check("the unresolved school's coach is not smuggled in",
+          [t.name for t in units[0].targets], ["Real Coach"])
+    check("and it is reported unresolved",
+          [s.school_id for s in manifest.unresolved(schools)], ["ga-1"])
+
+
+def test_build_never_synthesises_an_address():
+    # The manifest carries names so a crawler can RECOGNISE them. If any field
+    # of a target ever contains an "@", something has constructed an address.
+    schools = [_school(1, "cobbk12.org")]
+    units = manifest.build(schools, [_entry("ga-1", "Ann Reed", ["football"])])
+    t = units[0].targets[0]
+    check("no address anywhere on the target",
+          any("@" in str(v) for v in vars(t).values()), False)
 ```
 
 - [ ] **Step 2: Run it to verify it fails**
 
 Run: `cd tools/hs-scraper && python tests_hs.py`
-Expected: FAIL — `ModuleNotFoundError: No module named 'resolve_hs'`
+Expected: FAIL — `ModuleNotFoundError: No module named 'manifest'`
 
-- [ ] **Step 3: Write `resolve_hs.py`**
+- [ ] **Step 3: Write `manifest.py`**
 
 ```python
-"""Resolve each school to the domain its coaches' mail actually lives on.
+"""The crawl work list: which named coaches to look for, on which domain.
 
-This is the module that encodes the crawl's central finding. In the Metro
-Atlanta ground-truth set, 1,217 coaches across 106 schools sat on just 36
-domains: gcpsk12.org carried 18 schools, cobbk12.org 14, dekalbschoolsga.org 14,
-fultonschools.org 14. Resolving and crawling per school would fetch the same
-district directory eighteen times and pay for it eighteen times.
+The association directory named 8,282 coaches and their sports. Task 3 resolved
+each school to the domain that actually serves its mail. Putting those together
+changes what the crawler is doing: not "scrape whoever appears on this page" but
+"find the address for THIS person on THIS domain".
 
-So public schools resolve ONCE per district and the answer is applied to every
-school in it. Private schools resolve individually -- one domain each, which is
-structurally the college case.
+That matters for scoring. A hit is a named coach matched against a page, which
+is evidence. An address scraped off a page with no name attached is not.
+
+THE NAMES HERE ARE FOR MATCHING, NEVER FOR CONSTRUCTING. Nothing in this module
+or downstream of it may combine a name with a domain to produce an address.
+Formula generation is the defect that produced this project's worst-bouncing
+cohort, and there is deliberately no code path for it.
 """
 
 from __future__ import annotations
 
-from collections import defaultdict
+import collections
+import csv
+from dataclasses import dataclass, field
+from pathlib import Path
 
 import _shared  # noqa: F401
-from registry_hs import HSSchool, _host
+from registry_hs import HSSchool
 
 
-def district_groups(schools: list[HSSchool]) -> dict[str, list[HSSchool]]:
-    """Public schools grouped by district. Private schools are not grouped."""
-    groups: dict[str, list[HSSchool]] = defaultdict(list)
-    for s in schools:
-        if s.is_public and s.district:
-            groups[s.district].append(s)
-    return dict(groups)
+@dataclass
+class CrawlUnit:
+    """One domain, the schools it serves, and the coaches to find there."""
 
+    domain: str = ""
+    schools: list = field(default_factory=list)
+    targets: list = field(default_factory=list)
 
-def apply_domain(schools: list[HSSchool], district: str, domain: str) -> int:
-    """Set district_domain on every public school in `district`. Returns count."""
-    n = 0
-    for s in schools:
-        if s.is_public and s.district == district:
-            s.district_domain = domain
-            n += 1
-    return n
+    @property
+    def is_shared(self) -> bool:
+        """More than one school here means a district staff directory.
+
+        Measured, not assumed: one fetch of a shared domain can resolve a dozen
+        schools, which is the whole reason the crawl is affordable.
+        """
+        return len(self.schools) > 1
 
 
 def unresolved(schools: list[HSSchool]) -> list[HSSchool]:
-    """Schools with no usable mail domain. Reported, never guessed at."""
+    """Schools with no domain at all. Reported, never guessed at."""
     return [s for s in schools if not s.mail_domain]
 
 
-def set_site(school: HSSchool, url: str) -> None:
-    """Record a private school's own site, from which mail_domain derives."""
-    school.site_url = url
-    if not school.is_public:
-        school.district_domain = ""
+def build(schools: list[HSSchool], roster: list) -> list[CrawlUnit]:
+    """Group schools and their sport-carrying coaches by mail domain.
 
+    Ordered largest first so a run that is interrupted has already done the
+    units that resolve the most schools.
+    """
+    by_id = {s.school_id: s for s in schools}
+    units: dict[str, CrawlUnit] = {}
+    for s in schools:
+        dom = s.mail_domain
+        if not dom:
+            continue
+        units.setdefault(dom, CrawlUnit(domain=dom)).schools.append(s)
+
+    for entry in roster:
+        if not getattr(entry, "sports", None):
+            continue                      # principals, ADs, band, baseball
+        school = by_id.get(entry.school_id)
+        if school is None or not school.mail_domain:
+            continue                      # unresolved school: no unit to join
+        units[school.mail_domain].targets.append(entry)
+
+    return sorted(units.values(), key=lambda u: (-len(u.schools), u.domain))
+
+
+def save(units: list[CrawlUnit], path: Path | str) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(["domain", "is_shared", "schools", "targets", "school_ids"])
+        for u in units:
+            w.writerow([u.domain, u.is_shared, len(u.schools), len(u.targets),
+                        "|".join(s.school_id for s in u.schools)])
 ```
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `cd tools/hs-scraper && python tests_hs.py`
-Expected: `all passed`
+Expected: all passing, count increased by 4.
 
-- [ ] **Step 5: Report the shape of the Georgia crawl**
+- [ ] **Step 5: Build the real manifest and record the shape**
 
 ```bash
 cd tools/hs-scraper && python -c "
-import _shared, registry_hs, resolve_hs
-s = registry_hs.load('data/ga_schools.csv')
-g = resolve_hs.district_groups(s)
-pub = sum(len(v) for v in g.values()); priv = sum(1 for x in s if not x.is_public)
-print(f'{len(s)} schools: {pub} public in {len(g)} districts, {priv} private')
-print('crawl targets:', len(g)+priv, 'vs', len(s), 'if done per school')
-for d,v in sorted(g.items(), key=lambda kv:-len(kv[1]))[:8]:
-    print(f'  {len(v):3d}  {d}')
+import csv
+import _shared, registry_hs, manifest
+import associations.ghsa as ghsa
+schools = registry_hs.load('data/ga_schools.csv')
+roster = [ghsa.RosterEntry(school_id=r['school_id'], name=r['name'],
+                           codes=r['codes'].split('|') if r['codes'] else [],
+                           sports=r['sports'].split('|') if r['sports'] else [],
+                           is_head=r['is_head'] == 'True')
+          for r in csv.DictReader(open('data/ga_roster.csv', encoding='utf-8'))]
+units = manifest.build(schools, roster)
+manifest.save(units, 'data/ga_manifest.csv')
+shared = [u for u in units if u.is_shared]
+print('units:', len(units), ' shared:', len(shared))
+print('schools covered:', sum(len(u.schools) for u in units),
+      ' unresolved:', len(manifest.unresolved(schools)))
+print('named coaches to find:', sum(len(u.targets) for u in units))
+print()
+for u in units[:12]:
+    print(f'  {len(u.schools):3} schools  {len(u.targets):5} coaches  {u.domain}')
 "
 ```
 
-Expected: crawl targets materially fewer than school count. This number is the
-justification for the whole module; record it in the commit.
+Expected: roughly 250-280 units covering 449 schools, ~7 unresolved, and a few
+thousand named coaches. The largest units should be recognisable county systems.
+**If any single unit holds more than ~25 schools, inspect it** — it is either a
+genuinely large county system or a vendor host that belongs in
+`domains.SHARED_CMS`, and the difference matters: a vendor host would attribute
+one district's directory to several unrelated districts.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add tools/hs-scraper/resolve_hs.py tools/hs-scraper/tests_hs.py
-git commit -m "feat(hs-scraper): resolve public schools to their district domain
+git add tools/hs-scraper/manifest.py tools/hs-scraper/tests_hs.py
+git commit -m "feat(hs-scraper): crawl manifest of named coaches per mail domain
 
-The crawl's central finding, in code. Metro Atlanta ground truth: 1,217 coaches
-across 106 schools sat on 36 domains, with gcpsk12.org alone carrying 18
-schools. Resolving per school would fetch the same district directory eighteen
-times.
+Replaces the planned NCES domain-resolution task, which measurement made almost
+entirely unnecessary: the GHSA directory carries an email for 416 of 456 schools
+and a website for 410, and at least one of the two for 449 - 98.5%. Seven schools
+have neither; they are recorded unresolved and skipped rather than guessed at.
 
-Public schools resolve once per district and the answer applies to all of them.
-Private schools resolve individually - one domain each, structurally the
-college case. Schools with no usable domain are reported by unresolved(), never
-guessed at.
+Name-matching to resolve those seven was probed and rejected. It produced 11
+matches of which at least 5 were wrong, including CENTRAL, CARROLL -> Gwinnett's
+domain and a private school routed to Atlanta Public Schools. No code here infers
+a domain from a name.
+
+What the slot is used for instead: Task 2 yielded 8,282 roster rows naming a real
+coach and their sport, which the ADR did not anticipate. Joined to Task 3's
+domains, the crawl stops being 'scrape whoever is on this page' and becomes 'find
+the address for THIS person on THIS domain' - so a hit is a named coach matched,
+which is evidence, rather than a loose address, which is not.
+
+The names are for matching, never for constructing. There is no code path from a
+name to an address, by design.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
@@ -2295,7 +2444,67 @@ def run(state_code: str) -> dict:
     return {"crawled": crawled, "exported": exported}
 ```
 
-- [ ] **Step 3: Run one new state and confirm the entropy gate holds**
+- [ ] **Step 3: Add the combined national export**
+
+Each state writes its own CSV, which is how the work is reviewed and how a state
+can be re-run without touching the others. A combined file is what actually gets
+imported, so it is built by concatenation rather than by a second crawl — the
+per-state files stay the source of truth.
+
+Append to `run_state.py`:
+
+```python
+def combine(out_dir="out", path="out/all_states_coaches.csv") -> int:
+    """Concatenate every per-state CSV into one national file.
+
+    Concatenation, not a re-crawl: the per-state files are the record, and a
+    national file rebuilt from them can never disagree with them. Reads the
+    header from the first file only, and verifies the rest match it -- a column
+    drift between states would otherwise shift every field silently.
+    """
+    import csv
+    from pathlib import Path
+
+    files = sorted(Path(out_dir).glob("*_coaches.csv"))
+    files = [f for f in files if f.name != Path(path).name]
+    if not files:
+        return 0
+
+    header, rows = None, []
+    for f in files:
+        with f.open(newline="", encoding="utf-8") as fh:
+            r = csv.reader(fh)
+            head = next(r, None)
+            if head is None:
+                continue
+            if header is None:
+                header = head
+            elif head != header:
+                raise ValueError(f"{f.name} column drift: {head} != {header}")
+            rows.extend(r)
+
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(header)
+        w.writerows(rows)
+    return len(rows)
+```
+
+Run it:
+
+```bash
+cd tools/hs-scraper && python -c "
+import _shared, run_state
+print('combined rows:', run_state.combine())
+"
+```
+
+Expected: the sum of the per-state row counts. A `ValueError` means one state's
+export drifted from the others' columns — fix the export, never the combiner.
+
+- [ ] **Step 4: Run one new state and confirm the entropy gate holds**
 
 ```bash
 cd tools/hs-scraper && python -c "
@@ -2306,7 +2515,7 @@ import _shared, run_state; print(run_state.run('TX'))
 Expected: no `EntropyError`. If it raises, a parser is picking up a shared
 mailbox pattern — inspect before importing anything.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add tools/hs-scraper/run_state.py tools/hs-scraper/associations/
