@@ -1376,10 +1376,37 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   `config_hs.STAFF_PATHS`, `config_hs.MIN_EMAILS_FOR_DIRECTORY`,
   `adapters.base.emails_in`.
 - Produces: `discover_hs.score_link(text: str, href: str) -> int`,
+  `discover_hs.OFFSITE_BLOCKED: frozenset[str]`,
   `discover_hs.best_staff_links(html: str, base_url: str, limit: int = 5) -> list[str]`,
   `discover_hs.looks_like_directory(html: str) -> bool`,
-  `crawl_hs.crawl_target(fetcher, arch, target_id, start_url) -> str` returning a status
+  `crawl_hs.crawl_school(fetcher, arch, school) -> str` returning a status
   string of `"ok" | "no-directory" | "unreachable"`.
+
+**What the probe measured, and what it changed here.** Before this task was
+written, 23 school sites and 5 district roots were fetched for real. Three
+results shaped the code below.
+
+*District roots are a dead end for coaches.* `gcpsk12.org/about-us/staff-directory`
+-- the best-scoring link found anywhere, at 19 -- returns 121 KB with **zero email
+addresses and zero occurrences of the word "coach"**. It is a JavaScript search
+widget whose data arrives by XHR. The other districts' staff directories are
+central office: `/divisions/human-resources/staff-directory`,
+`/divisions/finance/staff-directory`, "cabinet & executive staff". So the crawl
+starts at the **school**, not the district. The ADR's "one district fetch resolves
+a dozen schools" did not survive contact and is retired.
+
+*Roughly 43% of published school urls are dead* -- 10 of 16 reachable in a random
+sample, worse in a targeted one. Those schools are not lost: `ALPHARETTA`'s
+published site `school.fultonschools.org` does not answer, but its email domain
+`fultonschools.org` returns 200. **The email domain is a fallback start url**,
+costing one extra fetch only for schools that already failed.
+
+*Several schools put athletics on a separate domain* -- `nmhsathletics.com`,
+`chsspartansathletics.com` -- linked from the school site. A same-origin-only
+crawler would score zero on exactly the schools publishing the most coach data,
+so one off-domain hop is allowed. `best_staff_links` already permits it via
+`urljoin`; what it lacks is a guard, added below. Without one, a link reading
+"Athletics" that points at Facebook scores 5 and gets followed.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1452,7 +1479,7 @@ from __future__ import annotations
 
 import html as _html
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import _shared  # noqa: F401
 import config_hs
@@ -1482,7 +1509,37 @@ def score_link(text: str, href: str) -> int:
     return score
 
 
+# Social, video and vendor hosts. A link whose text reads "Athletics" but points
+# at Facebook scores exactly as high as a real one; following it wastes a fetch
+# at best and archives a login wall at worst.
+OFFSITE_BLOCKED = frozenset({
+    "facebook.com", "twitter.com", "x.com", "instagram.com", "youtube.com",
+    "youtu.be", "tiktok.com", "linkedin.com", "pinterest.com", "flickr.com",
+    "vimeo.com", "google.com", "apple.com", "maxpreps.com", "hudl.com",
+    "eventlink.com", "gofan.co", "rankone.com", "8to18.com",
+})
+
+
+def _reg_host(url: str) -> str:
+    host = (urlparse(url).hostname or "").lower().removeprefix("www.")
+    parts = host.split(".")
+    return ".".join(parts[-2:]) if len(parts) > 1 else host
+
+
 def best_staff_links(html: str, base_url: str, limit: int = 5) -> list[str]:
+    """Score every link, keep the best few. ONE off-domain hop is allowed.
+
+    Off-domain is permitted because several schools publish athletics on their
+    own separate domain (nmhsathletics.com, chsspartansathletics.com) linked
+    from the school site -- a same-origin-only crawl scores zero on exactly the
+    schools that publish the most coach data.
+
+    It is guarded rather than free: a social or vendor host never qualifies no
+    matter how well its link text scores, and an off-domain link must clear a
+    higher bar than a same-origin one, because leaving the school's own site is
+    a weaker signal that the page belongs to the school.
+    """
+    home = _reg_host(base_url)
     scored: list[tuple[int, str]] = []
     seen: set[str] = set()
     for href, frag in _ANCHOR.findall(html or ""):
@@ -1493,8 +1550,15 @@ def best_staff_links(html: str, base_url: str, limit: int = 5) -> list[str]:
             continue
         seen.add(url)
         s = score_link(_text(frag), href)
-        if s > 0:
-            scored.append((s, url))
+        if s <= 0:
+            continue
+        host = _reg_host(url)
+        if host != home:
+            if not host or host in OFFSITE_BLOCKED:
+                continue
+            if s < 5:
+                continue
+        scored.append((s, url))
     scored.sort(key=lambda t: -t[0])
     return [u for _, u in scored[:limit]]
 
@@ -1537,15 +1601,37 @@ import discover_hs
 import net
 
 
-def crawl_target(fetcher: "net.Fetcher", arch: "archive.Archive",
-                 target_id: str, start_url: str) -> str:
-    """Fetch one district or private school. Returns ok | no-directory | unreachable."""
-    home = fetcher.get(start_url)
-    if not home.ok:
-        arch.set_status(target_id, "unreachable", error=f"{home.status} {home.error}")
+def crawl_school(fetcher: "net.Fetcher", arch: "archive.Archive",
+                 school) -> str:
+    """Fetch one school. Returns ok | no-directory | unreachable.
+
+    Two start urls, tried in order, because roughly 43% of the association's
+    published school urls do not answer: the school's own site first, then its
+    published mail domain. ALPHARETTA's site school.fultonschools.org is dead
+    while fultonschools.org returns 200, so the fallback costs one extra fetch
+    only for schools that already failed.
+
+    Archived under school_id, never under a domain. A shared district domain
+    serves many schools, so a domain-keyed archive could not say which school
+    a stored page belongs to.
+    """
+    starts = [u for u in (
+        school.site_url,
+        f"https://{school.email_domain}" if school.email_domain else "",
+    ) if u]
+
+    home = None
+    for start in starts:
+        resp = fetcher.get(start)
+        if resp.ok and resp.html:
+            home = resp
+            break
+    if home is None:
+        arch.set_status(school.school_id, "unreachable",
+                        error=f"no start url answered ({len(starts)} tried)")
         return "unreachable"
 
-    arch.store_page(target_id, "home", start_url, home.final_url,
+    arch.store_page(school.school_id, "home", home.final_url, home.final_url,
                     home.status, home.html, "", None)
 
     candidates = discover_hs.best_staff_links(home.html, home.final_url)
@@ -1558,12 +1644,12 @@ def crawl_target(fetcher: "net.Fetcher", arch: "archive.Archive",
             continue
         if not discover_hs.looks_like_directory(page.html):
             continue
-        arch.store_page(target_id, "staff", url, page.final_url,
+        arch.store_page(school.school_id, "staff", url, page.final_url,
                         page.status, page.html, "", None)
-        arch.set_status(target_id, "ok")
+        arch.set_status(school.school_id, "ok")
         return "ok"
 
-    arch.set_status(target_id, "no-directory")
+    arch.set_status(school.school_id, "no-directory")
     return "no-directory"
 ```
 
