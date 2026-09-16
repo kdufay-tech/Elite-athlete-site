@@ -1,6 +1,7 @@
 // netlify/functions/coach-ops-draft-action.js
 // Coach Ops - Phase 2: manage a draft in the approval queue (admin-gated).
-// Actions: update (edit subject/body/meta), approve, reject, delete, mark_sent.
+// Actions: update (edit subject/body/meta), approve, reject, delete, mark_sent,
+//          log_folder_send (append a folder-send record to meta, status untouched).
 // None of these send email; sending is done client-side via marketing-blast
 // after approval, then mark_sent records the result here.
 
@@ -55,6 +56,29 @@ export default async (req) => {
       res = await patch(id, { status: 'rejected' });
     } else if (action === 'mark_sent') {
       res = await patch(id, { status: 'sent', sent_at: new Date().toISOString(), sent_result: body.result || {} });
+    } else if (action === 'log_folder_send') {
+      // Records one folder send WITHOUT touching status. A draft can legitimately
+      // go to several folders (College+Northeast now, College+Southwest later),
+      // so flipping it to 'sent' after one slice would be wrong and would drop it
+      // out of the send picker entirely. The current meta is read here rather than
+      // accepted from the client, because the client's copy is a snapshot taken
+      // when the draft was loaded and would silently revert anything changed since.
+      const cur = await fetch(`${SUPABASE_URL}/rest/v1/coach_ops_drafts?id=eq.${id}&select=meta`, {
+        headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+      });
+      const curRows = cur.ok ? await cur.json() : [];
+      if (!curRows.length) return new Response(JSON.stringify({ error: 'draft not found' }), { status: 404, headers: CORS });
+      const meta = curRows[0].meta || {};
+      const log = Array.isArray(meta.folder_sends) ? meta.folder_sends.slice() : [];
+      log.push({
+        at: new Date().toISOString(),
+        slice: String(body.slice || '').slice(0, 300),
+        sent: Number(body.sent) || 0,
+        failed: Number(body.failed) || 0,
+        blast_id: body.blastId ? String(body.blastId).slice(0, 80) : null,
+      });
+      // Capped so a draft sent to many folders cannot grow meta without bound.
+      res = await patch(id, { meta: { ...meta, folder_sends: log.slice(-20) } });
     } else if (action === 'delete') {
       res = await fetch(`${SUPABASE_URL}/rest/v1/coach_ops_drafts?id=eq.${id}`, {
         method: 'DELETE',

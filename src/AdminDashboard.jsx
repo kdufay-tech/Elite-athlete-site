@@ -1934,7 +1934,20 @@ function ContactsPanel({ getSession }) {
   const [msg, setMsg] = useState(null);
   const [folders, setFolders] = useState([]);
   const [drafts, setDrafts] = useState([]);
-  const [sendF, setSendF] = useState({ level:'all', state:'all', region:'all', sport:'all' });
+  // level/state/region/sport are the folder axes. The four that follow narrow
+  // WITHIN that folder, and they are what make an exact slice reachable at all:
+  // College+Football on its own is 370 contacts, where the 2026-09 scrape's
+  // head coaches are 37. Blank = not applied, so the default behaviour is
+  // unchanged from before these existed.
+  const [sendF, setSendF] = useState({ level:'all', state:'all', region:'all', sport:'all',
+    source:'', titleIncludes:'', titleExcludes:'', divisionExcludes:'', verifiedOnly:false,
+    skipContactedSchools:false });
+  // Fills the four narrowing fields with the values verified to select exactly
+  // the 2026-09 scraped head coaches. A preset beats retyping them because a
+  // silent typo here does not error - it just widens the audience.
+  const WARMUP_PRESET = { source:'Scrape NCAA', titleIncludes:'head coach',
+    titleExcludes:'assistant,assoc,interim,acting,club,sprint,athletic performance,premier',
+    divisionExcludes:'CLUB,SPRINT' };
   const [sendCount, setSendCount] = useState(null);
   const [pickDraft, setPickDraft] = useState('');
   const [sSubject, setSSubject] = useState('');
@@ -1944,6 +1957,27 @@ function ContactsPanel({ getSession }) {
   const [engagedOnly, setEngagedOnly] = useState(false);
   const [sendBusy, setSendBusy] = useState(false);
   const [sendMsg, setSendMsg] = useState(null);
+  // Whether any narrowing is actually applied. Drives the chip, the Clear
+  // button and the count caption, so all three can never disagree.
+  // verifiedOnly is a boolean and cannot join the string scan below: String(false)
+  // is "false", which survives .trim() as truthy and would pin the chip to
+  // "narrowed" even with every field cleared.
+  // The send form pairs a folder slice with a draft, and until 2026-09-15 nothing
+  // tied the two together: a sport:soccer slice went out under the basketball
+  // draft because the picker kept its previous selection. 68 soccer coaches read
+  // about point guards and peaking in March. Every other mistake that day was
+  // caught by a count that disagreed - this one had the RIGHT count and the wrong
+  // content, so no number looked wrong.
+  //
+  // A sport-tagged draft must match the Sport filter exactly, and 'all' counts as
+  // a mismatch: one sport's message sent to every sport is the same error larger.
+  // An untagged draft (write-your-own) is unconstrained.
+  const draftSport = String((sMeta && sMeta.sport) || '').toLowerCase();
+  const sportMismatch = !!draftSport && draftSport !== String(sendF.sport || '').toLowerCase();
+
+  const narrowActive = sendF.verifiedOnly === true || sendF.skipContactedSchools === true
+    || ['source','titleIncludes','titleExcludes','divisionExcludes']
+      .some(k => String(sendF[k]||'').trim());
   async function loadFolders() {
     try {
       const s = await getSession();
@@ -1993,20 +2027,38 @@ function ContactsPanel({ getSession }) {
         const cj = await cr.json();
         if (cj && cj.sample) { const nm = (cj.sample.coach_name || '').trim(); const parts = nm.split(/\s+/).filter(Boolean); merge = { name: nm, first: parts[0] || '', last: parts.length>1 ? parts[parts.length-1] : '', school: cj.sample.school || '' }; }
       } catch (_) {}
-      const r = await fetch('/.netlify/functions/marketing-blast', { method:'POST', headers:{ Authorization:`Bearer ${s.access_token}`, 'Content-Type':'application/json' }, body: JSON.stringify({ ...sendForm(), audience:'contacts', level:sendF.level, state:sendF.state, region:sendF.region, sport:sendF.sport, testEmail: to, merge }) });
+      const r = await fetch('/.netlify/functions/marketing-blast', { method:'POST', headers:{ Authorization:`Bearer ${s.access_token}`, 'Content-Type':'application/json' }, body: JSON.stringify({ ...sendForm(), audience:'contacts', ...sendF, testEmail: to, merge }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP ' + r.status));
       setSendMsg({ ok:true, text: j.message || (merge.first ? ('Test sent to ' + to + ' — previewed as ' + merge.first + (merge.school ? (' / ' + merge.school) : '')) : ('Test sent to ' + to)) }); setSendBusy(false);
     } catch (e) { setSendMsg({ ok:false, text:e.message }); setSendBusy(false); }
   }
+  // Records a folder send against the loaded draft. Deliberately NOT mark_sent:
+  // that sets status='sent' and drops the draft out of this picker, which breaks
+  // the legitimate case of sending one draft to several folders in turn. A failed
+  // log must never surface as a failed send - the email has already gone out.
+  async function logFolderSend(token, slice, sent, failed, blastId) {
+    if (!pickDraft) return;
+    try {
+      await fetch('/.netlify/functions/coach-ops-draft-action', {
+        method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+        body: JSON.stringify({ id: pickDraft, action:'log_folder_send', slice, sent, failed, blastId }),
+      });
+      await loadDrafts();
+    } catch (_) {}
+  }
   async function sendFolder() {
     if (!sSubject || !sBody) { setSendMsg({ ok:false, text:'Pick or write a subject and body first.' }); return; }
-    const label = `level:${sendF.level} · state:${sendF.state} · region:${sendF.region} · sport:${sendF.sport}${engagedOnly ? ' · ENGAGED ONLY' : ''}`;
-    if (!window.confirm(`Send this email to the coach folder (${label})?\n\nIt goes to real recipients and cannot be undone.`)) return;
+    if (sportMismatch) { setSendMsg({ ok:false, text:`Blocked: this draft is the ${draftSport} message but the Sport filter is "${sendF.sport}". Set Sport to ${draftSport}, pick the matching draft, or clear the draft to write your own.` }); return; }
+    const narrow = ['source','titleIncludes','titleExcludes','divisionExcludes','verifiedOnly','skipContactedSchools']
+      .filter(k => sendF[k] === true || String(sendF[k] || '').trim()).map(k => `${k}:${sendF[k]}`).join(' · ');
+    const label = `level:${sendF.level} · state:${sendF.state} · region:${sendF.region} · sport:${sendF.sport}`
+      + (narrow ? ' · ' + narrow : '') + (engagedOnly ? ' · ENGAGED ONLY' : '');
+    if (!window.confirm(`Send "${sSubject}"${draftSport ? ` (${draftSport} draft)` : ''} to the coach folder (${label})?\n\nIt goes to real recipients and cannot be undone.`)) return;
     setSendBusy(true); setSendMsg({ ok:true, text:'Sending...' });
     try {
       const s = await getSession();
-      const form = { ...sendForm(), audience:'contacts', level:sendF.level, state:sendF.state, region:sendF.region, sport:sendF.sport, ...(engagedOnly ? { engagedOnly:true } : {}) };
+      const form = { ...sendForm(), audience:'contacts', ...sendF, ...(engagedOnly ? { engagedOnly:true } : {}) };
       // Optional: top up an existing tranche. Passing its blast ID makes marketing-blast
       // skip everyone already in it, so only NEW matching contacts (e.g. bounce replacements) get sent.
       let page = 0, sent = 0, failed = 0, total = 0, blastId = (targetBlast || '').trim() || null;
@@ -2014,11 +2066,12 @@ function ContactsPanel({ getSession }) {
         const r = await fetch('/.netlify/functions/marketing-blast', { method:'POST', headers:{ Authorization:`Bearer ${s.access_token}`, 'Content-Type':'application/json' }, body: JSON.stringify({ ...form, page, ...(blastId ? { blastId } : {}) }) });
         const t = await r.text(); let dta; try { dta = JSON.parse(t); } catch { throw new Error('Server error on page ' + page); }
         if (!r.ok || dta.error) throw new Error(dta.error || ('Send failed on page ' + page));
-        if (dta.queued) { setSendMsg({ ok:true, text: dta.message || ('Queued ' + (dta.total||0) + ' — sending in the background.') }); setSendBusy(false); return; }
+        if (dta.queued) { await logFolderSend(s.access_token, label + ' · queued', dta.total||0, 0, blastId); setSendMsg({ ok:true, text: dta.message || ('Queued ' + (dta.total||0) + ' — sending in the background.') }); setSendBusy(false); return; }
         if (dta.blastId) blastId = dta.blastId;
         sent += dta.sent || 0; failed += dta.failed || 0; total = dta.total || total;
         if (!dta.hasMore) break; page++; await new Promise(rr => setTimeout(rr, 500));
       }
+      await logFolderSend(s.access_token, label, sent, failed, blastId);
       setSendMsg({ ok:true, text:`Sent ${sent} · ${failed} failed (of ${total}).` }); setSendBusy(false);
     } catch (e) { setSendMsg({ ok:false, text:e.message }); setSendBusy(false); }
   }
@@ -2176,15 +2229,96 @@ function ContactsPanel({ getSession }) {
           <div><label style={lbl}>Region</label><select value={sendF.region} onChange={e=>{setSendF(f=>({...f,region:e.target.value}));setSendCount(null);}} style={inp}><option value="all">All</option><option>Northeast</option><option>Southeast</option><option>Midwest</option><option>Southwest</option><option>West</option></select></div>
           <div><label style={lbl}>Sport</label><select value={sendF.sport} onChange={e=>{setSendF(f=>({...f,sport:e.target.value}));setSendCount(null);}} style={inp}><option value="all">All</option><option value="football">Football</option><option value="basketball">Basketball</option><option value="soccer">Soccer</option><option value="volleyball">Volleyball</option><option value="hockey">Hockey</option></select></div>
         </div>
+        <div style={{ borderTop:'1px solid #ffffff10', paddingTop:12, marginBottom:12 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:8 }}>
+            <span style={{ ...lbl, marginBottom:0 }}>Narrow within the folder (optional)</span>
+            <span style={{ fontSize:10, letterSpacing:1, textTransform:'uppercase', padding:'3px 9px', borderRadius:10,
+              background: narrowActive ? 'rgba(75,174,113,0.14)' : 'rgba(231,76,60,0.12)',
+              color: narrowActive ? '#4BAE71' : '#e07a6f',
+              border: '1px solid ' + (narrowActive ? '#4BAE7144' : '#e74c3c33') }}>
+              {narrowActive ? 'narrowed' : 'whole folder'}
+            </span>
+            <button onClick={()=>{setSendF(f=>({...f,...WARMUP_PRESET}));setSendCount(null);}}
+              style={{ background:'transparent', border:'1px solid #C9A84C44', color:'#C9A84C', padding:'4px 10px', borderRadius:6, cursor:'pointer', fontFamily:'inherit', fontSize:11 }}>
+              Use 2026-09 scrape · head coaches
+            </button>
+            {narrowActive &&
+              <button onClick={()=>{setSendF(f=>({...f,source:'',titleIncludes:'',titleExcludes:'',divisionExcludes:'',verifiedOnly:false,skipContactedSchools:false}));setSendCount(null);}}
+                style={{ background:'transparent', border:'1px solid #ffffff20', color:'#777', padding:'4px 10px', borderRadius:6, cursor:'pointer', fontFamily:'inherit', fontSize:11 }}>
+                Clear
+              </button>}
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))', gap:10 }}>
+            <div><label style={lbl}>Source starts with</label><input value={sendF.source} onChange={e=>{setSendF(f=>({...f,source:e.target.value}));setSendCount(null);}} placeholder="blank = any source" style={inp} /></div>
+            <div><label style={lbl}>Title contains</label><input value={sendF.titleIncludes} onChange={e=>{setSendF(f=>({...f,titleIncludes:e.target.value}));setSendCount(null);}} placeholder="blank = any title" style={inp} /></div>
+            <div><label style={lbl}>Title excludes (comma)</label><input value={sendF.titleExcludes} onChange={e=>{setSendF(f=>({...f,titleExcludes:e.target.value}));setSendCount(null);}} placeholder="blank = exclude nothing" style={inp} /></div>
+            <div><label style={lbl}>Division excludes (comma)</label><input value={sendF.divisionExcludes} onChange={e=>{setSendF(f=>({...f,divisionExcludes:e.target.value}));setSendCount(null);}} placeholder="blank = exclude nothing" style={inp} /></div>
+            <div style={{ gridColumn:'1 / -1', marginTop:2 }}>
+              <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:12, color:'#ccc' }}>
+                <input type="checkbox" checked={!!sendF.verifiedOnly}
+                  onChange={e=>{setSendF(f=>({...f,verifiedOnly:e.target.checked}));setSendCount(null);}}
+                  style={{ accentColor:'#C9A84C', width:14, height:14, cursor:'pointer', margin:0 }} />
+                Verified only - skip contacts with no title
+              </label>
+              <div style={{ fontSize:11, color:'#555', marginTop:4, lineHeight:1.5, paddingLeft:22 }}>
+                A title means the crawl found this person on their school's live staff page.
+                Volleyball pilot: 0 bounces from 125 titled, 5.7% from 175 untitled.
+              </div>
+            </div>
+            <div style={{ gridColumn:'1 / -1', marginTop:2 }}>
+              <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:12, color:'#ccc' }}>
+                <input type="checkbox" checked={!!sendF.skipContactedSchools}
+                  onChange={e=>{setSendF(f=>({...f,skipContactedSchools:e.target.checked}));setSendCount(null);}}
+                  style={{ accentColor:'#C9A84C', width:14, height:14, cursor:'pointer', margin:0 }} />
+                Skip schools already contacted
+              </label>
+              <div style={{ fontSize:11, color:'#555', marginTop:4, lineHeight:1.5, paddingLeft:22 }}>
+                If anyone at a school has already been emailed for this sport, skip the rest of that staff.
+                Stops a head coach and their assistants all getting the same message.
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize:11, color:'#555', marginTop:6, lineHeight:1.5 }}>Leave blank to send to the whole folder. Preview the count after changing these — the count uses the same filter as the send.</div>
+        </div>
         <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap', marginBottom:12 }}>
           <button onClick={previewCount} disabled={sendBusy} style={{ background:'transparent', border:'1px solid #ffffff20', color:'#ccc', padding:'7px 14px', borderRadius:8, cursor:'pointer', fontFamily:'inherit', fontSize:12 }}>Preview count</button>
-          {sendCount !== null && <span style={{ fontSize:13, color:'#C9A84C' }}>{sendCount === '...' ? 'Counting...' : (sendCount + ' recipients')}</span>}
+          {sendCount !== null && <span style={{ fontSize:13, color:'#C9A84C' }}>
+            {sendCount === '...' ? 'Counting...' : (sendCount + ' recipients')}
+            {sendCount !== '...' && <span style={{ color: narrowActive ? '#666' : '#e07a6f', marginLeft:6 }}>
+              {narrowActive ? '— narrowed' : '— WHOLE FOLDER, no narrowing applied'}
+            </span>}
+          </span>}
         </div>
         <div style={{ marginBottom:10 }}><label style={lbl}>Load an approved draft (optional)</label>
           <select value={pickDraft} onChange={e=>choose(e.target.value)} style={inp}>
             <option value="">— write my own below —</option>
-            {drafts.map(d=><option key={d.id} value={d.id}>{(d.kind||'') + ' · ' + (d.audience||'') + ' · ' + (d.subject||'').slice(0,40)}</option>)}
+            {/* Date first: the list already arrives newest-first, and leading with
+                it makes that order readable instead of something you infer. Status
+                is shown because this picker holds pending drafts too, despite the
+                label saying approved. Sport is the one that actually decides who
+                receives this - five drafts share the coach_college audience and
+                differ only by sport, so without it the list reads as five
+                identical rows and you have to open each to tell them apart. */}
+            {drafts.map(d=>{
+              const when  = d.created_at ? String(d.created_at).slice(0,10) : '??????????';
+              const who   = String(d.audience||'').replace(/^coach_/,'');
+              const sport = (d.meta && d.meta.sport) || '';
+              // Prior folder sends, so a draft already mailed to real people reads
+              // as such in the list instead of being something you have to recall.
+              const fs    = (d.meta && Array.isArray(d.meta.folder_sends)) ? d.meta.folder_sends : [];
+              const prior = fs.reduce((n,x)=>n+(Number(x && x.sent)||0), 0);
+              return <option key={d.id} value={d.id}>{
+                when + ' · ' + (d.status||'')
+                + ' · ' + (sport ? who + '/' + sport : who)
+                + (prior ? ' · ALREADY SENT ' + prior : '')
+                + ' · ' + (d.subject||'').slice(0,40)
+              }</option>;
+            })}
           </select>
+          {sportMismatch &&
+            <div style={{ marginTop:8, padding:'10px 12px', borderRadius:8, background:'rgba(231,76,60,0.12)', border:'1px solid #e74c3c55', color:'#e07a6f', fontSize:12, lineHeight:1.5 }}>
+              <b>Draft does not match the folder.</b> This is the <b>{draftSport}</b> message, but Sport is set to <b>{sendF.sport}</b>. Sending is blocked until they agree.
+            </div>}
         </div>
         <div style={{ marginBottom:10 }}><label style={lbl}>Top up existing blast — optional</label>
           <input value={targetBlast} onChange={e=>setTargetBlast(e.target.value)} placeholder="e.g. blast_1786487736666 — only NEW contacts in this folder get sent" style={inp} />
@@ -2199,7 +2333,7 @@ function ContactsPanel({ getSession }) {
         {sendMsg && <div style={{ marginTop:10, fontSize:13, color: sendMsg.ok ? '#4BAE71' : '#e74c3c' }}>{sendMsg.text}</div>}
         <div style={{ display:'flex', gap:8, marginTop:12, flexWrap:'wrap' }}>
           <button onClick={testSend} disabled={sendBusy||!sSubject||!sBody} style={{ background:'transparent', border:'1px solid #ffffff20', color:'#888', padding:'8px 16px', borderRadius:8, cursor:(sendBusy||!sSubject||!sBody)?'default':'pointer', fontFamily:'inherit', fontSize:12 }}>Test to me</button>
-          <button onClick={sendFolder} disabled={sendBusy||!sSubject||!sBody} style={{ background:(sendBusy||!sSubject||!sBody)?'#333':'#C9A84C', color:(sendBusy||!sSubject||!sBody)?'#888':'#0D0D0D', border:'none', fontWeight:700, padding:'8px 18px', borderRadius:8, cursor:(sendBusy||!sSubject||!sBody)?'default':'pointer', fontFamily:'inherit', fontSize:12 }}>{sendBusy?'Working...':'Send to folder'}</button>
+          <button onClick={sendFolder} disabled={sendBusy||!sSubject||!sBody||sportMismatch} style={{ background:(sendBusy||!sSubject||!sBody||sportMismatch)?'#333':'#C9A84C', color:(sendBusy||!sSubject||!sBody||sportMismatch)?'#888':'#0D0D0D', border:'none', fontWeight:700, padding:'8px 18px', borderRadius:8, cursor:(sendBusy||!sSubject||!sBody||sportMismatch)?'default':'pointer', fontFamily:'inherit', fontSize:12 }}>{sendBusy?'Working...':(sportMismatch?'Draft / sport mismatch':'Send to folder')}</button>
         </div>
       </div>
 

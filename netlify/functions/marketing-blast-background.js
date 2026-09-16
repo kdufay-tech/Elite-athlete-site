@@ -1,4 +1,6 @@
-﻿const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Authorization, Content-Type','Content-Type':'application/json'};
+﻿import { wantsSkipContacted, contactedSchoolEmails } from './_skip-contacted.js';
+import { applyNarrowFilters } from './_narrow-filters.js';
+const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Authorization, Content-Type','Content-Type':'application/json'};
 const ADMIN_EMAIL='kiszo@taratechent.com';
 // CAN-SPAM requires a valid physical postal address in every marketing email.
 const POSTAL_ADDRESS='Taradome Technologies · 1366 Athens Ave SW, Atlanta, GA 30310';
@@ -62,6 +64,7 @@ export default async(req)=>{
         const st=String(body.state||'').toUpperCase(); if(st&&st!=='ALL')f.push(`state=eq.${st}`);
         const rg=String(body.region||''); if(rg&&rg.toLowerCase()!=='all')f.push(`region=eq.${encodeURIComponent(rg)}`);
         const sp=String(body.sport||'').toLowerCase(); if(sp&&sp!=='all')f.push(`sport=eq.${sp}`);
+        applyNarrowFilters(f, body);
         const sr=await fetch(`${supabaseUrl}/rest/v1/coach_contacts?${f.concat(['select=coach_name,school','limit=1']).join('&')}`,{headers:{apikey:serviceKey,Authorization:`Bearer ${serviceKey}`}});
         const rows=sr.ok?await sr.json():[];
         if(rows[0]){ const nm=String(rows[0].coach_name||'').trim(); const p=nm.split(/\s+/).filter(Boolean); mv={name:nm,first:p[0]||'',last:p.length>1?p[p.length-1]:'',school:String(rows[0].school||'').trim()}; }
@@ -100,6 +103,14 @@ export default async(req)=>{
     const st=String(body.state||'').toUpperCase(); if(st&&st!=='ALL')f.push(`state=eq.${st}`);
     const rg=String(body.region||''); if(rg&&rg.toLowerCase()!=='all')f.push(`region=eq.${encodeURIComponent(rg)}`);
     const sp=String(body.sport||'').toLowerCase(); if(sp&&sp!=='all')f.push(`sport=eq.${sp}`);
+    // The narrowing filters MUST be applied here too. This file is a separate
+    // copy of the sender used for anything over BG_THRESHOLD, and on 2026-09-15
+    // it silently ignored them: a 435-recipient football send re-selected the
+    // whole College/Southeast/Football folder and mailed 914 people, 479 of
+    // whom were never in the slice. The count endpoint and the inline sender
+    // both used this module; this path did not, so the filters had never been
+    // exercised on a send over 300 until that day.
+    applyNarrowFilters(f, body);
     await sbPage(p=>`coach_contacts?${f.concat(['select=email,coach_name,school','limit=1000',`offset=${p*1000}`]).join('&')}`, i=>add(i.email,mkMerge(i.coach_name,i.school)));
   }
   const levelMap={athlete_hs:'hs',athlete_college:'college',athlete_pro:'pro'};
@@ -135,12 +146,33 @@ export default async(req)=>{
     if(!recipients.length)return new Response(JSON.stringify({ok:true,message:'No engaged recipients match this folder yet',sent:0,total:0}),{status:200,headers:CORS});
   }
 
+  // ---- SKIP SCHOOLS ALREADY CONTACTED: organisation-level de-duplication, so a
+  // staff room never receives the same message twice in a week. See
+  // _skip-contacted.js for why this is school+sport rather than per-address. ----
+  if(wantsSkipContacted(body)){
+    try{
+      const blocked=await contactedSchoolEmails(sbPage, body);
+      if(blocked.size) recipients=recipients.filter(r=>!blocked.has(r.email.toLowerCase()));
+    }catch(_){}
+    if(!recipients.length)return new Response(JSON.stringify({ok:true,message:'Every school in this folder has already been contacted — nothing to send',sent:0,total:0}),{status:200,headers:CORS});
+  }
+
   // Optional: skip anyone already emailed under this blast id (auto-runner resume); optional per-run cap.
   const blastId=body.blastId||null;
   if(blastId){
     const sentSet=new Set(); let page=0;
     while(true){ const sr=await fetch(`${supabaseUrl}/rest/v1/email_blasts?blast_id=eq.${blastId}&select=email&limit=1000&offset=${page*1000}`,{headers:{apikey:serviceKey,Authorization:`Bearer ${serviceKey}`}}); const rows=sr.ok?await sr.json():[]; rows.forEach(r=>sentSet.add(String(r.email).toLowerCase())); if(rows.length<1000)break; page++; }
     recipients=recipients.filter(r=>!sentSet.has(r.email.toLowerCase()));
+  }
+  // Divergence guard. The caller computed its own recipient list before handing
+  // this send off and passes the size as expectedTotal. Selecting MORE people
+  // than the caller did means our filters disagree with the ones the operator
+  // previewed - refuse to send rather than mail strangers. Selecting FEWER is
+  // fine and expected (suppressions land between the two passes).
+  const expected=Number(body.expectedTotal)||0;
+  if(expected>0&&recipients.length>expected){
+    console.error(`Recipient divergence: background selected ${recipients.length}, caller expected ${expected}. Refusing to send.`);
+    return new Response(JSON.stringify({error:'Recipient divergence - background selected more people than the caller previewed. Send aborted.',expected,computed:recipients.length}),{status:409,headers:CORS});
   }
   if(body.maxSend&&body.maxSend>0&&recipients.length>body.maxSend) recipients=recipients.slice(0,body.maxSend);
   if(!recipients.length)return new Response(JSON.stringify({ok:true,message:'Nothing new to send',sent:0,total:0,blastId}),{status:200,headers:CORS});

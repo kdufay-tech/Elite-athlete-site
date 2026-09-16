@@ -1,3 +1,5 @@
+import { applyNarrowFilters } from './_narrow-filters.js';
+import { wantsSkipContacted, contactedSchoolEmails } from './_skip-contacted.js';
 // netlify/functions/coach-contacts-import.js
 // Coach Ops - contact ingestion engine.
 // Accepts either a raw CSV (any vendor's column layout) or a pre-structured
@@ -161,10 +163,43 @@ export default async (req) => {
         const st = String(p.get('state')||'').toUpperCase(); if (st && st !== 'ALL') f.push(`state=eq.${st}`);
         const rg = String(p.get('region')||''); if (rg && rg.toLowerCase() !== 'all') f.push(`region=eq.${encodeURIComponent(rg)}`);
         const sp = String(p.get('sport')||'').toLowerCase(); if (sp && sp !== 'all') f.push(`sport=eq.${sp}`);
-        const q = f.concat(['select=id']).join('&');
-        const cr = await fetch(`${SUPABASE_URL}/rest/v1/coach_contacts?${q}`, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, Prefer: 'count=exact', Range: '0-0' } });
-        const range = cr.headers.get('content-range') || '';
-        const count = parseInt((range.split('/')[1] || '0'), 10) || 0;
+        // Same builder marketing-blast uses, so the count and the send can never
+        // describe different people. Without this the folder count reports every
+        // active contact in the slice - e.g. 370 for College+Football, where the
+        // narrowed audience is 37 - and reports it confidently.
+        applyNarrowFilters(f, {
+          source: p.get('source') || '', titleIncludes: p.get('titleIncludes') || '',
+          titleExcludes: p.get('titleExcludes') || '', divisionExcludes: p.get('divisionExcludes') || '',
+          verifiedOnly: p.get('verifiedOnly') || '',
+          skipContactedSchools: p.get('skipContactedSchools') || '',
+        });
+        let count;
+        if (wantsSkipContacted(p ? Object.fromEntries(p) : {})) {
+          // The cheap count=exact header cannot express an organisation-level
+          // filter, so page the addresses and count what survives. Same module
+          // the senders use - a count that disagrees with the send is the exact
+          // failure the shared builders exist to prevent.
+          const page = async (pathFn, onRow) => {
+            let i = 0;
+            while (true) {
+              const r = await fetch(`${SUPABASE_URL}/rest/v1/${pathFn(i)}`, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } });
+              const rows = r.ok ? await r.json() : [];
+              rows.forEach(onRow);
+              if (rows.length < 1000) break;
+              i++;
+            }
+          };
+          const body = Object.fromEntries(p);
+          const blocked = await contactedSchoolEmails(page, body);
+          const emails = [];
+          await page(i => `coach_contacts?${f.concat(['select=email', 'limit=1000', `offset=${i * 1000}`]).join('&')}`, row => emails.push(String(row.email || '').toLowerCase()));
+          count = emails.filter(e => e && !blocked.has(e)).length;
+        } else {
+          const q = f.concat(['select=id']).join('&');
+          const cr = await fetch(`${SUPABASE_URL}/rest/v1/coach_contacts?${q}`, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, Prefer: 'count=exact', Range: '0-0' } });
+          const range = cr.headers.get('content-range') || '';
+          count = parseInt((range.split('/')[1] || '0'), 10) || 0;
+        }
         const sq = f.concat(['select=coach_name,school', 'limit=1']).join('&');
         const sr = await fetch(`${SUPABASE_URL}/rest/v1/coach_contacts?${sq}`, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } });
         const srows = sr.ok ? await sr.json() : [];

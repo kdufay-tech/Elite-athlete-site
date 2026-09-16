@@ -1,4 +1,6 @@
-﻿const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Authorization, Content-Type','Content-Type':'application/json'};
+﻿import { wantsSkipContacted, contactedSchoolEmails } from './_skip-contacted.js';
+import { applyNarrowFilters } from './_narrow-filters.js';
+const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Authorization, Content-Type','Content-Type':'application/json'};
 const ADMIN_EMAIL='kiszo@taratechent.com';
 // CAN-SPAM requires a valid physical postal address in every marketing email.
 const POSTAL_ADDRESS='Taradome Technologies · 1366 Athens Ave SW, Atlanta, GA 30310';
@@ -62,6 +64,7 @@ export default async(req)=>{
         const st=String(body.state||'').toUpperCase(); if(st&&st!=='ALL')f.push(`state=eq.${st}`);
         const rg=String(body.region||''); if(rg&&rg.toLowerCase()!=='all')f.push(`region=eq.${encodeURIComponent(rg)}`);
         const sp=String(body.sport||'').toLowerCase(); if(sp&&sp!=='all')f.push(`sport=eq.${sp}`);
+        applyNarrowFilters(f,body);
         const sr=await fetch(`${supabaseUrl}/rest/v1/coach_contacts?${f.concat(['select=coach_name,school','limit=1']).join('&')}`,{headers:{apikey:serviceKey,Authorization:`Bearer ${serviceKey}`}});
         const rows=sr.ok?await sr.json():[];
         if(rows[0]){ const nm=String(rows[0].coach_name||'').trim(); const p=nm.split(/\s+/).filter(Boolean); mv={name:nm,first:p[0]||'',last:p.length>1?p[p.length-1]:'',school:String(rows[0].school||'').trim()}; }
@@ -100,6 +103,7 @@ export default async(req)=>{
     const st=String(body.state||'').toUpperCase(); if(st&&st!=='ALL')f.push(`state=eq.${st}`);
     const rg=String(body.region||''); if(rg&&rg.toLowerCase()!=='all')f.push(`region=eq.${encodeURIComponent(rg)}`);
     const sp=String(body.sport||'').toLowerCase(); if(sp&&sp!=='all')f.push(`sport=eq.${sp}`);
+    applyNarrowFilters(f,body);
     await sbPage(p=>`coach_contacts?${f.concat(['select=email,coach_name,school','limit=1000',`offset=${p*1000}`]).join('&')}`, i=>add(i.email,mkMerge(i.coach_name,i.school)));
   }
   const levelMap={athlete_hs:'hs',athlete_college:'college',athlete_pro:'pro'};
@@ -135,6 +139,17 @@ export default async(req)=>{
     if(!recipients.length)return new Response(JSON.stringify({ok:true,message:'No engaged recipients match this folder yet',sent:0,total:0}),{status:200,headers:CORS});
   }
 
+  // ---- SKIP SCHOOLS ALREADY CONTACTED: organisation-level de-duplication, so a
+  // staff room never receives the same message twice in a week. See
+  // _skip-contacted.js for why this is school+sport rather than per-address. ----
+  if(wantsSkipContacted(body)){
+    try{
+      const blocked=await contactedSchoolEmails(sbPage, body);
+      if(blocked.size) recipients=recipients.filter(r=>!blocked.has(r.email.toLowerCase()));
+    }catch(_){}
+    if(!recipients.length)return new Response(JSON.stringify({ok:true,message:'Every school in this folder has already been contacted — nothing to send',sent:0,total:0}),{status:200,headers:CORS});
+  }
+
   // Optional: skip anyone already emailed under this blast id (auto-runner resume); optional per-run cap.
   const blastId=body.blastId||null;
   if(blastId){
@@ -152,7 +167,7 @@ export default async(req)=>{
     const bid2=blastId||`blast_${Date.now()}`;
     try{
       const origin=new URL(req.url).origin;
-      await fetch(`${origin}/.netlify/functions/marketing-blast-background`,{method:'POST',headers:{'Content-Type':'application/json','x-internal-key':serviceKey},body:JSON.stringify({...body,blastId:bid2})});
+      await fetch(`${origin}/.netlify/functions/marketing-blast-background`,{method:'POST',headers:{'Content-Type':'application/json','x-internal-key':serviceKey},body:JSON.stringify({...body,blastId:bid2,expectedTotal:recipients.length})});
     }catch(_){}
     return new Response(JSON.stringify({ok:true,queued:true,total:recipients.length,blastId:bid2,message:`Queued ${recipients.length} recipients — sending in the background. Refresh in a few minutes to track progress.`}),{status:200,headers:CORS});
   }
