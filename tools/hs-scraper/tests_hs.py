@@ -13,6 +13,8 @@ import _shared  # noqa: F401  -- must import first; puts coach-scraper on sys.pa
 import registry_hs
 import domains
 import associations.ghsa as ghsa
+import manifest
+import associations.ghsa as _ghsa
 
 FAILURES: list[str] = []
 
@@ -235,6 +237,91 @@ def test_mail_domain_no_longer_branches_on_is_public():
     s = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
                              is_public=True, site_url="https://bowdon.org")
     check("falls back to its own host", s.mail_domain, "bowdon.org")
+
+
+def _school(i, dom, site=""):
+    return registry_hs.HSSchool(school_id=f"ga-{i}", school=str(i), state="GA",
+                                district_domain=dom, site_url=site)
+
+
+def _entry(sid, name, sports):
+    return _ghsa.RosterEntry(school_id=sid, name=name, codes=[], sports=sports)
+
+
+def test_build_groups_targets_under_their_school_domain():
+    schools = [_school(1, "cobbk12.org"), _school(2, "cobbk12.org"),
+               _school(3, "wesleyan.org")]
+    roster = [_entry("ga-1", "Ann Reed", ["football"]),
+              _entry("ga-2", "Bo Katz", ["volleyball"]),
+              _entry("ga-3", "Cy Doe", ["soccer"])]
+    units = manifest.build(schools, roster)
+    check("two units", len(units), 2)
+    check("largest first", units[0].domain, "cobbk12.org")
+    check("shared unit holds both schools", len(units[0].schools), 2)
+    check("and both their coaches", len(units[0].targets), 2)
+    check("shared flag set", units[0].is_shared, True)
+    check("solo unit not flagged shared", units[1].is_shared, False)
+
+
+def test_build_drops_roster_rows_with_no_target_sport():
+    schools = [_school(1, "cobbk12.org")]
+    roster = [_entry("ga-1", "Ann Reed", ["football"]),
+              _entry("ga-1", "Pat Null", [])]          # principal, AD-only, band
+    units = manifest.build(schools, roster)
+    check("only the coach is a target", [t.name for t in units[0].targets],
+          ["Ann Reed"])
+
+
+def test_build_skips_schools_with_no_domain():
+    schools = [_school(1, ""), _school(2, "cobbk12.org")]
+    roster = [_entry("ga-1", "Ghost Coach", ["football"]),
+              _entry("ga-2", "Real Coach", ["football"])]
+    units = manifest.build(schools, roster)
+    check("one unit only", len(units), 1)
+    check("the unresolved school's coach is not smuggled in",
+          [t.name for t in units[0].targets], ["Real Coach"])
+    check("and it is reported unresolved",
+          [s.school_id for s in manifest.unresolved(schools)], ["ga-1"])
+
+
+def test_build_never_synthesises_an_address():
+    # The manifest carries names so a crawler can RECOGNISE them. If any field
+    # of a target ever contains an "@", something has constructed an address.
+    schools = [_school(1, "cobbk12.org")]
+    units = manifest.build(schools, [_entry("ga-1", "Ann Reed", ["football"])])
+    t = units[0].targets[0]
+    check("no address anywhere on the target",
+          any("@" in str(v) for v in vars(t).values()), False)
+
+
+def test_attribute_resolves_a_district_page_to_the_right_school():
+    # One cobbk12.org staff page serves many schools. Which school a coach
+    # belongs to must come from MATCHING THEIR NAME, not from which url we
+    # happened to fetch.
+    from adapters.base import CoachRecord
+    schools = [_school(1, "cobbk12.org"), _school(2, "cobbk12.org")]
+    schools[0].school, schools[1].school = "Allatoona", "Kennesaw Mountain"
+    roster = [_entry("ga-1", "Ann Reed", ["football"]),
+              _entry("ga-2", "Bo Katz", ["volleyball"])]
+    unit = manifest.build(schools, roster)[0]
+    recs = [CoachRecord(name="Bo Katz", email="b@cobbk12.org", school=""),
+            CoachRecord(name="Ann Reed", email="a@cobbk12.org", school=""),
+            CoachRecord(name="Nobody Here", email="n@cobbk12.org", school="")]
+    counts = manifest.attribute(recs, unit)
+    check("bo went to his own school", recs[0].school, "Kennesaw Mountain")
+    check("ann went to hers", recs[1].school, "Allatoona")
+    check("unlisted person is NOT guessed into a school", recs[2].school, "")
+    check("matched counted", counts["matched"], 2)
+    check("unmatched counted", counts["unmatched"], 1)
+
+
+def test_attribute_matches_names_case_and_punctuation_insensitively():
+    from adapters.base import CoachRecord
+    s = _school(1, "cobbk12.org"); s.school = "Allatoona"
+    unit = manifest.build([s], [_entry("ga-1", "Ann O'Reed-Smith", ["football"])])[0]
+    rec = CoachRecord(name="  ANN OREED SMITH ", email="a@cobbk12.org", school="")
+    manifest.attribute([rec], unit)
+    check("normalised match still lands", rec.school, "Allatoona")
 
 
 def main():
