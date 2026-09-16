@@ -117,6 +117,28 @@ def parse_entry(lines: list[str]) -> "tuple[HSSchool, list[RosterEntry]] | None"
     return school, roster
 
 
+def group_entries(text_lines: list[str]) -> list[list[str]]:
+    """Split a flat line stream into one block per school.
+
+    Blocks are delimited by their own header line, never by page, because a
+    school's roster can run across a page break. The trailing flush matters as
+    much as the loop: without it the document's LAST school is silently lost,
+    and a 456-of-457 result looks like ordinary source drift rather than a bug.
+    """
+    blocks: list[list[str]] = []
+    block: list[str] = []
+    for line in text_lines:
+        if _HEAD.match(line.strip()):
+            if block:
+                blocks.append(block)
+            block = [line]
+        elif block:
+            block.append(line)
+    if block:
+        blocks.append(block)
+    return blocks
+
+
 def parse_pdf(path) -> "tuple[list[HSSchool], list[RosterEntry]]":
     """Split the whole document into entries and parse each one.
 
@@ -131,20 +153,11 @@ def parse_pdf(path) -> "tuple[list[HSSchool], list[RosterEntry]]":
 
     schools: list[HSSchool] = []
     roster: list[RosterEntry] = []
-    block: list[str] = []
-    for line in text_lines:
-        if _HEAD.match(line.strip()):
-            parsed = parse_entry(block)
-            if parsed:
-                schools.append(parsed[0])
-                roster.extend(parsed[1])
-            block = [line]
-        elif block:
-            block.append(line)
-    parsed = parse_entry(block)
-    if parsed:
-        schools.append(parsed[0])
-        roster.extend(parsed[1])
+    for block in group_entries(text_lines):
+        parsed = parse_entry(block)
+        if parsed:
+            schools.append(parsed[0])
+            roster.extend(parsed[1])
     return schools, roster
 
 

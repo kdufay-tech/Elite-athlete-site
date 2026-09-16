@@ -90,6 +90,7 @@ ENTRY = [
     "Thomas Darrah AD*,1",
     "Henry Avery 1,5*",
     "Andrea Blair 13",
+    "Cal Cee 4",
 ]
 
 
@@ -106,17 +107,51 @@ def test_ghsa_parses_school_fields():
 def test_ghsa_parses_roster_with_sports():
     _, roster = ghsa.parse_entry(ENTRY)
     by_name = {r.name: r for r in roster}
-    check("roster size", len(roster), 4)
+    check("roster size", len(roster), 5)
     check("AD also coaches football", by_name["Thomas Darrah"].sports, ["football"])
     check("star means head", by_name["Thomas Darrah"].is_head, True)
     check("track code 5 is not a target", by_name["Henry Avery"].sports, ["football"])
+    check("star on a later code still means head", by_name["Henry Avery"].is_head, True)
     check("code 13 is volleyball", by_name["Andrea Blair"].sports, ["volleyball"])
+    check("no star means not head", by_name["Andrea Blair"].is_head, False)
     check("principal coaches nothing", by_name["Robby Jones"].sports, [])
+    check("principal is not a head coach", by_name["Robby Jones"].is_head, False)
+    check("baseball code 4 is not a target", by_name["Cal Cee"].sports, [])
 
 
 def test_ghsa_rejects_a_non_entry():
     check("front matter is not an entry",
           ghsa.parse_entry(["GHSA Staff", "Tim Scott, Executive Director"]), None)
+
+
+def test_group_entries_splits_on_headers_not_pages():
+    lines = [
+        "GHSA Staff", "Tim Scott, Executive Director",     # front matter, no header yet
+        "ALPHA HIGH (1-A)", "1 Main St", "Ann Aye 1*",
+        "BETA HIGH (2-AA)", "2 Oak Rd", "Bob Bee 13",
+    ]
+    blocks = ghsa.group_entries(lines)
+    check("front matter starts no block", len(blocks), 2)
+    check("first block is Alpha", blocks[0][0], "ALPHA HIGH (1-A)")
+    check("second block is Beta", blocks[1][0], "BETA HIGH (2-AA)")
+    check("roster line stayed with its school", blocks[0][-1], "Ann Aye 1*")
+
+
+def test_group_entries_keeps_the_final_block():
+    # The last school in the document has no following header to flush it.
+    # Without the trailing flush it vanishes, and the count looks like drift.
+    blocks = ghsa.group_entries(["OMEGA HIGH (7-AAAAAAA)", "9 End Ave", "Zed Zee 2*"])
+    check("final block survives", len(blocks), 1)
+    check("final block is complete", len(blocks[0]), 3)
+
+
+def test_group_entries_spans_a_page_break():
+    # A roster continuing after a page boundary must stay in the same block;
+    # extract_text() gives us one flat stream, so a page break is just a line.
+    lines = ["GAMMA HIGH (3-AAA)", "3 Elm St", "Cy Cee 1*", "", "Dee Dee 13*"]
+    blocks = ghsa.group_entries(lines)
+    check("page break does not split the school", len(blocks), 1)
+    check("both coaches kept", blocks[0][-1], "Dee Dee 13*")
 
 
 def main():
