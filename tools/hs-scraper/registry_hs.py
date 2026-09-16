@@ -40,8 +40,15 @@ class HSSchool:
 
     @property
     def mail_domain(self) -> str:
-        """The domain this school's coach addresses are expected to be on."""
-        return self.district_domain if self.is_public else _host(self.site_url)
+        """The domain this school's coach addresses are expected to be on.
+
+        Measured, not inferred: district_domain is assigned from the school's
+        own published site in Task 3, so a public school and a private one are
+        resolved the same way. is_public no longer steers this -- a public
+        school whose district was never resolved must still fall back to its
+        own host rather than report nothing.
+        """
+        return self.district_domain or _host(self.site_url)
 
 
 def _host(url: str) -> str:

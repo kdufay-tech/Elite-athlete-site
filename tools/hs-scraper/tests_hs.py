@@ -11,6 +11,7 @@ import traceback
 
 import _shared  # noqa: F401  -- must import first; puts coach-scraper on sys.path
 import registry_hs
+import domains
 import associations.ghsa as ghsa
 
 FAILURES: list[str] = []
@@ -152,6 +153,52 @@ def test_group_entries_spans_a_page_break():
     blocks = ghsa.group_entries(lines)
     check("page break does not split the school", len(blocks), 1)
     check("both coaches kept", blocks[0][-1], "Dee Dee 13*")
+
+
+def test_registrable_handles_the_k12_public_suffix():
+    check("k12.ga.us keeps the district label",
+          domains.registrable("https://www.dekalb.k12.ga.us/staff"), "dekalb.k12.ga.us")
+    check("ordinary domain", domains.registrable("http://cobbk12.org/x"), "cobbk12.org")
+    check("strips www", domains.registrable("https://www.hallco.org"), "hallco.org")
+    check("blank url", domains.registrable(""), "")
+
+
+def test_unit_key_keeps_shared_cms_hosts_apart():
+    # Four unrelated county systems live on schooldesk.net. They are not one unit.
+    a = domains.unit_key("http://colquitt.high.schooldesk.net")
+    b = domains.unit_key("http://clayton.315.schooldesk.net")
+    check("colquitt keeps its own host", a, "colquitt.high.schooldesk.net")
+    check("clayton does not join it", b, "clayton.315.schooldesk.net")
+    check("they are different units", a == b, False)
+
+
+def test_unit_key_groups_a_real_district():
+    check("same district, different schools",
+          domains.unit_key("https://www.dekalb.k12.ga.us/a")
+          == domains.unit_key("http://dekalb.k12.ga.us/b"), True)
+
+
+def test_assign_sets_district_domain_and_orders_by_size():
+    mk = lambda i, u: registry_hs.HSSchool(school_id=f"ga-{i}", school=str(i),
+                                           state="GA", site_url=u)
+    schools = [mk(1, "http://cobbk12.org/a"), mk(2, "http://cobbk12.org/b"),
+               mk(3, "http://wesleyan.org"), mk(4, "")]
+    units = domains.assign(schools)
+    check("largest unit first", list(units)[0], "cobbk12.org")
+    check("shared unit has both", len(units["cobbk12.org"]), 2)
+    check("district_domain set", schools[0].district_domain, "cobbk12.org")
+    check("solo school gets its own", schools[2].district_domain, "wesleyan.org")
+    check("no site_url yields no unit", schools[3].district_domain, "")
+    check("unresolved school is in no unit",
+          any(schools[3] in v for v in units.values()), False)
+
+
+def test_mail_domain_no_longer_branches_on_is_public():
+    # A public school whose district_domain was never resolved must NOT report a
+    # blank mail domain while it has a site_url of its own.
+    s = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
+                             is_public=True, site_url="https://bowdon.org")
+    check("falls back to its own host", s.mail_domain, "bowdon.org")
 
 
 def main():
