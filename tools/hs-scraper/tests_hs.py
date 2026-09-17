@@ -484,6 +484,115 @@ def test_query_urls():
           "https://x.org/d?a=1&const_page=3")
 
 
+from adapters_hs.generic import GenericHS
+import adapters_hs.generic as generic
+
+TABLE_DIR = """
+<table>
+ <tr><td>Jane Doe</td><td>Head Volleyball Coach</td>
+     <td><a href="mailto:jane.doe@gcpsk12.org">email</a></td><td>770-555-0101</td></tr>
+ <tr><td>John Roe</td><td>Assistant Football Coach</td>
+     <td><a href="mailto:john.roe@gcpsk12.org">email</a></td></tr>
+</table>
+"""
+
+CARD_DIR = """
+<div class="staff-card"><h3>Ann Poe</h3><p>Head Soccer Coach</p>
+  <a href="mailto:ann.poe@cobbk12.org">ann.poe@cobbk12.org</a></div>
+<div class="staff-card"><h3>Ed Loe</h3><p>Athletic Director</p>
+  <a href="mailto:ed.loe@cobbk12.org">ed.loe@cobbk12.org</a></div>
+"""
+
+CTX = {"school": "Test HS", "school_id": "ga-test", "state": "GA",
+       "proof_url": "https://x.org/staff", "captured_at": "2026-09-16T00:00:00Z"}
+
+
+def test_generic_parses_table_rows():
+    rows = GenericHS().parse(TABLE_DIR, CTX)
+    check("table row count", len(rows), 2)
+    by_email = {r.email: r for r in rows}
+    jane = by_email["jane.doe@gcpsk12.org"]
+    check("table name", jane.name, "Jane Doe")
+    check("table title", jane.title, "Head Volleyball Coach")
+    check("table phone", jane.phone, "770-555-0101")
+    check("table proof_url carried", jane.proof_url, "https://x.org/staff")
+
+
+def test_generic_parses_cards():
+    rows = GenericHS().parse(CARD_DIR, CTX)
+    check("card row count", len(rows), 2)
+    by_email = {r.email: r for r in rows}
+    check("card title", by_email["ann.poe@cobbk12.org"].title, "Head Soccer Coach")
+
+
+def test_generic_never_invents_an_address():
+    html = "<div><h3>Someone With No Email</h3><p>Head Coach</p></div>"
+    rows = GenericHS().parse(html, CTX)
+    check("no email means no row", len(rows), 0)
+
+def test_blocks_anchors_each_window_on_its_own_address():
+    # The defect this locks: parse() once took emails_in(block)[0] -- the first
+    # address IN the window -- instead of the address the window was anchored
+    # on. Windows overlap on any directory denser than WINDOW_BEFORE, so every
+    # window reported the same first address and real people were deduped away.
+    dense = (
+        '<td>Ann Poe</td><td>Head Soccer Coach</td><td>ann.poe@x.org</td>'
+        '<td>Bob Roe</td><td>Head Football Coach</td><td>bob.roe@x.org</td>'
+        '<td>Cy Doe</td><td>Head Track Coach</td><td>cy.doe@x.org</td>'
+    )
+    got = generic.blocks(dense)
+    check("one window per address", len(got), 3)
+    check("windows carry their OWN anchor",
+          sorted(a for a, _w in got),
+          ["ann.poe@x.org", "bob.roe@x.org", "cy.doe@x.org"])
+    for addr, window in got:
+        check(f"{addr} window contains its anchor", addr in window, True)
+
+
+def test_parse_keeps_people_apart_on_a_dense_page():
+    dense = (
+        '<td>Ann Poe</td><td>Head Soccer Coach</td><td>ann.poe@x.org</td>'
+        '<td>Bob Roe</td><td>Head Football Coach</td><td>bob.roe@x.org</td>'
+        '<td>Cy Doe</td><td>Head Track Coach</td><td>cy.doe@x.org</td>'
+    )
+    recs = generic.GenericHS().parse(dense, {})
+    check("three people, not one", len(recs), 3)
+    by = {r.email: r for r in recs}
+    check("ann name", by["ann.poe@x.org"].name, "Ann Poe")
+    check("ann title", by["ann.poe@x.org"].title, "Head Soccer Coach")
+    check("bob did not inherit ann\'s title",
+          by["bob.roe@x.org"].title, "Head Football Coach")
+    check("cy name", by["cy.doe@x.org"].name, "Cy Doe")
+
+
+import adapters_hs
+import adapters_hs.finalsite as finalsite_mod
+
+
+# A minimal Finalsite page, defined HERE rather than reused from the Finalsite
+# task's fixture. A test that borrows another task's fixture breaks the moment
+# that task renames it, and the coupling is invisible until it does.
+FS_MIN = (
+    '<div class="fsConstituentItem"><h3 class="fsFullName">A B</h3>'
+    '<script>FS.util.insertEmail("x", "gro.x", "b.a", false);</script></div>'
+)
+
+
+def test_adapter_for_prefers_the_specific_adapter():
+    # A Finalsite page carries ordinary addresses too, so GenericHS would
+    # happily claim it. Order is what stops that, and this locks the order.
+    check("finalsite wins on a finalsite page",
+          adapters_hs.adapter_for(FS_MIN).name, "finalsite")
+    check("generic takes an ordinary directory",
+          adapters_hs.adapter_for(TABLE_DIR).name, "generic-hs")
+
+
+def test_generic_is_last_and_is_the_fallback():
+    check("generic is last", adapters_hs.ADAPTERS[-1].name, "generic-hs")
+    check("unclaimed page falls back to generic",
+          adapters_hs.adapter_for("<html>nothing here</html>").name, "generic-hs")
+
+
 def main():
     """Auto-discovers every global named test_*.
 
