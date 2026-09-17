@@ -2023,6 +2023,15 @@ function ContactsPanel({ getSession }) {
   // An untagged draft (write-your-own) is unconstrained.
   const draftSport = String((sMeta && sMeta.sport) || '').toLowerCase();
   const sportMismatch = !!draftSport && draftSport !== String(sendF.sport || '').toLowerCase();
+  // An untagged draft makes sportMismatch false, so the guard PASSES a pairing
+  // it never checked. Most untagged drafts are deliberately sport-neutral
+  // ("One Screen. Complete Roster Visibility."), so blocking them would be
+  // wrong - but reporting nothing reads as "checked and fine" when it means
+  // "could not check". Say which.
+  const sportUnverified = !draftSport
+    && !!sSubject
+    && !!String(sendF.sport || '').trim()
+    && String(sendF.sport).toLowerCase() !== 'all';
 
   const narrowActive = sendF.verifiedOnly === true || sendF.skipContactedSchools === true
     || ['source','titleIncludes','titleExcludes','divisionExcludes']
@@ -2103,7 +2112,13 @@ function ContactsPanel({ getSession }) {
       .filter(k => sendF[k] === true || String(sendF[k] || '').trim()).map(k => `${k}:${sendF[k]}`).join(' · ');
     const label = `level:${sendF.level} · state:${sendF.state} · region:${sendF.region} · sport:${sendF.sport}`
       + (narrow ? ' · ' + narrow : '') + (engagedOnly ? ' · ENGAGED ONLY' : '');
-    if (!window.confirm(`Send "${sSubject}"${draftSport ? ` (${draftSport} draft)` : ''} to the coach folder (${label})?\n\nIt goes to real recipients and cannot be undone.`)) return;
+    if (!window.confirm(
+      `Send "${sSubject}"${draftSport ? ` (${draftSport} draft)` : ''} to the coach folder (${label})?`
+      + (sportUnverified
+          ? `\n\nThis draft has NO sport tag, so nothing checked it against the "${sendF.sport}" folder. Confirm the body does not name a different sport.`
+          : '')
+      + `\n\nIt goes to real recipients and cannot be undone.`
+    )) return;
     setSendBusy(true); setSendMsg({ ok:true, text:'Sending...' });
     try {
       const s = await getSession();
@@ -2367,6 +2382,10 @@ function ContactsPanel({ getSession }) {
           {sportMismatch &&
             <div style={{ marginTop:8, padding:'10px 12px', borderRadius:8, background:'rgba(231,76,60,0.12)', border:'1px solid #e74c3c55', color:'#e07a6f', fontSize:12, lineHeight:1.5 }}>
               <b>Draft does not match the folder.</b> This is the <b>{draftSport}</b> message, but Sport is set to <b>{sendF.sport}</b>. Sending is blocked until they agree.
+            </div>}
+          {sportUnverified &&
+            <div style={{ marginTop:8, padding:'10px 12px', borderRadius:8, background:'rgba(201,168,76,0.10)', border:'1px solid #C9A84C44', color:'#C9A84C', fontSize:12, lineHeight:1.5 }}>
+              <b>Sport not checked.</b> This draft carries no sport tag, so nothing verified it against the <b>{sendF.sport}</b> folder. That is fine for a sport-neutral message — read the body and confirm it does not name a different sport. Not blocked.
             </div>}
         </div>
         <div style={{ marginBottom:10 }}><label style={lbl}>Top up existing blast — optional</label>
