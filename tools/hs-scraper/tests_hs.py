@@ -16,6 +16,7 @@ import associations.ghsa as ghsa
 import manifest
 import associations.ghsa as _ghsa
 import discover_hs
+import adapters_hs.finalsite as finalsite
 
 FAILURES: list[str] = []
 
@@ -405,6 +406,82 @@ def test_looks_like_directory_accepts_real_page():
 
 def test_looks_like_directory_rejects_styled_404():
     check("styled 404 rejected", discover_hs.looks_like_directory(STYLED_404), False)
+
+
+FS_DIR = """
+<div class="fsConstituentItem" data-constituent-id="17178">
+  <h3 class="fsFullName"> Yeshi Abzgi </h3>
+  <div class="fsTitles"><strong>Titles:</strong> Custodian </div>
+  <div class="fsEmail"><strong>Email: </strong><div id="fsEmail-275112-14869-directory">
+    <script type="text/javascript">setTimeout(function(){ FS.util.insertEmail("fsEmail-275112-14869-directory", "gro.21kspcg", "igzba.ihsey", false); }, 20);</script>
+  </div></div>
+</div>
+<div class="fsConstituentItem" data-constituent-id="21606">
+  <h3 class="fsFullName"> Cory Cason </h3>
+  <div class="fsTitles"><strong>Titles:</strong> Tchr Health &amp; PE </div>
+  <div class="fsEmail"><strong>Email: </strong><div id="fsEmail-275112-19297-directory">
+    <script type="text/javascript">setTimeout(function(){ FS.util.insertEmail("fsEmail-275112-19297-directory", "gro.21kspcg", "nosac.yroc", false); }, 20);</script>
+  </div></div>
+</div>
+"""
+
+PLAIN_PAGE = "<table><tr><td>Jane Doe</td><td>jane@x.org</td></tr></table>"
+
+
+def test_decode_email_reverses_both_halves():
+    check("brookwood custodian",
+          finalsite.decode_email("gro.21kspcg", "igzba.ihsey"),
+          "yeshi.abzgi@gcpsk12.org")
+    check("coach", finalsite.decode_email("gro.21kspcg", "nosac.yroc"),
+          "cory.cason@gcpsk12.org")
+    check("blank halves yield nothing", finalsite.decode_email("", ""), "")
+    check("half blank yields nothing", finalsite.decode_email("gro.x", ""), "")
+
+
+def test_detect_fires_only_on_finalsite():
+    check("real finalsite markup", finalsite.Finalsite().detect(FS_DIR), True)
+    check("a plain table is not finalsite",
+          finalsite.Finalsite().detect(PLAIN_PAGE), False)
+    check("empty", finalsite.Finalsite().detect(""), False)
+
+
+def test_parse_recovers_name_title_and_decoded_address():
+    recs = finalsite.Finalsite().parse(FS_DIR, {})
+    check("two people", len(recs), 2)
+    by = {r.email: r for r in recs}
+    check("custodian name", by["yeshi.abzgi@gcpsk12.org"].name, "Yeshi Abzgi")
+    check("custodian title", by["yeshi.abzgi@gcpsk12.org"].title, "Custodian")
+    check("coach name", by["cory.cason@gcpsk12.org"].name, "Cory Cason")
+    check("entities unescaped in title",
+          by["cory.cason@gcpsk12.org"].title, "Tchr Health & PE")
+    check("platform stamped", by["cory.cason@gcpsk12.org"].platform, "finalsite")
+
+
+def test_parse_invents_nothing_when_the_address_is_absent():
+    # A constituent with a name and a title but NO insertEmail call yields no
+    # row. There is no path from a name to an address, by design.
+    no_addr = """
+    <div class="fsConstituentItem">
+      <h3 class="fsFullName"> Ghost Person </h3>
+      <div class="fsTitles"><strong>Titles:</strong> Head Football Coach </div>
+    </div>
+    """
+    check("no address, no row", finalsite.Finalsite().parse(no_addr, {}), [])
+
+
+def test_query_urls():
+    check("search by surname",
+          finalsite.search_url("https://x.gcpsk12.org/directory", "Fowler"),
+          "https://x.gcpsk12.org/directory?const_search_last_name=Fowler")
+    check("search url-encodes",
+          finalsite.search_url("https://x.org/d", "O'Brien"),
+          "https://x.org/d?const_search_last_name=O%27Brien")
+    check("pagination",
+          finalsite.page_url("https://x.gcpsk12.org/directory", 2),
+          "https://x.gcpsk12.org/directory?const_page=2")
+    check("existing query string is preserved",
+          finalsite.page_url("https://x.org/d?a=1", 3),
+          "https://x.org/d?a=1&const_page=3")
 
 
 def main():
