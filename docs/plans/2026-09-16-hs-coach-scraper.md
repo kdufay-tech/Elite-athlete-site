@@ -2407,17 +2407,54 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Export the ground truth**
 
-The 1,163 proven Metro Atlanta addresses come out of Supabase once:
+The 1,163 proven Metro Atlanta addresses are the only ground truth this project
+will ever have: every one has a delivery on record. Verified against the live
+database on 2026-09-16 — **1,163 rows, 1,163 distinct addresses, 106 schools,
+zero nameless, zero without a sport.** If your export does not reproduce those
+five numbers, stop and report rather than proceeding, because every recall figure
+downstream is measured against this file.
+
+There is no `psql` in this environment, so pull it through the Supabase MCP tool
+rather than `COPY … TO STDOUT`:
+
+- tool: `mcp__6499f091-7780-46c3-a80e-ffcddd25f108__execute_sql`
+- `project_id`: `mllqcjvvflieszmjipfs`
+
+Page it — do **not** request 1,163 rows in one call, the response is large. Use
+`limit`/`offset` of 300 and append as you go:
 
 ```sql
-COPY (
-  SELECT lower(email) AS email, coach_name, school, sport
-  FROM coach_contacts
-  WHERE source ILIKE 'BookYourData%' AND status='active'
-) TO STDOUT WITH CSV HEADER;
+SELECT lower(email) AS email, coach_name, school, sport
+FROM coach_contacts
+WHERE source ILIKE 'BookYourData%' AND status = 'active'
+ORDER BY email
+LIMIT 300 OFFSET 0;
 ```
 
-Save as `tools/hs-scraper/data/metro_known.csv`.
+Write the result to `tools/hs-scraper/data/metro_known.csv` with header
+`email,coach_name,school,sport`, one row per record, standard CSV quoting.
+
+`data/` is gitignored — this file is **not** committed. It is derived from the
+database and is re-exported by anyone who needs it, and it holds contact data
+that has no business in git history.
+
+Verify before moving on:
+
+```bash
+cd tools/hs-scraper && python -c "
+import csv, collections
+rows = list(csv.DictReader(open('data/metro_known.csv', encoding='utf-8')))
+print('rows:', len(rows))
+print('distinct emails:', len({r['email'].lower() for r in rows}))
+print('schools:', len({r['school'] for r in rows}))
+print('blank names:', sum(1 for r in rows if not (r['coach_name'] or '').strip()))
+print('blank sports:', sum(1 for r in rows if not (r['sport'] or '').strip()))
+print('by sport:', collections.Counter(r['sport'] for r in rows).most_common())
+"
+```
+
+Expected exactly: rows 1163, distinct emails 1163, schools 106, blank names 0,
+blank sports 0.
 
 - [ ] **Step 2: Write the failing test**
 
