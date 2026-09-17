@@ -2070,11 +2070,20 @@ import adapters_hs
 import adapters_hs.finalsite as finalsite_mod
 
 
+# A minimal Finalsite page, defined HERE rather than reused from the Finalsite
+# task's fixture. A test that borrows another task's fixture breaks the moment
+# that task renames it, and the coupling is invisible until it does.
+FS_MIN = (
+    '<div class="fsConstituentItem"><h3 class="fsFullName">A B</h3>'
+    '<script>FS.util.insertEmail("x", "gro.x", "b.a", false);</script></div>'
+)
+
+
 def test_adapter_for_prefers_the_specific_adapter():
     # A Finalsite page carries ordinary addresses too, so GenericHS would
     # happily claim it. Order is what stops that, and this locks the order.
     check("finalsite wins on a finalsite page",
-          adapters_hs.adapter_for(FS_DIR).name, "finalsite")
+          adapters_hs.adapter_for(FS_MIN).name, "finalsite")
     check("generic takes an ordinary directory",
           adapters_hs.adapter_for(TABLE_DIR).name, "generic-hs")
 
