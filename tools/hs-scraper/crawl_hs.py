@@ -64,3 +64,48 @@ def crawl_school(fetcher: "net.Fetcher", arch: "archive.Archive",
 
     arch.set_status(school.school_id, "no-directory")
     return "no-directory"
+
+
+# Cap per school, so a malformed roster cannot walk a server indefinitely.
+MAX_LOOKUPS_PER_SCHOOL = 120
+
+
+def lookup_roster(fetcher, arch, school_id: str, base_url: str, adapter,
+                  surnames) -> int:
+    """Fetch one directory query per coach surname. Returns pages stored.
+
+    NOT pagination, and deliberately so. Walking ?const_page=N does not work on
+    this CMS: every page number, and the bare url too, returns whatever the
+    edge cache last stored, and adding a cache-busting parameter makes the page
+    return nothing at all. Worse, probing the cursor CHANGES what the bare url
+    serves, so "page one" is whatever the last request left behind.
+
+    Targeted lookup is the better tool regardless. Finding a school's 35 coaches
+    by pagination means fetching twenty pages covering two thousand staff;
+    by surname it is 35 requests returning exactly those 35 people. Pagination
+    is what you reach for when you do not know who you are looking for, and the
+    association named all 8,201 of them.
+
+    Each result is archived under its own kind so the upsert key
+    (school_id, kind) keeps them apart rather than overwriting.
+    """
+    stored = 0
+    for surname in sorted(set(surnames))[:MAX_LOOKUPS_PER_SCHOOL]:
+        if not surname:
+            continue
+        url = adapter_search_url(base_url, surname)
+        resp = fetcher.get(url)
+        if not resp.ok or not resp.html:
+            continue
+        if not adapter.parse(resp.html, {}):
+            continue                  # nobody by that name here; store nothing
+        key = "".join(c for c in surname.lower() if c.isalnum())[:24]
+        arch.store_page(school_id, f"staff:q:{key}", url, resp.final_url,
+                        resp.status, resp.html, adapter.name, None)
+        stored += 1
+    return stored
+
+
+def adapter_search_url(base_url: str, surname: str) -> str:
+    import adapters_hs.finalsite as _fs
+    return _fs.search_url(base_url, surname)

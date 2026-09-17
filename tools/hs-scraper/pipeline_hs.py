@@ -28,6 +28,27 @@ import manifest
 import normalize
 
 
+def iter_staff_pages(arch):
+    """Every archived staff page, including paginated ones.
+
+    archive.iter_pages() matches `kind` exactly, and paginated pages are stored
+    as "staff:2", "staff:3" and so on because the archive's upsert key is
+    (school_id, kind) -- reusing "staff" would overwrite page one. The college
+    package is off limits to modify, so this reads the same connection with a
+    prefix match rather than changing iter_pages().
+    """
+    import zlib
+
+    cur = arch.conn.execute(
+        "SELECT * FROM pages WHERE (kind = 'staff' OR kind LIKE 'staff:%') "
+        "AND html_z IS NOT NULL ORDER BY school_id, kind"
+    )
+    for row in cur:
+        data = dict(row)
+        data["html"] = zlib.decompress(row["html_z"]).decode("utf-8", "replace")
+        yield data
+
+
 def extract(arch, schools: list, roster: list) -> list:
     """Parse every archived staff page into normalised, attributed contacts.
 
@@ -40,7 +61,7 @@ def extract(arch, schools: list, roster: list) -> list:
 
     raw: list = []
     page_school: dict[int, str] = {}
-    for page in arch.iter_pages("staff"):
+    for page in iter_staff_pages(arch):
         html = page.get("html") or ""
         if not html:
             continue
