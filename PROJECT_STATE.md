@@ -576,18 +576,28 @@ checkout **as a returning customer** - that is the path that would break.
 | Version in project | **1.0.7 (19)** - `ee8cd41` | **1.0.6 (vc14)** - bumped 2026-09-17 |
 | Last packaged | Mac, Xcode archive | Windows, 2026-09-17 - signed AAB + APK, verified |
 
-**Store state.** Android confirmed 2026-09-17. iOS rows are still as recorded
-2026-09-15 and NOT re-confirmed - check App Store Connect before shipping:
+**Store state.** Both platforms confirmed 2026-09-17. iOS was established by an
+App Store Connect rejection, which is authoritative - see below:
 
 | | iOS | Android |
 |---|---|---|
-| Live | 1.0.5 (build 17) - unconfirmed | **1.0.6 (vc13)** - confirmed 2026-09-17 |
-| Submitted | 1.0.6 (18) - outcome never recorded | **1.0.6 (vc14)** - in review 2026-09-17 |
+| Live | **1.0.7 (19)** - confirmed 2026-09-17 | **1.0.6 (vc13)** - confirmed 2026-09-17 |
+| Next | 1.0.8 (20) - 1.0.7 train closed | **1.0.6 (vc14)** - in review 2026-09-17 |
 
-iOS moved to **1.0.7 (19)** in `ee8cd41` to carry the localhost share-link fix.
-That supersedes the old "let 18 ship and follow with 1.0.7, or reject and
-resubmit" question - 1.0.7 exists either way - but what became of build 18 was
-never written down. Android took the same fix as vc13, so the two platforms'
+iOS 1.0.7 (19) was built by `ee8cd41` to carry the localhost share-link fix, and
+it **shipped** - confirmed 2026-09-17 when an upload of a new 1.0.7 build was
+rejected with:
+
+- `90186` Invalid Pre-Release Train. The train version '1.0.7' is closed for new
+  build submissions
+- `90062` CFBundleShortVersionString [1.0.7] must contain a higher version than
+  that of the previously approved version [1.0.7]
+
+So the next iOS release is **1.0.8 (20)**. Bumping only `CURRENT_PROJECT_VERSION`
+does not clear 90062 - that error is about `CFBundleShortVersionString`, so
+`MARKETING_VERSION` has to move too. What became of build 18 (1.0.6) is still
+unrecorded and no longer matters: 1.0.7 superseded it.
+
 marketing versions diverged: iOS 1.0.7, Android 1.0.6.
 
 ### vc13 is retired - the Android release is vc14  (2026-09-17)
