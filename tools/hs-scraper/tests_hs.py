@@ -15,6 +15,7 @@ import domains
 import associations.ghsa as ghsa
 import manifest
 import associations.ghsa as _ghsa
+import discover_hs
 
 FAILURES: list[str] = []
 
@@ -360,6 +361,50 @@ def test_attribute_matches_names_case_and_punctuation_insensitively():
     rec = CoachRecord(name="  ANN OREED SMITH ", email="a@cobbk12.org", school="")
     manifest.attribute([rec], unit)
     check("normalised match still lands", rec.school, "Allatoona")
+
+
+NAV = """
+<html><body>
+  <a href="/about">About Us</a>
+  <a href="/athletics/staff-directory">Staff Directory</a>
+  <a href="/athletics">Athletics</a>
+  <a href="/lunch-menu">Lunch Menu</a>
+</body></html>
+"""
+
+DIRECTORY = """
+<table>
+ <tr><td>Jane Doe</td><td>Head Volleyball Coach</td>
+     <td><a href="mailto:jane.doe@gcpsk12.org">jane.doe@gcpsk12.org</a></td></tr>
+ <tr><td>John Roe</td><td>Assistant Football Coach</td>
+     <td><a href="mailto:john.roe@gcpsk12.org">john.roe@gcpsk12.org</a></td></tr>
+ <tr><td>Ann Poe</td><td>Head Soccer Coach</td>
+     <td><a href="mailto:ann.poe@gcpsk12.org">ann.poe@gcpsk12.org</a></td></tr>
+</table>
+"""
+
+STYLED_404 = "<html><body><h1>Page Not Found</h1><p>Sorry.</p></body></html>"
+
+
+def test_score_link_prefers_staff_directory():
+    hi = discover_hs.score_link("Staff Directory", "/athletics/staff-directory")
+    lo = discover_hs.score_link("Lunch Menu", "/lunch-menu")
+    if hi <= lo:
+        FAILURES.append(f"staff directory should outscore lunch menu: {hi} vs {lo}")
+
+
+def test_best_staff_links_orders_by_score():
+    links = discover_hs.best_staff_links(NAV, "https://x.org")
+    check("best link is the staff directory", links[0],
+          "https://x.org/athletics/staff-directory")
+
+
+def test_looks_like_directory_accepts_real_page():
+    check("real directory accepted", discover_hs.looks_like_directory(DIRECTORY), True)
+
+
+def test_looks_like_directory_rejects_styled_404():
+    check("styled 404 rejected", discover_hs.looks_like_directory(STYLED_404), False)
 
 
 def main():
