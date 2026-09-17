@@ -132,32 +132,24 @@ def crawl_school_deep(fetcher, arch, school, roster_names=None) -> str:
     storing it twice inflates nothing but the page count -- while an unrelated
     second page with genuinely different people is exactly what we are here for.
 
-    `roster_names` is what makes a page count. When a school's own site is dead
-    the start url falls back to its mail domain, which is the DISTRICT root, and
-    a district root always has three addresses so it always passed the old gate.
-    Milton archived fultonschools.org/directory; Locust Grove and Ola archived
-    the SAME Henry County leadership page; McEachern archived Cobb's
-    transportation staff. Every one scored zero afterwards, because those are
-    district employees and no attribution could honestly assign them to a school.
+    `roster_names` is ACCEPTED AND IGNORED. It fed a gate that rejected any page
+    naming nobody from the school's crawl unit, on the reasoning that Milton's
+    dead site fell back to fultonschools.org and archived the district directory
+    -- 107 real addresses, not one a Milton employee.
 
-    So a page is this school's directory only if it names at least one person the
-    association says works there. That is evidence rather than heuristic, it uses
-    the same normalisation attribution uses, and it means a page is kept exactly
-    when it would contribute at least one attributable row. A district page that
-    does happen to list this school's coach is still kept -- correctly, because
-    then it really is useful for this school.
+    Measured, that gate made recall WORSE: 16.7% -> 12.3%, matched 194 -> 143.
+    The reason is a population mismatch. manifest.build() filters roster entries
+    to those carrying one of the five target sports, so unit.targets is not
+    "everyone the association lists" but "coaches in our sports". Recall is
+    measured against BookYourData, whose addresses include coaches the
+    association coded with no sport, or never listed. Gating on one population
+    while scoring against another discarded pages full of genuine matches.
 
-    Pass the names for the whole CRAWL UNIT, not just this school. Attribution
-    works at unit level: a Fulton district directory filed under ga-milton has
-    its records assigned by name to whichever Fulton school each coach actually
-    works at, so that page can legitimately supply a dozen schools while naming
-    nobody from Milton. Checking this school's roster alone would throw it away
-    and lose every one of those matches -- rejecting a page for being filed
-    under the wrong school rather than for being useless.
+    Kept as a parameter so callers need not change, and documented here so the
+    idea is not re-derived and re-shipped: it is a reasonable-sounding filter
+    that costs real coaches. If a page-relevance test is wanted, it has to be
+    built against the population being scored, not this one.
 
-    With no roster names to check against, the page is accepted: a school the
-    association never listed has nothing to verify against, and rejecting
-    everything would be worse than the old behaviour.
     """
     starts = [u for u in (
         school.site_url,
@@ -183,10 +175,6 @@ def crawl_school_deep(fetcher, arch, school, roster_names=None) -> str:
                    if u not in candidates]
 
     import adapters_hs
-    import manifest
-
-    wanted = {manifest.norm_person(n) for n in (roster_names or []) if n}
-    wanted.discard("")
 
     kept = 0
     seen_sets: list[set] = []
@@ -200,11 +188,6 @@ def crawl_school_deep(fetcher, arch, school, roster_names=None) -> str:
             continue
 
         parsed = adapters_hs.adapter_for(page.html).parse(page.html, {})
-        if wanted:
-            names = {manifest.norm_person(r.name) for r in parsed if r.name}
-            if not (names & wanted):
-                continue              # names nobody from this school
-
         addrs = {r.email for r in parsed if r.email}
         if any(addrs and addrs <= prev for prev in seen_sets):
             continue                  # same listing by another path

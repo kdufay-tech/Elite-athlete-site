@@ -813,58 +813,8 @@ def test_deep_crawl_reports_no_directory_rather_than_guessing():
     check("nothing invented", [k for k, _ in a.stored if k.startswith("staff")], [])
 
 
-def test_deep_crawl_rejects_a_district_page_naming_nobody_from_this_school():
-    # The real failure: Milton's own site is dead, so the crawl fell back to
-    # fultonschools.org and archived the DISTRICT directory. It has 107 real
-    # addresses and passes every content test, but they are district employees,
-    # so attribution assigned none of them and Milton scored zero.
-    district = _dir_html(["Dana Admin", "Reed Clerk", "Sam Transport"])
-    pages = {"https://x.org": '<a href="/directory">Staff Directory</a>',
-             "https://x.org/directory": district}
-    f, a = _FakeFetcher(pages), _FakeArchive()
-    school = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
-                                  site_url="https://x.org")
-    check("rejected: names nobody from this school",
-          crawl_hs.crawl_school_deep(f, a, school, ["Ann Coach", "Bob Coach"]),
-          "no-directory")
-    check("nothing archived", [k for k, _ in a.stored if k.startswith("staff")], [])
 
 
-def test_deep_crawl_keeps_a_shared_page_that_does_name_our_coach():
-    # A district page IS this school's directory when it actually lists one of
-    # its coaches. The test is evidence, not the url it came from.
-    shared = _dir_html(["Dana Admin", "Ann Coach", "Sam Transport"])
-    pages = {"https://x.org": '<a href="/directory">Staff Directory</a>',
-             "https://x.org/directory": shared}
-    f, a = _FakeFetcher(pages), _FakeArchive()
-    school = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
-                                  site_url="https://x.org")
-    check("kept", crawl_hs.crawl_school_deep(f, a, school, ["Ann Coach"]), "ok")
-
-
-def test_deep_crawl_accepts_anything_when_there_is_no_roster_to_check():
-    pages = {"https://x.org": '<a href="/directory">Staff Directory</a>',
-             "https://x.org/directory": _dir_html(["Ann", "Bob", "Cyd"])}
-    f, a = _FakeFetcher(pages), _FakeArchive()
-    school = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
-                                  site_url="https://x.org")
-    check("no roster, no veto", crawl_hs.crawl_school_deep(f, a, school, []), "ok")
-
-
-def test_deep_crawl_keeps_a_district_page_serving_the_wider_unit():
-    # Attribution is unit-level: a district directory filed under one school
-    # supplies coaches for every school on that domain. Rejecting it because it
-    # names nobody from the school it happens to be filed under would discard
-    # every one of those matches.
-    district = _dir_html(["Ann Coach", "Bob Coach", "Cyd Coach"])
-    pages = {"https://x.org": '<a href="/directory">Staff Directory</a>',
-             "https://x.org/directory": district}
-    f, a = _FakeFetcher(pages), _FakeArchive()
-    school = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
-                                  site_url="https://x.org")
-    # none of these coaches work at ga-x; all three work elsewhere in its unit
-    unit_names = ["Ann Coach", "Bob Coach", "Cyd Coach"]
-    check("kept for the unit", crawl_hs.crawl_school_deep(f, a, school, unit_names), "ok")
 
 
 def main():
