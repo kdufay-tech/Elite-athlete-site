@@ -573,8 +573,8 @@ checkout **as a returning customer** - that is the path that would break.
 
 | | iOS | Android |
 |---|---|---|
-| Version in project | **1.0.7 (19)** - `ee8cd41` | **1.0.6 (vc13)** - `c908a15` |
-| Last packaged | Mac, Xcode archive | Windows, 2026-09-17 - signed APK, verified |
+| Version in project | **1.0.7 (19)** - `ee8cd41` | **1.0.6 (vc14)** - bumped 2026-09-17 |
+| Last packaged | Mac, Xcode archive | Windows, 2026-09-17 - signed AAB + APK, archived |
 
 **Store state** - as recorded 2026-09-15 and NOT re-confirmed since. Check the
 consoles before shipping; this table has drifted from reality before:
@@ -590,10 +590,10 @@ resubmit" question - 1.0.7 exists either way - but what became of build 18 was
 never written down. Android took the same fix as vc13, so the two platforms'
 marketing versions diverged: iOS 1.0.7, Android 1.0.6.
 
-### vc13 has been built twice  (2026-09-17)
+### vc13 is retired - the Android release is vc14  (2026-09-17)
 
-The vc13 previously recorded here as "device-tested, coach + athlete verified"
-was built from **2026-09-08** code. A second vc13 was built **2026-09-17**
+vc13 was built twice. The one recorded here as "device-tested, coach + athlete
+verified" was built from **2026-09-08** code; a second vc13 was built 2026-09-17
 carrying five further `src/` commits:
 
 - `1834a69` capture ledger + canary, share links to Athlete/seats, age gate 13+
@@ -602,14 +602,29 @@ carrying five further `src/` commits:
 - `89463fc` vitest coverage
 - `9422598` remove warm machinery
 
-Same versionCode, materially different app. The 09-08 device pass does not cover
-the age gate or the checkout change, so **re-test before shipping**. The 09-17
-APK itself verified clean: signed by Taradome Entertainment Group LLC, synced
-bundle byte-identical to `dist/`, `js.stripe.com` occurrences 0.
+Same versionCode, materially different app. **13 had already been uploaded to
+Play**, so it is permanently retired: Play burns a versionCode the moment it
+touches any track - internal, closed, open or production, not only the one that
+shipped. The Android release is therefore **vc14**, built 2026-09-17 from those
+same five commits.
 
-**Play retires a versionCode permanently once it is uploaded to any track** -
-internal, closed, open or production, not only the one that shipped. If either
-vc13 was ever uploaded, the next Android build must exceed 13.
+A stale `app-release.aab` from 09-08 was sitting in `outputs/bundle/release/`
+the whole time, carrying `index-DOSu1xyN.js` and no `checkout-*.js` chunk at
+all. Uploading it would have shipped nine-day-old code under a current version
+number. It has since been overwritten. **Check the artifact's contents, not its
+path** - the filename is identical either way.
+
+vc14 verified: versionCode 14 / versionName 1.0.6 baked in, signed by Taradome
+Entertainment Group LLC (`ELITE-AT.RSA`), synced bundle byte-identical to
+`dist/`, `js.stripe.com` occurrences 0, and `checkout-CdupPzOu.js` present as a
+separate lazy chunk.
+
+Archived to `App Development/Elite Athlete/EliteAthlete-Backups/2026-09-17/`:
+- `elite-athlete-v1.0.6-vc14.aab` (18.98 MB) - the Play upload artifact
+- `elite-athlete-v1.0.6-vc14.apk` (19.54 MB) - sideload for the device pass
+
+**Nothing goes to production before a device pass. Standing rule.** The 09-08
+test does not cover the age gate or the checkout change.
 
 Live 1.0.5 builds embed web code from **2026-09-04** (Android 17:55, iOS 21:26
 ET). **41** `src/` commits have landed since, counted 2026-09-17, so the live
