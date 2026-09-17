@@ -692,6 +692,38 @@ def test_entropy_allows_normal_names():
     check("normal list passes entropy", raised, False)
 
 
+import score_metro
+from adapters.base import CoachRecord  # this task's own import: tests_hs.py is
+# shared, so a name another task imported is borrowed, not owned
+
+
+def test_score_computes_recall_and_agreement():
+    known = [
+        {"email": "a@d.org", "coach_name": "Ann Aye", "school": "Alpha"},
+        {"email": "b@d.org", "coach_name": "Bob Bee", "school": "Beta"},
+        {"email": "c@d.org", "coach_name": "Cid Cee", "school": "Gamma"},
+    ]
+    found = [
+        CoachRecord(email="a@d.org", name="Ann Aye", school="Alpha"),
+        CoachRecord(email="b@d.org", name="Bob Bee", school="Beta"),
+        CoachRecord(email="z@d.org", name="Zed Zee", school="Zulu"),
+    ]
+    r = score_metro.score(found, known)
+    check("recall 2 of 3", r["recall"], 66.7)
+    check("matched", r["matched"], 2)
+    check("missed", r["missed"], 1)
+    check("novel counted separately", r["novel"], 1)
+    check("agreement 100pct", r["agreement"], 100.0)
+
+
+def test_agreement_catches_wrong_school():
+    known = [{"email": "a@d.org", "coach_name": "Ann Aye", "school": "Alpha"}]
+    found = [CoachRecord(email="a@d.org", name="Ann Aye", school="WRONG")]
+    r = score_metro.score(found, known)
+    check("recall still 100", r["recall"], 100.0)
+    check("agreement drops", r["agreement"], 0.0)
+
+
 def main():
     """Auto-discovers every global named test_*.
 
