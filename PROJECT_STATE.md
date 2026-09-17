@@ -582,7 +582,7 @@ App Store Connect rejection, which is authoritative - see below:
 | | iOS | Android |
 |---|---|---|
 | Live | **1.0.7 (19)** - confirmed 2026-09-17 | **1.0.6 (vc13)** - confirmed 2026-09-17 |
-| Next | 1.0.8 (20) - 1.0.7 train closed | **1.0.6 (vc14)** - in review 2026-09-17 |
+| Submitted | **1.0.8 (20)** - in review 2026-09-17 | **1.0.6 (vc14)** - in review 2026-09-17 |
 
 iOS 1.0.7 (19) was built by `ee8cd41` to carry the localhost share-link fix, and
 it **shipped** - confirmed 2026-09-17 when an upload of a new 1.0.7 build was
@@ -593,10 +593,17 @@ rejected with:
 - `90062` CFBundleShortVersionString [1.0.7] must contain a higher version than
   that of the previously approved version [1.0.7]
 
-So the next iOS release is **1.0.8 (20)**. Bumping only `CURRENT_PROJECT_VERSION`
-does not clear 90062 - that error is about `CFBundleShortVersionString`, so
-`MARKETING_VERSION` has to move too. What became of build 18 (1.0.6) is still
-unrecorded and no longer matters: 1.0.7 superseded it.
+So the next iOS release is **1.0.8 (20)**, submitted for review 2026-09-17.
+Bumping only `CURRENT_PROJECT_VERSION` does not clear 90062 - that error is about
+`CFBundleShortVersionString`, so `MARKETING_VERSION` has to move too. What became
+of build 18 (1.0.6) is still unrecorded and no longer matters: 1.0.7 superseded
+it.
+
+**The 1.0.8 (20) bump was made in Xcode on the Mac and is not in git as of this
+writing** - `origin/master` still carries 1.0.7 (19). Commit and push
+`ios/App/App.xcodeproj/project.pbxproj` from the Mac, or the next iOS build made
+anywhere else will be 1.0.7 again and rejected the same way. Third instance today
+of a change living on one machine that the repo does not know about.
 
 marketing versions diverged: iOS 1.0.7, Android 1.0.6.
 
