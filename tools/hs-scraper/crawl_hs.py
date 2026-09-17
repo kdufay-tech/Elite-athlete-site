@@ -118,7 +118,7 @@ def adapter_search_url(base_url: str, surname: str) -> str:
 MAX_STAFF_PAGES_PER_SCHOOL = 6
 
 
-def crawl_school_deep(fetcher, arch, school) -> str:
+def crawl_school_deep(fetcher, arch, school, roster_names=None) -> str:
     """Like crawl_school, but keeps EVERY candidate that is a directory.
 
     crawl_school returns on the first page that passes looks_like_directory().
@@ -131,6 +131,25 @@ def crawl_school_deep(fetcher, arch, school) -> str:
     routinely reachable at /athletics/staff-directory and /staff-directory, and
     storing it twice inflates nothing but the page count -- while an unrelated
     second page with genuinely different people is exactly what we are here for.
+
+    `roster_names` is what makes a page count. When a school's own site is dead
+    the start url falls back to its mail domain, which is the DISTRICT root, and
+    a district root always has three addresses so it always passed the old gate.
+    Milton archived fultonschools.org/directory; Locust Grove and Ola archived
+    the SAME Henry County leadership page; McEachern archived Cobb's
+    transportation staff. Every one scored zero afterwards, because those are
+    district employees and no attribution could honestly assign them to a school.
+
+    So a page is this school's directory only if it names at least one person the
+    association says works there. That is evidence rather than heuristic, it uses
+    the same normalisation attribution uses, and it means a page is kept exactly
+    when it would contribute at least one attributable row. A district page that
+    does happen to list this school's coach is still kept -- correctly, because
+    then it really is useful for this school.
+
+    With no roster names to check against, the page is accepted: a school the
+    association never listed has nothing to verify against, and rejecting
+    everything would be worse than the old behaviour.
     """
     starts = [u for u in (
         school.site_url,
@@ -155,7 +174,12 @@ def crawl_school_deep(fetcher, arch, school) -> str:
     candidates += [u for u in discover_hs.direct_candidates(home.final_url)
                    if u not in candidates]
 
-    from adapters.base import emails_in
+    import adapters_hs
+    import manifest
+
+    wanted = {manifest.norm_person(n) for n in (roster_names or []) if n}
+    wanted.discard("")
+
     kept = 0
     seen_sets: list[set] = []
     for url in candidates:
@@ -166,10 +190,14 @@ def crawl_school_deep(fetcher, arch, school) -> str:
             continue
         if not discover_hs.looks_like_directory(page.html):
             continue
-        addrs = set(emails_in(page.html))
-        if not addrs:
-            import adapters_hs
-            addrs = {r.email for r in adapters_hs.adapter_for(page.html).parse(page.html, {}) if r.email}
+
+        parsed = adapters_hs.adapter_for(page.html).parse(page.html, {})
+        if wanted:
+            names = {manifest.norm_person(r.name) for r in parsed if r.name}
+            if not (names & wanted):
+                continue              # names nobody from this school
+
+        addrs = {r.email for r in parsed if r.email}
         if any(addrs and addrs <= prev for prev in seen_sets):
             continue                  # same listing by another path
         seen_sets.append(addrs)
