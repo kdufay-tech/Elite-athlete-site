@@ -1748,7 +1748,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 6: Generic proximity adapter
 
 **Files:**
-- Create: `tools/hs-scraper/adapters_hs/__init__.py`
+- Create: `tools/hs-scraper/adapters_hs/__init__.py` (the adapter registry)
 - Create: `tools/hs-scraper/adapters_hs/generic.py`
 - Modify: `tools/hs-scraper/tests_hs.py`
 
@@ -1756,7 +1756,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Consumes: `adapters.base.Adapter`, `adapters.base.CoachRecord`, `adapters.base.emails_in`,
   `adapters.base.PHONE`.
 - Produces: `generic.GenericHS` with `detect(html) -> bool` and
-  `parse(html, ctx) -> list[CoachRecord]`; `generic.blocks(html) -> list[tuple[str, str]]` (address, window).
+  `parse(html, ctx) -> list[CoachRecord]`; `generic.blocks(html) -> list[tuple[str, str]]` (address, window);
+  `adapters_hs.ADAPTERS`, `adapters_hs.adapter_for(html) -> Adapter`.
 
 **Three defects were found in this task's code before dispatch**, by extracting
 its code block and its test block into a scratch package and running one against
@@ -1869,7 +1870,7 @@ def test_parse_keeps_people_apart_on_a_dense_page():
 Run: `cd tools/hs-scraper && python tests_hs.py`
 Expected: FAIL — `ModuleNotFoundError: No module named 'adapters_hs'`
 
-- [ ] **Step 3: Write `adapters_hs/__init__.py` and `adapters_hs/generic.py`**
+- [ ] **Step 3: Write `adapters_hs/generic.py`**
 
 `adapters_hs/__init__.py` is empty.
 
@@ -2023,12 +2024,73 @@ class GenericHS(Adapter):
         return out
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [ ] **Step 4: Write the adapter registry in `adapters_hs/__init__.py`**
+
+**Adding an adapter is two changes, and this is the one nobody writes a test
+for.** Without a registry every downstream step instantiates `GenericHS()`
+directly, so the Finalsite adapter would be committed, tested, passing, and
+never called by anything — and the four largest district domains in Georgia
+would keep parsing as empty. Mirrors `adapters/__init__.py` in the college
+package, which has had this shape from the start.
+
+```python
+"""Adapter registry: most specific first, generic last.
+
+Order is the whole contract. Each adapter's detect() is asked in turn and the
+first to claim the page wins, so a specific adapter must come BEFORE the generic
+one -- the generic answers True for any page carrying three addresses, so placed
+first it would claim everything and no specific adapter would ever run.
+
+GenericHS is also the fallback when nobody claims the page. Lowest priority and
+last resort are the same position, which is why one list expresses both.
+"""
+
+from adapters.base import Adapter, CoachRecord, emails_in  # noqa: F401
+from .finalsite import Finalsite
+from .generic import GenericHS
+
+ADAPTERS: list = [Finalsite(), GenericHS()]
+
+
+def adapter_for(html: str) -> Adapter:
+    for adapter in ADAPTERS:
+        if adapter.detect(html):
+            return adapter
+    return ADAPTERS[-1]
+
+
+__all__ = ["Adapter", "CoachRecord", "emails_in",
+           "Finalsite", "GenericHS", "ADAPTERS", "adapter_for"]
+```
+
+Add to `tests_hs.py`:
+
+```python
+import adapters_hs
+import adapters_hs.finalsite as finalsite_mod
+
+
+def test_adapter_for_prefers_the_specific_adapter():
+    # A Finalsite page carries ordinary addresses too, so GenericHS would
+    # happily claim it. Order is what stops that, and this locks the order.
+    check("finalsite wins on a finalsite page",
+          adapters_hs.adapter_for(FS_DIR).name, "finalsite")
+    check("generic takes an ordinary directory",
+          adapters_hs.adapter_for(TABLE_DIR).name, "generic-hs")
+
+
+def test_generic_is_last_and_is_the_fallback():
+    check("generic is last", adapters_hs.ADAPTERS[-1].name, "generic-hs")
+    check("unclaimed page falls back to generic",
+          adapters_hs.adapter_for("<html>nothing here</html>").name, "generic-hs")
+```
+
+- [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `cd tools/hs-scraper && python tests_hs.py`
 Expected: `all passed`
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add tools/hs-scraper/adapters_hs/ tools/hs-scraper/tests_hs.py
@@ -2469,14 +2531,15 @@ Expected: `all passed`
 ```bash
 cd tools/hs-scraper && python -c "
 import _shared, archive, normalize, score_metro, gates_hs, export_hs
-from adapters_hs.generic import GenericHS
+from adapters_hs import adapter_for
 arch = archive.Archive('data/hs_archive.sqlite')
-ad, found = GenericHS(), []
+found = []
 for page in arch.iter_pages('staff'):
     ctx = {'school': page.get('school_id',''), 'school_id': page.get('school_id',''),
            'state': 'GA', 'proof_url': page.get('final_url') or page.get('url',''),
            'captured_at': page.get('fetched_at','')}
-    found += ad.parse(page['html'], ctx)
+    _h = page['html']
+    found += adapter_for(_h).parse(_h, ctx)
 found = normalize.dedupe([r for r in (normalize.normalize(x) for x in found) if r])
 found = [r for r in found if gates_hs.keep(r)]
 gates_hs.assert_entropy(found)
@@ -2585,11 +2648,13 @@ arch = archive.Archive('data/hs_archive.sqlite'); print(run(arch)); arch.close()
 cd tools/hs-scraper && python -c "
 import _shared, archive
 from adapters_hs.census import platform_of
-from adapters_hs.generic import GenericHS
-arch, ad = archive.Archive('data/hs_archive.sqlite'), GenericHS()
+from adapters_hs import adapter_for
+arch = archive.Archive('data/hs_archive.sqlite')
 for page in arch.iter_pages('staff'):
     html = page.get('html') or ''
-    if platform_of(html) == 'finalsite' and len(ad.parse(html, {})) == 0:
+    # 'finalsite' is already handled by its own adapter -- substitute whichever
+    # platform the census in Step 2 actually shows as unparsed.
+    if platform_of(html) == TARGET_PLATFORM and len(adapter_for(html).parse(html, {})) == 0:
         open('data/_sample_finalsite.html','w',encoding='utf-8').write(html); break
 arch.close()
 "
@@ -2703,7 +2768,7 @@ import net
 import normalize
 import registry_hs
 import resolve_hs
-from adapters_hs.generic import GenericHS
+from adapters_hs import adapter_for
 
 
 def run(state_code: str) -> dict:
@@ -2724,13 +2789,14 @@ def run(state_code: str) -> dict:
             crawl_hs.crawl_target(fetcher, arch, s.school_id, s.site_url)
             crawled += 1
 
-    ad, found = GenericHS(), []
+    found = []
     for page in arch.iter_pages("staff"):
         ctx = {"school": page.get("school_id", ""), "school_id": page.get("school_id", ""),
                "state": state_code.upper(),
                "proof_url": page.get("final_url") or page.get("url", ""),
                "captured_at": page.get("fetched_at", "")}
-        found += ad.parse(page.get("html") or "", ctx)
+        _h = page.get("html") or ""
+    found += adapter_for(_h).parse(_h, ctx)
     found = normalize.dedupe([r for r in (normalize.normalize(x) for x in found) if r])
     found = [r for r in found if gates_hs.keep(r)]
     gates_hs.assert_entropy(found)
