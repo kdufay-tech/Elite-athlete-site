@@ -39,8 +39,18 @@ _K12 = re.compile(r"\.k12\.[a-z]{2}\.us$")
 
 
 def _host(url: str) -> str:
-    h = re.sub(r"^https?://", "", (url or "").strip()).split("/")[0].lower()
-    return re.sub(r"^www\.", "", h).strip().rstrip(".")
+    """Host only: no scheme, no credentials, no port, no path, no www.
+
+    Lower-cases BEFORE stripping the scheme. Doing it the other way round
+    leaves "HTTPS://" unmatched and returns "https:" as the host, which would
+    merge every mis-cased url in a state into one fake unit.
+    """
+    h = (url or "").strip().lower()
+    h = re.sub(r"^[a-z][a-z0-9+.\-]*://", "", h)   # any scheme, already lowered
+    h = h.split("/")[0].split("?")[0].split("#")[0]
+    h = h.rsplit("@", 1)[-1]                       # drop any user:pass@
+    h = h.split(":")[0]                            # drop any :port
+    return h.removeprefix("www.").strip().rstrip(".")
 
 
 def registrable(url: str) -> str:
@@ -86,6 +96,7 @@ def assign(schools: list[HSSchool]) -> "dict[str, list[HSSchool]]":
     for s in schools:
         key = unit_key(s.email_domain or s.site_url)
         if not key:
+            s.district_domain = ""
             continue
         s.district_domain = key
         units[key].append(s)

@@ -184,6 +184,36 @@ def test_registrable_handles_the_k12_public_suffix():
     check("blank url", domains.registrable(""), "")
 
 
+def test_host_is_case_insensitive_about_the_scheme():
+    # Lower-casing after the regex left "https:" as the host, merging every
+    # mis-cased url into one fake unit.
+    check("upper scheme", domains.registrable("HTTPS://www.dekalb.k12.ga.us/staff"),
+          "dekalb.k12.ga.us")
+    check("mixed scheme", domains.registrable("Http://CobbK12.org/x"), "cobbk12.org")
+    check("upper WWW", domains.registrable("HTTP://WWW.HALLCO.ORG"), "hallco.org")
+    check("scheme-less", domains.registrable("CobbK12.org"), "cobbk12.org")
+
+
+def test_host_drops_port_credentials_and_query():
+    check("port", domains.registrable("https://cobbk12.org:8443/x"), "cobbk12.org")
+    check("query", domains.registrable("https://cobbk12.org/?a=1"), "cobbk12.org")
+    check("fragment", domains.registrable("https://cobbk12.org/#staff"), "cobbk12.org")
+    check("userinfo", domains.registrable("https://u:p@cobbk12.org/x"), "cobbk12.org")
+
+
+def test_registrable_collapses_a_multi_label_k12_subdomain():
+    # www. is stripped before the k12 branch runs, so a www-only test never puts
+    # more than one label in front of .k12. -- this is what actually covers it.
+    check("boe subdomain", domains.registrable("https://boe.richmond.k12.ga.us/"),
+          "richmond.k12.ga.us")
+    check("two subdomains", domains.registrable("http://a.b.dekalb.k12.ga.us/x"),
+          "dekalb.k12.ga.us")
+    check("bare district host", domains.registrable("https://henry.k12.ga.us"),
+          "henry.k12.ga.us")
+    check("k12 in the NAME is not the suffix",
+          domains.registrable("https://www.cobbk12.org"), "cobbk12.org")
+
+
 def test_unit_key_keeps_shared_cms_hosts_apart():
     # Four unrelated county systems live on schooldesk.net. They are not one unit.
     a = domains.unit_key("http://colquitt.high.schooldesk.net")
@@ -229,6 +259,14 @@ def test_assign_falls_back_to_the_website_when_no_email():
                              site_url="http://wesleyan.org", email_domain="")
     domains.assign([s])
     check("website used as fallback", s.district_domain, "wesleyan.org")
+
+
+def test_assign_clears_a_stale_district_domain():
+    s = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
+                             site_url="", email_domain="")
+    s.district_domain = "leftover.k12.ga.us"      # from an earlier run
+    domains.assign([s])
+    check("stale value cleared, not inherited", s.district_domain, "")
 
 
 def test_mail_domain_no_longer_branches_on_is_public():
