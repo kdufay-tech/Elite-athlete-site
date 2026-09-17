@@ -576,12 +576,12 @@ checkout **as a returning customer** - that is the path that would break.
 | Version in project | **1.0.7 (19)** - `ee8cd41` | **1.0.6 (vc14)** - bumped 2026-09-17 |
 | Last packaged | Mac, Xcode archive | Windows, 2026-09-17 - signed AAB + APK, archived |
 
-**Store state** - as recorded 2026-09-15 and NOT re-confirmed since. Check the
-consoles before shipping; this table has drifted from reality before:
+**Store state.** Android confirmed 2026-09-17. iOS rows are still as recorded
+2026-09-15 and NOT re-confirmed - check App Store Connect before shipping:
 
 | | iOS | Android |
 |---|---|---|
-| Live | 1.0.5 (build 17) | 1.0.5 (versionCode 11) |
+| Live | 1.0.5 (build 17) - unconfirmed | **1.0.6 (vc13)** - confirmed 2026-09-17 |
 | Submitted | 1.0.6 (18) - outcome never recorded | - |
 
 iOS moved to **1.0.7 (19)** in `ee8cd41` to carry the localhost share-link fix.
