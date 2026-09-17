@@ -107,21 +107,22 @@ def attribute(records: list, unit: CrawlUnit) -> dict[str, int]:
     `unverified`; it is never assigned to the unit's largest school or any
     other convenient default.
     """
-    by_name: dict[str, str] = {}
+    by_name: dict[str, tuple] = {}
     schools = {s.school_id: s for s in unit.schools}
     for t in unit.targets:
         key = norm_person(getattr(t, "name", ""))
         school = schools.get(getattr(t, "school_id", ""))
         if not key or school is None:
             continue
-        if key in by_name and by_name[key] != school.school_id:
-            by_name[key] = ""          # same name at two schools: ambiguous
+        if key in by_name and by_name[key][0] != school.school_id:
+            by_name[key] = ("", [])    # same name at two schools: ambiguous
         else:
-            by_name.setdefault(key, school.school_id)
+            by_name.setdefault(key, (school.school_id,
+                                     list(getattr(t, "sports", []) or [])))
 
-    counts = {"matched": 0, "unmatched": 0}
+    counts = {"matched": 0, "unmatched": 0, "sport_filled": 0}
     for r in records:
-        sid = by_name.get(norm_person(getattr(r, "name", "")), "")
+        sid, sports = by_name.get(norm_person(getattr(r, "name", "")), ("", []))
         school = schools.get(sid)
         if school is None:
             counts["unmatched"] += 1
@@ -129,6 +130,21 @@ def attribute(records: list, unit: CrawlUnit) -> dict[str, int]:
         r.school = school.school
         if hasattr(r, "school_id"):
             r.school_id = school.school_id
+
+        # Fill the sport ONLY where the page did not state one. A title reading
+        # "Volleyball: Head Coach" is evidence from the page itself and wins;
+        # the association's roster fills the rest -- and the rest is most of
+        # them, because a district lists its coaches as "Asst. Coach" or even
+        # "Tchr Math". Inferring a sport from those is impossible; the roster
+        # simply KNOWS it, which is why this join exists at all.
+        #
+        # Never an overwrite. Filling a blank adds information; replacing a
+        # populated field discards someone else's evidence for ours.
+        if sports and not getattr(r, "sport", ""):
+            r.sport = sports[0]
+            if hasattr(r, "sport_detail") and not r.sport_detail:
+                r.sport_detail = "|".join(sports)
+            counts["sport_filled"] += 1
         counts["matched"] += 1
     return counts
 
