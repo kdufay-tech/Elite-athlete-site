@@ -619,9 +619,14 @@ Entertainment Group LLC (`ELITE-AT.RSA`), synced bundle byte-identical to
 `dist/`, `js.stripe.com` occurrences 0, and `checkout-CdupPzOu.js` present as a
 separate lazy chunk.
 
-Archived to `App Development/Elite Athlete/EliteAthlete-Backups/2026-09-17/`:
-- `elite-athlete-v1.0.6-vc14.aab` (18.98 MB) - the Play upload artifact
-- `elite-athlete-v1.0.6-vc14.apk` (19.54 MB) - sideload for the device pass
+Release artifacts stay in the Gradle output tree - not copied elsewhere, not
+renamed. `EliteAthlete-Backups/` is for source snapshots, not releases:
+- `android/app/build/outputs/bundle/release/app-release.aab` - Play upload artifact
+- `android/app/build/outputs/apk/release/app-release.apk` - sideload for the device pass
+
+Because the filename never changes between versions, the only way to know which
+build is sitting there is to look inside it. See the 09-08 stale-bundle note
+above.
 
 **Nothing goes to production before a device pass. Standing rule.** The 09-08
 test does not cover the age gate or the checkout change.
