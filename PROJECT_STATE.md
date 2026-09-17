@@ -602,6 +602,37 @@ Careful with PowerShell verification: **`-AllMatches` is ignored when you pass
 `-SimpleMatch`**, so `$_.Matches.Count` returns 0 even when the text is present.
 Use `[regex]::Matches($c, '...')` on `Get-Content -Raw` instead.
 
+### `cap sync` on Windows corrupts Package.swift  (2026-09-17)
+
+Running `npx cap sync` on the Windows machine rewrites
+`ios/App/CapApp-SPM/Package.swift` with **Windows path separators**:
+
+```swift
+.package(name: "CapacitorApp", path: "..\..\..\node_modules\@capacitor\app"),
+```
+
+Swift string literals do not accept `\.` or `\@` as escapes, so that file no
+longer compiles - and `\n` in `\node_modules` is a valid escape, so part of the
+path silently becomes a newline. It regenerates the file for the host platform;
+it is not wrong, it is just wrong for the platform that builds iOS.
+
+**Never commit that file from Windows.** iOS is built on the Mac (see the
+`VITE_*` hash note above), so a Windows-written `Package.swift` reaching the Mac
+breaks the iOS build with an error that points at Swift, not at Capacitor.
+
+After any `cap sync` on Windows:
+
+```bash
+git checkout -- ios/App/CapApp-SPM/Package.swift
+```
+
+Only the separators change - the plugin list is identical - so reverting costs
+nothing. The web assets `cap sync` copies are **not** affected: they are
+gitignored on both platforms (`Assets/` catches Android, `ios/.gitignore:4`
+catches iOS), so the revert cannot touch them and the synced bundle stays
+current. Check `git status` after every sync; if `Package.swift` is the only
+thing listed, the sync did its job and that one file is the only thing to undo.
+
 ### Share links must never use window.location.origin  (fixed 2026-09-08)
 
 A recruiting share created in the Android app produced
