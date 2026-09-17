@@ -1658,30 +1658,71 @@ def crawl_school(fetcher: "net.Fetcher", arch: "archive.Archive",
 Run: `cd tools/hs-scraper && python tests_hs.py`
 Expected: `all passed`
 
-- [ ] **Step 6: Crawl Metro Atlanta and report coverage**
+- [ ] **Step 6: Crawl a bounded validation slice and report coverage**
+
+Do **not** crawl all 448 schools in this task. Run a 40-school slice first: it
+exercises every path — reachable, dead, fallback-to-email-domain, off-domain hop —
+in about a minute, and a pipeline bug found on school 3 of 448 otherwise costs
+half an hour before it surfaces. The full run is a separate, deliberate step.
+
+Ordered by unit size, largest first, so an interrupted run has already covered
+the schools that share the most infrastructure.
 
 ```bash
 cd tools/hs-scraper && python -c "
-import _shared, archive, net, registry_hs, resolve_hs, crawl_hs
+import collections
+import _shared, archive, net, registry_hs, domains, crawl_hs
 schools = registry_hs.load('data/ga_schools.csv')
+units = domains.assign(schools)
+ordered = [s for _d, members in units.items() for s in members]
+slice_ = ordered[:40]
 arch = archive.Archive('data/hs_archive.sqlite')
 f = net.Fetcher()
-targets = []
-for d, members in resolve_hs.district_groups(schools).items():
-    if members[0].district_domain:
-        targets.append((f'district:{d}', 'https://' + members[0].district_domain))
-for s in schools:
-    if not s.is_public and s.site_url:
-        targets.append((s.school_id, s.site_url))
-from collections import Counter
-c = Counter(crawl_hs.crawl_target(f, arch, tid, url) for tid, url in targets)
-print(dict(c)); print(arch.stats()); arch.close()
+c = collections.Counter(crawl_hs.crawl_school(f, arch, s) for s in slice_)
+print('crawled:', len(slice_))
+print('outcomes:', dict(c))
+print('archive:', arch.stats())
+arch.close()
 "
 ```
 
-Expected: a majority `ok`. Record the counts — Task 8 interprets recall against them.
+Report the three counts verbatim. **Do not tune anything to improve them.** A high
+`unreachable` is an expected, measured property of this source — a 23-fetch probe
+before this task was written found only ~57% of published school urls answering
+at all — not a defect in your code. `no-directory` is likewise a real outcome: it
+means the site answered but nothing on it looked like a staff listing, which
+`looks_like_directory()` is there to decide.
 
-- [ ] **Step 7: Commit**
+The one result worth stopping for is **`ok` at or near zero**, which would mean
+the pipeline is not working rather than the sources being thin. Report it rather
+than adjusting thresholds to manufacture hits.
+
+- [ ] **Step 7: Confirm the archive can be re-read without the network**
+
+The whole point of archive-then-parse is that later parser work costs no fetches.
+Prove it holds before moving on:
+
+```bash
+cd tools/hs-scraper && python -c "
+import _shared, archive
+arch = archive.Archive('data/hs_archive.sqlite')
+pages = list(arch.iter_pages('staff'))
+print('staff pages stored:', len(pages))
+if pages:
+    p = pages[0]
+    print('columns:', sorted(p.keys()))
+    print('first page html bytes:', len(p.get('html') or ''))
+    print('proof url:', p.get('final_url') or p.get('url'))
+arch.close()
+"
+```
+
+Expected: every stored page re-reads with its `html` intact and a `final_url`
+that will serve as `proof_url` on any contact parsed out of it later. If `html`
+comes back empty, the archive is storing nothing useful and Task 6 has nothing
+to parse — stop and report.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add tools/hs-scraper/discover_hs.py tools/hs-scraper/crawl_hs.py \
