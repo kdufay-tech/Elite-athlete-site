@@ -2462,6 +2462,8 @@ Add to `tests_hs.py`:
 
 ```python
 import score_metro
+from adapters.base import CoachRecord  # this task's own import: tests_hs.py is
+# shared, so a name another task imported is borrowed, not owned
 
 
 def test_score_computes_recall_and_agreement():
@@ -2714,6 +2716,7 @@ fragment. This is a real page the generic parser returned zero rows for, which
 is what makes the test worth having:
 
 ```python
+import adapters_hs
 from adapters_hs.finalsite import FinalsiteHS
 
 # Paste one person's container from data/_sample_finalsite.html. Finalsite
