@@ -629,7 +629,17 @@ build is sitting there is to look inside it. See the 09-08 stale-bundle note
 above.
 
 **Nothing goes to production before a device pass. Standing rule.** The 09-08
-test does not cover the age gate or the checkout change.
+test did not cover the age gate or the checkout change, so vc14 needed its own.
+
+**Device pass: PASSED 2026-09-17.** vc14 submitted to Play production the same
+day. Published change notes (delta over live vc13, whose notes were already
+out):
+
+- Recruiting profile and share links now included with Athlete, and for
+  athletes on a coach's roster
+- Faster startup
+
+Update the Live row above to 1.0.6 (vc14) once the rollout completes.
 
 Live 1.0.5 builds embed web code from **2026-09-04** (Android 17:55, iOS 21:26
 ET). **41** `src/` commits have landed since, counted 2026-09-17, so the live
