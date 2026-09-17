@@ -147,6 +147,14 @@ def crawl_school_deep(fetcher, arch, school, roster_names=None) -> str:
     does happen to list this school's coach is still kept -- correctly, because
     then it really is useful for this school.
 
+    Pass the names for the whole CRAWL UNIT, not just this school. Attribution
+    works at unit level: a Fulton district directory filed under ga-milton has
+    its records assigned by name to whichever Fulton school each coach actually
+    works at, so that page can legitimately supply a dozen schools while naming
+    nobody from Milton. Checking this school's roster alone would throw it away
+    and lose every one of those matches -- rejecting a page for being filed
+    under the wrong school rather than for being useless.
+
     With no roster names to check against, the page is accepted: a school the
     association never listed has nothing to verify against, and rejecting
     everything would be worse than the old behaviour.

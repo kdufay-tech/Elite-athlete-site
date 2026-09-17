@@ -759,7 +759,8 @@ class _FakeArchive:
 def _dir_html(names):
     return "".join(
         f'<tr><td>{n}</td><td>Head Coach</td>'
-        f'<td><a href="mailto:{n.lower()}@x.org">e</a></td></tr>' for n in names
+        f'<td><a href="mailto:{n.lower().replace(" ", ".")}@x.org">e</a></td></tr>'
+        for n in names
     )
 
 
@@ -848,6 +849,22 @@ def test_deep_crawl_accepts_anything_when_there_is_no_roster_to_check():
     school = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
                                   site_url="https://x.org")
     check("no roster, no veto", crawl_hs.crawl_school_deep(f, a, school, []), "ok")
+
+
+def test_deep_crawl_keeps_a_district_page_serving_the_wider_unit():
+    # Attribution is unit-level: a district directory filed under one school
+    # supplies coaches for every school on that domain. Rejecting it because it
+    # names nobody from the school it happens to be filed under would discard
+    # every one of those matches.
+    district = _dir_html(["Ann Coach", "Bob Coach", "Cyd Coach"])
+    pages = {"https://x.org": '<a href="/directory">Staff Directory</a>',
+             "https://x.org/directory": district}
+    f, a = _FakeFetcher(pages), _FakeArchive()
+    school = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
+                                  site_url="https://x.org")
+    # none of these coaches work at ga-x; all three work elsewhere in its unit
+    unit_names = ["Ann Coach", "Bob Coach", "Cyd Coach"]
+    check("kept for the unit", crawl_hs.crawl_school_deep(f, a, school, unit_names), "ok")
 
 
 def main():
