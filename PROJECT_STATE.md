@@ -582,7 +582,7 @@ checkout **as a returning customer** - that is the path that would break.
 | | iOS | Android |
 |---|---|---|
 | Live | 1.0.5 (build 17) - unconfirmed | **1.0.6 (vc13)** - confirmed 2026-09-17 |
-| Submitted | 1.0.6 (18) - outcome never recorded | - |
+| Submitted | 1.0.6 (18) - outcome never recorded | **1.0.6 (vc14)** - in review 2026-09-17 |
 
 iOS moved to **1.0.7 (19)** in `ee8cd41` to carry the localhost share-link fix.
 That supersedes the old "let 18 ship and follow with 1.0.7, or reject and
@@ -631,7 +631,7 @@ above.
 **Nothing goes to production before a device pass. Standing rule.** The 09-08
 test did not cover the age gate or the checkout change, so vc14 needed its own.
 
-**Device pass: PASSED 2026-09-17.** vc14 submitted to Play production the same
+**Device pass: PASSED 2026-09-17.** vc14 uploaded to Play production the same
 day. Published change notes (delta over live vc13, whose notes were already
 out):
 
@@ -639,7 +639,8 @@ out):
   athletes on a coach's roster
 - Faster startup
 
-Update the Live row above to 1.0.6 (vc14) once the rollout completes.
+Awaiting Play review as of 2026-09-17. Update the Live row above to 1.0.6
+(vc14) once review clears and the rollout completes.
 
 Live 1.0.5 builds embed web code from **2026-09-04** (Android 17:55, iOS 21:26
 ET). **41** `src/` commits have landed since, counted 2026-09-17, so the live
