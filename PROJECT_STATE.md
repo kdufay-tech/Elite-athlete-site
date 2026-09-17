@@ -599,11 +599,14 @@ Bumping only `CURRENT_PROJECT_VERSION` does not clear 90062 - that error is abou
 of build 18 (1.0.6) is still unrecorded and no longer matters: 1.0.7 superseded
 it.
 
-**The 1.0.8 (20) bump was made in Xcode on the Mac and is not in git as of this
-writing** - `origin/master` still carries 1.0.7 (19). Commit and push
-`ios/App/App.xcodeproj/project.pbxproj` from the Mac, or the next iOS build made
-anywhere else will be 1.0.7 again and rejected the same way. Third instance today
-of a change living on one machine that the repo does not know about.
+**Xcode writes `project.pbxproj` lazily.** The 1.0.8 (20) bump was set in Xcode's
+UI, and a `git commit` run immediately after reported "nothing to commit, working
+tree clean" - genuinely, because Xcode had not flushed the file yet. Seconds later
+`git pull --rebase` refused with "You have unstaged changes" on the same file.
+Two different truths from the same tree, and the version that got archived was
+briefly in no commit at all. **After changing anything in Xcode's UI, check
+`git status` before assuming a commit captured it.** Resolved and pushed
+2026-09-17 (`815cd1e`); both machines carry 1.0.8 (20).
 
 marketing versions diverged: iOS 1.0.7, Android 1.0.6.
 
