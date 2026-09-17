@@ -569,21 +569,54 @@ checkout **as a returning customer** - that is the path that would break.
 
 ## Native releases
 
+**Repo state** - verifiable from source, 2026-09-17:
+
+| | iOS | Android |
+|---|---|---|
+| Version in project | **1.0.7 (19)** - `ee8cd41` | **1.0.6 (vc13)** - `c908a15` |
+| Last packaged | Mac, Xcode archive | Windows, 2026-09-17 - signed APK, verified |
+
+**Store state** - as recorded 2026-09-15 and NOT re-confirmed since. Check the
+consoles before shipping; this table has drifted from reality before:
+
 | | iOS | Android |
 |---|---|---|
 | Live | 1.0.5 (build 17) | 1.0.5 (versionCode 11) |
-| In review | **1.0.6 (18)** - carries the localhost share bug below | - |
-| Device-tested, ready | - | **1.0.6 (vc13)** - fix verified, coach + athlete accounts |
+| Submitted | 1.0.6 (18) - outcome never recorded | - |
 
-iOS build 18 went to App Review BEFORE the localhost share-link bug was found,
-so it contains it. Android vc12 did too and was replaced by vc13. Decide
-whether to let 18 ship and follow with 1.0.7, or reject and resubmit.
+iOS moved to **1.0.7 (19)** in `ee8cd41` to carry the localhost share-link fix.
+That supersedes the old "let 18 ship and follow with 1.0.7, or reject and
+resubmit" question - 1.0.7 exists either way - but what became of build 18 was
+never written down. Android took the same fix as vc13, so the two platforms'
+marketing versions diverged: iOS 1.0.7, Android 1.0.6.
 
-Both live 1.0.5 builds embed web code from **2026-09-04** (Android 17:55, iOS
-21:26 ET). 28 `src/` commits landed after that, so the live apps are missing the
-account-switch fix - and that one is not a missing feature: a 09-04 client writes
-the PREVIOUS account's profile over the new account's, **server-side**, wherever a
-user has more than one account on a device. That is the reason to update.
+### vc13 has been built twice  (2026-09-17)
+
+The vc13 previously recorded here as "device-tested, coach + athlete verified"
+was built from **2026-09-08** code. A second vc13 was built **2026-09-17**
+carrying five further `src/` commits:
+
+- `1834a69` capture ledger + canary, share links to Athlete/seats, age gate 13+
+- `a5db3f7` outreach send guards
+- `6c2bb2c` stop loading Stripe.js on every page view
+- `89463fc` vitest coverage
+- `9422598` remove warm machinery
+
+Same versionCode, materially different app. The 09-08 device pass does not cover
+the age gate or the checkout change, so **re-test before shipping**. The 09-17
+APK itself verified clean: signed by Taradome Entertainment Group LLC, synced
+bundle byte-identical to `dist/`, `js.stripe.com` occurrences 0.
+
+**Play retires a versionCode permanently once it is uploaded to any track** -
+internal, closed, open or production, not only the one that shipped. If either
+vc13 was ever uploaded, the next Android build must exceed 13.
+
+Live 1.0.5 builds embed web code from **2026-09-04** (Android 17:55, iOS 21:26
+ET). **41** `src/` commits have landed since, counted 2026-09-17, so the live
+apps are missing the account-switch fix - and that one is not a missing feature:
+a 09-04 client writes the PREVIOUS account's profile over the new account's,
+**server-side**, wherever a user has more than one account on a device. That is
+the reason to update.
 
 **Verify a native build from the artifact, not only the device.** The synced
 bundle is ground truth:
