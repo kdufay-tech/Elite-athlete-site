@@ -666,6 +666,28 @@ Careful with PowerShell verification: **`-AllMatches` is ignored when you pass
 `-SimpleMatch`**, so `$_.Matches.Count` returns 0 even when the text is present.
 Use `[regex]::Matches($c, '...')` on `Get-Content -Raw` instead.
 
+### The Mac can be nine days stale and `git pull` will say it is current  (2026-09-17)
+
+Caught mid-release. The Mac synced cleanly, built without error, produced a
+plausible bundle - and `grep -c "js.stripe.com"` on the synced iOS bundle read
+**1** instead of 0, meaning it had built pre-fix code.
+
+`git pull` on the Mac was not wrong. It reported up to date because it was:
+the Mac sat on `master`, `origin/master` was at `1834a69`, and the day's work
+was committed to `coach-ops/hs-scraper` and never pushed. Nothing errored
+anywhere. The work simply lived on a branch the Mac was not looking at.
+
+This is the failure mode of a two-machine workflow: the Windows box commits to a
+feature branch, the Mac pulls the branch it is on, and both commands succeed.
+Resolved by fast-forwarding `master` to the branch and pushing, since
+`origin/master` was an ancestor.
+
+**Before any cross-machine release, check `git status -sb` on BOTH ends, not
+just `git pull`.** It prints the branch and the ahead/behind counts, which is
+what actually answers the question. And keep verifying the artifact - that grep
+is the only thing that caught this, and it caught it before an archive reached
+App Review.
+
 ### `cap sync` on Windows corrupts Package.swift  (2026-09-17)
 
 Running `npx cap sync` on the Windows machine rewrites
