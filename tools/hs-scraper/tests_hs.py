@@ -16,6 +16,7 @@ import associations.ghsa as ghsa
 import manifest
 import associations.ghsa as _ghsa
 import config_hs
+import crawl_hs
 import discover_hs
 from adapters.base import emails_in
 import adapters_hs.finalsite as finalsite
@@ -722,6 +723,93 @@ def test_agreement_catches_wrong_school():
     r = score_metro.score(found, known)
     check("recall still 100", r["recall"], 100.0)
     check("agreement drops", r["agreement"], 0.0)
+
+
+# --- deep crawl: keep every distinct directory, not every distinct url -------
+
+class _FakeResp:
+    def __init__(self, html, url):
+        self.ok, self.status, self.html = True, 200, html
+        self.final_url, self.error = url, None
+
+
+class _FakeFetcher:
+    """Serves canned pages and records what was asked for."""
+
+    def __init__(self, pages):
+        self.pages, self.asked = pages, []
+
+    def get(self, url):
+        self.asked.append(url)
+        return _FakeResp(self.pages.get(url, ""), url)
+
+
+class _FakeArchive:
+    def __init__(self):
+        self.stored, self.status = [], None
+
+    def store_page(self, school_id, kind, url, final_url, status, html,
+                   platform=None, error=None):
+        self.stored.append((kind, url))
+
+    def set_status(self, school_id, state, error=None):
+        self.status = state
+
+
+def _dir_html(names):
+    return "".join(
+        f'<tr><td>{n}</td><td>Head Coach</td>'
+        f'<td><a href="mailto:{n.lower()}@x.org">e</a></td></tr>' for n in names
+    )
+
+
+def test_deep_crawl_skips_the_same_listing_reached_by_another_path():
+    # One staff listing is routinely reachable at both /staff-directory and
+    # /athletics/staff-directory. Storing it twice inflates the page count and
+    # adds no people, so dedup is on the SET OF ADDRESSES, not the url.
+    same = _dir_html(["Ann", "Bob", "Cyd"])
+    home = ('<a href="/staff-directory">Staff Directory</a>'
+            '<a href="/athletics/staff-directory">Athletics Staff Directory</a>')
+    pages = {
+        "https://x.org": home,
+        "https://x.org/staff-directory": same,
+        "https://x.org/athletics/staff-directory": same,
+    }
+    f, a = _FakeFetcher(pages), _FakeArchive()
+    school = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
+                                  site_url="https://x.org")
+    crawl_hs.crawl_school_deep(f, a, school)
+    staff = [k for k, _ in a.stored if k.startswith("staff")]
+    check("one listing stored once", len(staff), 1)
+    check("status ok", a.status, "ok")
+
+
+def test_deep_crawl_keeps_two_genuinely_different_listings():
+    home = ('<a href="/staff-directory">Staff Directory</a>'
+            '<a href="/athletics/coaches">Coaching Staff</a>')
+    pages = {
+        "https://x.org": home,
+        "https://x.org/staff-directory": _dir_html(["Ann", "Bob", "Cyd"]),
+        "https://x.org/athletics/coaches": _dir_html(["Dee", "Eli", "Fay"]),
+    }
+    f, a = _FakeFetcher(pages), _FakeArchive()
+    school = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
+                                  site_url="https://x.org")
+    crawl_hs.crawl_school_deep(f, a, school)
+    staff = sorted(k for k, _ in a.stored if k.startswith("staff"))
+    check("both listings stored", len(staff), 2)
+    check("second gets its own kind", staff[1], "staff:p2")
+
+
+def test_deep_crawl_reports_no_directory_rather_than_guessing():
+    pages = {"https://x.org": '<a href="/lunch-menu">Lunch Menu</a>',
+             "https://x.org/lunch-menu": "<p>Pizza Friday</p>"}
+    f, a = _FakeFetcher(pages), _FakeArchive()
+    school = registry_hs.HSSchool(school_id="ga-x", school="X", state="GA",
+                                  site_url="https://x.org")
+    check("no directory found", crawl_hs.crawl_school_deep(f, a, school),
+          "no-directory")
+    check("nothing invented", [k for k, _ in a.stored if k.startswith("staff")], [])
 
 
 def main():

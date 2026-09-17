@@ -109,3 +109,74 @@ def lookup_roster(fetcher, arch, school_id: str, base_url: str, adapter,
 def adapter_search_url(base_url: str, surname: str) -> str:
     import adapters_hs.finalsite as _fs
     return _fs.search_url(base_url, surname)
+
+
+# How many distinct directory pages to keep per school. A school's coaches are
+# spread across an athletics index, a staff listing and sport-specific pages;
+# stopping at the first hit takes whichever the link scorer happened to rank
+# highest and discards the rest.
+MAX_STAFF_PAGES_PER_SCHOOL = 6
+
+
+def crawl_school_deep(fetcher, arch, school) -> str:
+    """Like crawl_school, but keeps EVERY candidate that is a directory.
+
+    crawl_school returns on the first page that passes looks_like_directory().
+    That was the right shape for proving the pipeline works and the wrong one
+    for coverage: measured against 1,163 proven addresses, 74% sat at schools
+    we had archived and we were still extracting only 17% of them, because one
+    page is rarely the whole staff.
+
+    Deduplicates on the SET OF ADDRESSES, not the url. The same listing is
+    routinely reachable at /athletics/staff-directory and /staff-directory, and
+    storing it twice inflates nothing but the page count -- while an unrelated
+    second page with genuinely different people is exactly what we are here for.
+    """
+    starts = [u for u in (
+        school.site_url,
+        f"https://{school.email_domain}" if school.email_domain else "",
+    ) if u]
+
+    home = None
+    for start in starts:
+        resp = fetcher.get(start)
+        if resp.ok and resp.html:
+            home = resp
+            break
+    if home is None:
+        arch.set_status(school.school_id, "unreachable",
+                        error=f"no start url answered ({len(starts)} tried)")
+        return "unreachable"
+
+    arch.store_page(school.school_id, "home", home.final_url, home.final_url,
+                    home.status, home.html, "", None)
+
+    candidates = discover_hs.best_staff_links(home.html, home.final_url)
+    candidates += [u for u in discover_hs.direct_candidates(home.final_url)
+                   if u not in candidates]
+
+    from adapters.base import emails_in
+    kept = 0
+    seen_sets: list[set] = []
+    for url in candidates:
+        if kept >= MAX_STAFF_PAGES_PER_SCHOOL:
+            break
+        page = fetcher.get(url)
+        if not page.ok or not page.html:
+            continue
+        if not discover_hs.looks_like_directory(page.html):
+            continue
+        addrs = set(emails_in(page.html))
+        if not addrs:
+            import adapters_hs
+            addrs = {r.email for r in adapters_hs.adapter_for(page.html).parse(page.html, {}) if r.email}
+        if any(addrs and addrs <= prev for prev in seen_sets):
+            continue                  # same listing by another path
+        seen_sets.append(addrs)
+        kind = "staff" if kept == 0 else f"staff:p{kept + 1}"
+        arch.store_page(school.school_id, kind, url, page.final_url,
+                        page.status, page.html, "", None)
+        kept += 1
+
+    arch.set_status(school.school_id, "ok" if kept else "no-directory")
+    return "ok" if kept else "no-directory"
