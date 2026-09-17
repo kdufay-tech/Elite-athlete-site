@@ -574,7 +574,7 @@ checkout **as a returning customer** - that is the path that would break.
 | | iOS | Android |
 |---|---|---|
 | Version in project | **1.0.7 (19)** - `ee8cd41` | **1.0.6 (vc14)** - bumped 2026-09-17 |
-| Last packaged | Mac, Xcode archive | Windows, 2026-09-17 - signed AAB + APK, archived |
+| Last packaged | Mac, Xcode archive | Windows, 2026-09-17 - signed AAB + APK, verified |
 
 **Store state.** Android confirmed 2026-09-17. iOS rows are still as recorded
 2026-09-15 and NOT re-confirmed - check App Store Connect before shipping:
