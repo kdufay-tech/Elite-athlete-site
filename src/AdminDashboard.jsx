@@ -1694,6 +1694,34 @@ function CoachOpsPanel({ getSession }) {
   const draftKinds = [...new Set(allDrafts.map(x=>x.kind))];
   const draftStatusOk = (s)=> dfStatus==='all' ? true : dfStatus==='active' ? (s==='pending'||s==='approved') : s===dfStatus;
   const filteredDrafts = allDrafts.filter(x => draftStatusOk(x.status) && (dfKind==='all' || x.kind===dfKind));
+
+  // Group the queue by who the draft is FOR. A flat list mixed HS, college and
+  // pro together, so finding the one high-school football draft among 48 meant
+  // reading every card's audience tag. The level is the thing you filter by in
+  // your head, so it should be the thing the page is organised around.
+  const DRAFT_GROUPS = [
+    { key:'coach_hs',      label:'High School', hint:'Teachers who coach. Assistants and position coaches, not just head coaches.' },
+    { key:'coach_college', label:'College',     hint:'Programs with staff, recruiting calendars and a portal.' },
+    { key:'coach_pro',     label:'Pro',         hint:'Load management and veteran compliance.' },
+  ];
+  // Anything that is not one of the three coach levels still has to appear, or
+  // approving a content/lifecycle draft becomes impossible from this screen.
+  const groupedDrafts = (() => {
+    const known = new Set(DRAFT_GROUPS.map(g => g.key));
+    // Sport first so the football drafts sit together, then newest first.
+    const bySportThenNew = (a,b) => {
+      const sa = (a.meta?.sport || '~'), sb = (b.meta?.sport || '~');
+      if (sa !== sb) return sa < sb ? -1 : 1;
+      return String(b.created_at||'').localeCompare(String(a.created_at||''));
+    };
+    const out = DRAFT_GROUPS.map(g => ({
+      ...g,
+      items: filteredDrafts.filter(x => x.audience === g.key).sort(bySportThenNew),
+    }));
+    const rest = filteredDrafts.filter(x => !known.has(x.audience)).sort(bySportThenNew);
+    if (rest.length) out.push({ key:'__other', label:'Other', hint:'Content, lifecycle and re-engagement drafts.', items: rest });
+    return out.filter(g => g.items.length > 0);
+  })();
   const latest = d?.latest;
   const m = latest?.metrics || {};
   const stat = (label, val) => (
@@ -1797,8 +1825,29 @@ function CoachOpsPanel({ getSession }) {
           ? <div style={{ padding:24, textAlign:'center', color:'#444', background:'#111', borderRadius:12, border:'1px solid #ffffff08', fontSize:13 }}>No drafts yet. Use the buttons above to generate one.</div>
           : filteredDrafts.length === 0
           ? <div style={{ padding:20, textAlign:'center', color:'#555', background:'#111', borderRadius:12, border:'1px solid #ffffff08', fontSize:13 }}>No drafts in this view - try a different filter.</div>
-          : <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-              {filteredDrafts.map(dft => <DraftCard key={dft.id} draft={dft} getSession={getSession} reload={load} />)}
+          : <div style={{ display:'flex', flexDirection:'column', gap:26 }}>
+              {groupedDrafts.map(g => (
+                <div key={g.key}>
+                  <div style={{ display:'flex', alignItems:'baseline', gap:10, flexWrap:'wrap',
+                                borderBottom:'1px solid #ffffff12', paddingBottom:7, marginBottom:12 }}>
+                    <span style={{ fontSize:15, fontWeight:700, color:'#C9A84C', letterSpacing:0.4 }}>{g.label}</span>
+                    <span style={{ fontSize:12, color:'#777', fontVariantNumeric:'tabular-nums' }}>
+                      {g.items.length} {g.items.length===1 ? 'draft' : 'drafts'}
+                    </span>
+                    {/* Which sports are covered, so a gap is visible without opening cards. */}
+                    {(() => {
+                      const sports = [...new Set(g.items.map(x => x.meta?.sport).filter(Boolean))].sort();
+                      return sports.length ? (
+                        <span style={{ fontSize:11, color:'#666' }}>· {sports.join(' · ')}</span>
+                      ) : null;
+                    })()}
+                    <span style={{ fontSize:11.5, color:'#555', marginLeft:'auto', maxWidth:460, textAlign:'right' }}>{g.hint}</span>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                    {g.items.map(dft => <DraftCard key={dft.id} draft={dft} getSession={getSession} reload={load} />)}
+                  </div>
+                </div>
+              ))}
             </div>}
       </div>
     </div>
