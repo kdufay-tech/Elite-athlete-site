@@ -2,8 +2,9 @@
 // src/lib/checkout.js  —  Stripe checkout (load on demand only)
 //
 // Split out of lib/stripe.js 2026-09-17. Everything here depends on
-// @stripe/stripe-js, so NOTHING may import this module statically — do it
-// with await import('../lib/checkout') at the point of use, or via warm().
+// @stripe/stripe-js, so NOTHING may import this module statically — use
+// await import('../lib/checkout') at the point of use. There is a test
+// guarding that: checkout.test.js > "module boundaries".
 //
 // Why: the default @stripe/stripe-js entry runs a bare top-level
 //   Promise.resolve().then(() => getStripePromise())
@@ -14,8 +15,12 @@
 // and for iOS users who cannot purchase at all (TIER_INFO.coach.webOnlyPurchase).
 //
 // Importing from '@stripe/stripe-js/pure' drops that side effect: the CDN
-// script is fetched only when loadStripe() is actually called. warm() is how
-// we choose that moment — see its comment below.
+// script is fetched only if loadStripe() is actually called — and as
+// configured today it never is. redirectToCheckout() sends the browser to the
+// hosted Checkout url returned by the Netlify function and returns before it
+// reaches getStripe(); the Payment Link path does not need the SDK either.
+// getStripe() only covers a response carrying a sessionId but no url. Keep it
+// working, but do not build on the assumption that it runs.
 // ─────────────────────────────────────────────────────────────
 import { loadStripe } from '@stripe/stripe-js/pure';
 import { IS_BETA_MODE, STRIPE_PRICES } from './tiers';
@@ -31,23 +36,13 @@ let stripePromise = null;
 export function getStripe() {
   if (!stripePromise) {
     stripePromise = loadStripe(STRIPE_KEY).catch((err) => {
-      // Never cache a rejection. warm() calls this well before any Buy click,
-      // so without this reset one flaky moment on the paywall would poison
+      // Never cache a rejection: a transient failure would otherwise poison
       // every later checkout attempt until a full page reload.
       stripePromise = null;
       throw err;
     });
   }
   return stripePromise;
-}
-
-// Start fetching js.stripe.com ahead of a Buy click, without blocking render.
-// Called on mount by the web paywall surfaces (PricingSection, PayModal) so
-// the SDK is warm by the time checkout runs, while users who never open a
-// paywall never touch Stripe at all. Deliberately silent: a failed warm just
-// means redirectToCheckout() loads the SDK on demand, exactly as it would have.
-export function warm() {
-  try { getStripe().catch(() => {}); } catch { /* no-op */ }
 }
 
 // ── PAYMENT LINKS (paste from Stripe Dashboard → Payment Links) ──

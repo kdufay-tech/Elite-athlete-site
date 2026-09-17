@@ -4823,18 +4823,6 @@ export default function App() {
     if (betaExpired) setConversionModal(true);
   }, [betaExpired]);
 
-  // ── WARM STRIPE FOR THE BETA EXPIRY GATE ─────────────────────
-  // That gate (screen==="dashboard" && betaExpired) is a hard paywall: it blocks
-  // the dashboard and offers only UPGRADE TO ELITE or sign out, so intent is as
-  // high as it gets and its $529 button should not pay a cold SDK start.
-  // Warming on mount is safe HERE, unlike PricingSection, because the gate is a
-  // guarded early return — it never renders on the landing page, so this cannot
-  // warm at boot. The hook is unconditional; only its body is gated.
-  useEffect(() => {
-    if (!(screen === "dashboard" && betaExpired)) return;
-    import('./lib/checkout').then(m => m.warm()).catch(() => {});
-  }, [screen, betaExpired]);
-
   // ── PER-USER STATE RESET ────────────────────────────────────
   // Every value below belongs to ONE signed-in user. React state survives
   // sign-out (App() never unmounts), so without this an account switch left
@@ -11705,25 +11693,6 @@ ${recruitingNote}`:null,
 function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan }) {
   const [billing, setBilling] = useState('monthly');
 
-  // Warm Stripe.js when the pricing block actually scrolls INTO VIEW — not on
-  // mount. This section is part of the landing page, so warming on mount fires
-  // on every boot, which is exactly the behaviour splitting checkout out removed
-  // (verified in a browser: the checkout chunk was being fetched at page load).
-  // Scrolling to pricing is a genuine purchase signal, and warming there keeps
-  // the Buy click as fast as it was when lib/stripe was imported statically.
-  const pricingRef = useRef(null);
-  useEffect(() => {
-    const el = pricingRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return; // old webview: PayModal still warms
-    const io = new IntersectionObserver((entries) => {
-      if (!entries.some(e => e.isIntersecting)) return;
-      io.disconnect(); // warm once
-      import('./lib/checkout').then(m => m.warm()).catch(() => {});
-    }, { rootMargin: '200px' }); // head start before it is fully on screen
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
   const TIERS = [
     {
       tierKey: 'free',
@@ -11810,7 +11779,7 @@ function PricingSection({ setPayModal, authUser, setAuthModal, setPendingPlan })
   ];
 
   return (
-    <div ref={pricingRef}>
+    <div>
       {/* Billing toggle */}
       <div style={{display:'flex',justifyContent:'center',marginBottom:'3rem'}}>
         <div style={{display:'flex',background:'rgba(255,255,255,0.04)',borderRadius:'var(--r)',padding:'4px',gap:'4px'}}>
