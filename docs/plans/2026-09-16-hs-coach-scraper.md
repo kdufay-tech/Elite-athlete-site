@@ -1756,7 +1756,27 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Consumes: `adapters.base.Adapter`, `adapters.base.CoachRecord`, `adapters.base.emails_in`,
   `adapters.base.PHONE`.
 - Produces: `generic.GenericHS` with `detect(html) -> bool` and
-  `parse(html, ctx) -> list[CoachRecord]`; `generic.blocks(html) -> list[str]`.
+  `parse(html, ctx) -> list[CoachRecord]`; `generic.blocks(html) -> list[tuple[str, str]]` (address, window).
+
+**Three defects were found in this task's code before dispatch**, by extracting
+its code block and its test block into a scratch package and running one against
+the other. All three only surface on a fixture *denser* than the window, which is
+the shape of bug that ships green:
+
+1. `parse()` took `emails_in(block)[0]` — the first address *in* the window —
+   rather than the address the window was *anchored* on. Windows overlap whenever
+   people sit closer together than `WINDOW_BEFORE`, so every window reported the
+   same first address and `seen` deduped real people away. Two coaches became one
+   row whose title was the whole page.
+2. Windows were not clamped to their neighbours, so one person's window ran
+   through the next person's markup.
+3. `_flat()` replaced every tag with a *space*, so the title split on `\s{2,}`
+   could never fire — `<td>Jane Doe</td><td>Head Coach</td>` flattened to one
+   run with no boundary left to split a name from a title.
+
+The corrected version returns `(address, window)` pairs, clamps each window
+between its neighbours, and flattens tags to `|` so field boundaries survive.
+Verified against this task's own tests before it was written down.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1764,6 +1784,7 @@ Add to `tests_hs.py`:
 
 ```python
 from adapters_hs.generic import GenericHS
+import adapters_hs.generic as generic
 
 TABLE_DIR = """
 <table>
@@ -1807,6 +1828,40 @@ def test_generic_never_invents_an_address():
     html = "<div><h3>Someone With No Email</h3><p>Head Coach</p></div>"
     rows = GenericHS().parse(html, CTX)
     check("no email means no row", len(rows), 0)
+
+def test_blocks_anchors_each_window_on_its_own_address():
+    # The defect this locks: parse() once took emails_in(block)[0] -- the first
+    # address IN the window -- instead of the address the window was anchored
+    # on. Windows overlap on any directory denser than WINDOW_BEFORE, so every
+    # window reported the same first address and real people were deduped away.
+    dense = (
+        '<td>Ann Poe</td><td>Head Soccer Coach</td><td>ann.poe@x.org</td>'
+        '<td>Bob Roe</td><td>Head Football Coach</td><td>bob.roe@x.org</td>'
+        '<td>Cy Doe</td><td>Head Track Coach</td><td>cy.doe@x.org</td>'
+    )
+    got = generic.blocks(dense)
+    check("one window per address", len(got), 3)
+    check("windows carry their OWN anchor",
+          sorted(a for a, _w in got),
+          ["ann.poe@x.org", "bob.roe@x.org", "cy.doe@x.org"])
+    for addr, window in got:
+        check(f"{addr} window contains its anchor", addr in window, True)
+
+
+def test_parse_keeps_people_apart_on_a_dense_page():
+    dense = (
+        '<td>Ann Poe</td><td>Head Soccer Coach</td><td>ann.poe@x.org</td>'
+        '<td>Bob Roe</td><td>Head Football Coach</td><td>bob.roe@x.org</td>'
+        '<td>Cy Doe</td><td>Head Track Coach</td><td>cy.doe@x.org</td>'
+    )
+    recs = generic.GenericHS().parse(dense, {})
+    check("three people, not one", len(recs), 3)
+    by = {r.email: r for r in recs}
+    check("ann name", by["ann.poe@x.org"].name, "Ann Poe")
+    check("ann title", by["ann.poe@x.org"].title, "Head Soccer Coach")
+    check("bob did not inherit ann\'s title",
+          by["bob.roe@x.org"].title, "Head Football Coach")
+    check("cy name", by["cy.doe@x.org"].name, "Cy Doe")
 ```
 
 - [ ] **Step 2: Run it to verify it fails**
@@ -1858,7 +1913,18 @@ _ROLE = re.compile(
 
 
 def _flat(fragment: str) -> str:
-    return _SPACE.sub(" ", _html.unescape(_TAGS.sub(" ", fragment))).strip()
+    """Flatten markup, keeping field boundaries as "|".
+
+    Tags become a separator rather than a space. A directory's fields are
+    delimited by markup and by nothing else -- once <td>Jane Doe</td><td>Head
+    Coach</td> collapses to "Jane Doe Head Coach" there is no boundary left to
+    split a name from a title, and every downstream split is guessing.
+    """
+    text = _TAGS.sub("|", fragment or "")
+    text = _html.unescape(text)
+    text = _SPACE.sub(" ", text)
+    text = re.sub(r"(?:\s*\|\s*)+", "|", text)
+    return text.strip("| ").strip()
 
 
 # How far either side of an address to look for that person's name and title.
@@ -1868,30 +1934,51 @@ WINDOW_BEFORE = 400
 WINDOW_AFTER = 200
 
 
-def blocks(html: str) -> list[str]:
-    """One window per address, centred where the address appears.
+def blocks(html: str) -> "list[tuple[str, str]]":
+    """One (address, window) per address occurrence, in document order.
 
     NOT regex container matching. A container pattern with a backreference
     cannot nest: against an outer div wrapping inner cards it matches through
     the FIRST closing tag, keeping the outer opener and losing every inner
-    card. Real staff directories nest three or four deep, so that approach
-    silently under-extracts exactly where it matters most -- and flat test
-    fixtures never reveal it.
+    card. Real directories nest three or four deep, so that approach silently
+    under-extracts exactly where it matters most.
 
-    Anchoring on the address needs no well-formed markup at all, which is the
-    same principle this adapter already rests on: the address is the one
-    element every directory truly has.
+    Anchoring on the address needs no well-formed markup at all -- the address
+    is the one element every directory truly has.
+
+    Two things make this work on dense pages, and both were learned by running
+    it rather than reading it:
+
+    The anchor address is RETURNED, not recovered from the window afterwards.
+    Windows overlap whenever people sit closer together than WINDOW_BEFORE, and
+    a window that reports its neighbour's address collapses two people into one.
+
+    And each window is CLAMPED to its neighbours, so it can never run past the
+    previous or next address. Without that, a person's name and title are read
+    from whichever of them appears first in a shared span.
     """
     html = html or ""
     low = html.lower()
-    windows: list[str] = []
+
+    hits: list[tuple[int, str]] = []
     for addr in set(emails_in(html)):
-        idx = low.find(addr.lower())
-        if idx < 0:
-            continue
-        start = max(0, idx - WINDOW_BEFORE)
-        windows.append(html[start: idx + len(addr) + WINDOW_AFTER])
-    return windows
+        needle, start = addr.lower(), 0
+        while True:
+            i = low.find(needle, start)
+            if i < 0:
+                break
+            hits.append((i, addr))
+            start = i + len(needle)
+    hits.sort()
+
+    out: list[tuple[str, str]] = []
+    for n, (i, addr) in enumerate(hits):
+        prev_end = (hits[n - 1][0] + len(hits[n - 1][1])) if n else 0
+        nxt = hits[n + 1][0] if n + 1 < len(hits) else len(html)
+        lo = max(prev_end, i - WINDOW_BEFORE)
+        hi = min(nxt, i + len(addr) + WINDOW_AFTER)
+        out.append((addr, html[lo:hi]))
+    return out
 
 
 class GenericHS(Adapter):
@@ -1900,28 +1987,28 @@ class GenericHS(Adapter):
     def detect(self, html: str) -> bool:
         return len(set(emails_in(html))) >= 3
 
-    def parse(self, html: str, ctx: dict) -> list[CoachRecord]:
+    def parse(self, html: str, ctx: dict) -> "list[CoachRecord]":
         out: list[CoachRecord] = []
         seen: set[str] = set()
-        for block in blocks(html):
-            addrs = emails_in(block)
-            if not addrs:
-                continue                      # no address, no row. Never invented.
-            email = addrs[0]
+        for email, block in blocks(html):
             if email in seen:
                 continue
             seen.add(email)
 
             text = _flat(block)
-            name_m = _NAME.search(text)
-            name = name_m.group(1).strip() if name_m else ""
+            fields = [f.strip() for f in text.split("|") if f.strip()]
 
-            # The title is the role-bearing run of text, minus the name itself.
+            name = ""
+            for f in fields:
+                m = _NAME.fullmatch(f) or _NAME.search(f)
+                if m and "@" not in f:
+                    name = m.group(1).strip()
+                    break
+
             title = ""
-            for part in re.split(r"\s{2,}|\||•|,", text):
-                part = part.strip()
-                if part and part != name and _ROLE.search(part) and len(part) < 90:
-                    title = part
+            for f in fields:
+                if f != name and "@" not in f and _ROLE.search(f) and len(f) < 90:
+                    title = f
                     break
 
             phone_m = PHONE.search(block)
