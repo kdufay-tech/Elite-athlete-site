@@ -19,6 +19,8 @@ import config_hs
 import discover_hs
 from adapters.base import emails_in
 import adapters_hs.finalsite as finalsite
+import gates_hs
+from adapters.base import CoachRecord
 
 FAILURES: list[str] = []
 
@@ -636,6 +638,58 @@ def test_looks_like_directory_still_accepts_a_plain_directory():
     plain = ('<a href="mailto:a@x.org">a</a><a href="mailto:b@x.org">b</a>'
              '<a href="mailto:c@x.org">c</a>')
     check("plain path unchanged", discover_hs.looks_like_directory(plain), True)
+
+
+def _rec(email, title="Head Coach", proof="https://x.org/staff"):
+    return CoachRecord(name="A B", title=title, email=email, proof_url=proof,
+                       school="S", state="GA", sport="football")
+
+
+def test_status_requires_proof_url():
+    check("no proof_url is unverified",
+          gates_hs.status_for(_rec("a@x.org", proof="")), "unverified")
+
+
+def test_status_requires_title():
+    check("no title is unverified",
+          gates_hs.status_for(_rec("a@x.org", title="")), "unverified")
+
+
+def test_status_active_when_both_present():
+    check("proof + title is active", gates_hs.status_for(_rec("a@x.org")), "active")
+
+
+def test_entropy_flags_repeated_local_part():
+    recs = [_rec(f"performance@d{i}.org") for i in range(5)]
+    report = gates_hs.entropy_report(recs)
+    check("repeated local part counted", report.get("performance"), 5)
+    raised = False
+    try:
+        gates_hs.assert_entropy(recs)
+    except gates_hs.EntropyError:
+        raised = True
+    check("entropy gate raises", raised, True)
+
+
+def test_keep_drops_rows_with_no_target_sport():
+    # normalize() returns None only when the EMAIL is missing -- a row whose
+    # title folds to no sport survives it. The spec says drop those.
+    ad = _rec("ad@x.org", title="Athletic Director")
+    ad.sport = ""
+    fb = _rec("fb@x.org", title="Head Football Coach")
+    fb.sport = "football"
+    check("sportless row dropped", gates_hs.keep(ad), False)
+    check("target-sport row kept", gates_hs.keep(fb), True)
+
+
+def test_entropy_allows_normal_names():
+    recs = [_rec(f"person{i}@d{i}.org") for i in range(20)]
+    raised = False
+    try:
+        gates_hs.assert_entropy(recs)
+    except gates_hs.EntropyError:
+        raised = True
+    check("normal list passes entropy", raised, False)
 
 
 def main():
