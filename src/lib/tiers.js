@@ -1,26 +1,20 @@
 // ─────────────────────────────────────────────────────────────
-// src/lib/stripe.js  —  Elite Athlete 4-Tier Pricing
+// src/lib/tiers.js  —  Elite Athlete tier data + access gating
 // Free · Athlete ($29/mo · $199/yr) · Elite ($69/mo · $529/yr)
 // Coach Pro ($899/yr subscription + $4.99/athlete/month)
-// ─────────────────────────────────────────────────────────────
-import { loadStripe } from '@stripe/stripe-js';
-
+//
+// Split out of lib/stripe.js 2026-09-17. This half is pure data and
+// synchronous logic — getUserTier/canAccess run on first render and
+// TIER_INFO drives all pricing UI, so it MUST stay statically importable.
+// It deliberately does NOT import @stripe/stripe-js: that package injects
+// js.stripe.com as a side effect of being imported, which put a Stripe CDN
+// fetch (and its fraud fingerprinting) on every page load for every user,
+// including free users and iOS users who cannot purchase at all.
+// Checkout lives in lib/checkout.js and is loaded on demand.
 // ── BETA / TEST MODE TOGGLE ───────────────────────────────────
 // Set VITE_BETA_MODE=true in Netlify env to activate Stripe test mode.
 // All test keys/prices are used automatically. Remove or set to false for live.
 export const IS_BETA_MODE = import.meta.env.VITE_BETA_MODE === 'true';
-
-const STRIPE_KEY = IS_BETA_MODE
-  ? import.meta.env.VITE_STRIPE_TEST_PUBLISHABLE_KEY
-  : import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-
-if (!STRIPE_KEY) console.warn(`⚠️  ${IS_BETA_MODE ? 'VITE_STRIPE_TEST_PUBLISHABLE_KEY' : 'VITE_STRIPE_PUBLISHABLE_KEY'} missing`);
-
-let stripePromise = null;
-export function getStripe() {
-  if (!stripePromise) stripePromise = loadStripe(STRIPE_KEY);
-  return stripePromise;
-}
 
 // ── TIER ORDER ───────────────────────────────────────────────
 export const TIER_ORDER = { free: 0, athlete: 1, elite: 2, coach: 3 };
@@ -129,60 +123,3 @@ export const TIER_INFO = {
     ],
   },
 };
-
-// ── PAYMENT LINKS (paste from Stripe Dashboard → Payment Links) ──
-// After creating products in Stripe, generate Payment Links and set these env vars.
-// If not set, falls back to the Netlify Function (stripe-checkout).
-const _links = {
-  athlete_monthly: import.meta.env.VITE_STRIPE_LINK_ATHLETE_MONTHLY || '',
-  athlete_annual:  import.meta.env.VITE_STRIPE_LINK_ATHLETE_ANNUAL  || '',
-  elite_monthly:   import.meta.env.VITE_STRIPE_LINK_ELITE_MONTHLY   || '',
-  elite_annual:    import.meta.env.VITE_STRIPE_LINK_ELITE_ANNUAL    || '',
-  coach_monthly:   import.meta.env.VITE_STRIPE_LINK_COACH_MONTHLY   || '',
-  coach_annual:    import.meta.env.VITE_STRIPE_LINK_COACH_ANNUAL    || '',
-};
-
-// ── REDIRECT TO CHECKOUT ─────────────────────────────────────
-export async function redirectToCheckout({ priceKey, planName, userEmail, userId, successUrl, cancelUrl, couponCode }) {
-  const priceId = STRIPE_PRICES[priceKey];
-  if (!priceId) {
-    throw new Error(
-      `Stripe price ID not configured for "${priceKey}". ` +
-      'Add VITE_STRIPE_PRICE_* keys to your .env.local and Netlify environment variables.'
-    );
-  }
-
-  // Option A: Stripe Payment Link (no backend needed — fastest setup)
-  const link = _links[priceKey];
-  if (link && link.startsWith('https://')) {
-    const p = new URLSearchParams();
-    if (userEmail) p.set('prefilled_email', userEmail);
-    if (userId)    p.set('client_reference_id', userId);
-    else if (planName) p.set('client_reference_id', planName);
-    window.location.href = link + (p.toString() ? '?' + p.toString() : '');
-    return;
-  }
-
-  // Option B: Netlify Function creates a Checkout Session (recommended for production)
-  const res = await fetch('/.netlify/functions/stripe-checkout', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ priceId, planName, userEmail, userId, successUrl, cancelUrl, couponCode }),
-  });
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || 'Checkout session creation failed');
-  }
-  const { sessionId, url } = await res.json();
-  if (url) { window.location.href = url; return; }
-  const stripe = await getStripe();
-  await stripe.redirectToCheckout({ sessionId });
-}
-
-// ── CARD HELPERS - REMOVED 2026-09-07 ──────────────────────
-// validateCard / formatCardNumber / formatExpiry existed only to drive a card
-// form inside PayModal that collected cardholder name, PAN, expiry and CVV,
-// validated them locally, then discarded them and redirected to Stripe
-// Checkout, where the user re-entered everything. Card entry belongs on
-// Stripe's page: it keeps live PAN out of React state and off this origin.
-// Do not reintroduce card fields in this app.

@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import { Purchases } from '@revenuecat/purchases-capacitor';
-import { TIER_INFO } from '../lib/stripe';
+import { TIER_INFO } from '../lib/tiers';
 
 // Map RevenueCat package identifier  ->  { tierKey, billing }
 // These identifiers must match the package IDs in your RevenueCat

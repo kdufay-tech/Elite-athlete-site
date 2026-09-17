@@ -3,8 +3,8 @@
 // 4-Tier checkout: Free · Athlete · Elite · Coach Pro
 // Annual/Monthly toggle — annual is default
 // ─────────────────────────────────────────────────────────────
-import { useState } from 'react';
-import { redirectToCheckout, TIER_INFO, IS_BETA_MODE } from '../lib/stripe';
+import { useState, useEffect } from 'react';
+import { TIER_INFO, IS_BETA_MODE } from '../lib/tiers';
 
 export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEmail, userId, couponCode }) {
   // plan can be { tierKey:'elite' } (new) or legacy { name:'Elite', price:'$79' }
@@ -17,6 +17,12 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
   const [loading,    setLoading]    = useState(false);
   const [apiError,   setApiError]   = useState('');
 
+  // Warm Stripe.js the moment this modal opens, so the SDK is loaded by the time
+  // the user clicks Pay. Browsing and free users never mount this component, so
+  // they never fetch Stripe at all. iOS never mounts it either — CheckoutModal
+  // routes that platform to IOSPaywall — so Apple's flow stays Stripe-free.
+  useEffect(() => { import('../lib/checkout').then(m => m.warm()).catch(() => {}); }, []);
+
   // Coach Pro is annual-only ($899/yr subscription; seats bill separately per
   // month). Force annual so a null info.monthly can never reach checkout.
   const annualOnly  = !!info.annualOnly || !info.monthly;
@@ -28,6 +34,7 @@ export default function PayModal({ plan, tab, setTab, onClose, onSuccess, userEm
     setApiError('');
     setLoading(true);
     try {
+      const { redirectToCheckout } = await import('../lib/checkout');
       await redirectToCheckout({
         priceKey,
         planName,
