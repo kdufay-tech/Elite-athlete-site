@@ -105,9 +105,34 @@ def looks_like_directory(html: str) -> bool:
     HTTP 200 is not a page. Styled 404s return 200 with a friendly message and
     parse into garbage, so the test is content-based: enough distinct addresses
     to be a listing, and no not-found language.
+
+    The address count asks what the page CONTAINS, not what one regex can see.
+    Counting only plain addresses baked the generic parser's blind spot into the
+    crawler itself: a Finalsite directory listing a hundred coaches exposes
+    exactly ONE plain address -- the rest are obfuscated -- so this gate scored
+    it 1, discarded the page, and recorded the school as no-directory. Twelve
+    Gwinnett schools were lost that way while a working decoder for those pages
+    sat unused beside them, and every test in the suite stayed green.
     """
     if not html:
         return False
     if _NOT_FOUND.search(html[:4000]):
         return False
-    return len(set(emails_in(html))) >= config_hs.MIN_EMAILS_FOR_DIRECTORY
+    if len(set(emails_in(html))) >= config_hs.MIN_EMAILS_FOR_DIRECTORY:
+        return True
+
+    # Imported here rather than at module scope: adapters_hs imports from the
+    # college package and this keeps discovery usable without loading it.
+    from adapters_hs import ADAPTERS
+
+    for adapter in ADAPTERS:
+        # The generic adapter sees exactly what emails_in already counted, so
+        # asking it again cannot change the answer -- only a specific adapter
+        # can see addresses this gate otherwise misses.
+        if adapter.name == "generic-hs":
+            continue
+        if not adapter.detect(html):
+            continue
+        if len(adapter.parse(html, {})) >= config_hs.MIN_EMAILS_FOR_DIRECTORY:
+            return True
+    return False

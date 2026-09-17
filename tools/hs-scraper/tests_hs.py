@@ -15,7 +15,9 @@ import domains
 import associations.ghsa as ghsa
 import manifest
 import associations.ghsa as _ghsa
+import config_hs
 import discover_hs
+from adapters.base import emails_in
 import adapters_hs.finalsite as finalsite
 
 FAILURES: list[str] = []
@@ -591,6 +593,49 @@ def test_generic_is_last_and_is_the_fallback():
     check("generic is last", adapters_hs.ADAPTERS[-1].name, "generic-hs")
     check("unclaimed page falls back to generic",
           adapters_hs.adapter_for("<html>nothing here</html>").name, "generic-hs")
+
+
+# --- looks_like_directory must see obfuscated addresses too -------------------
+
+def _fs_person(local, name="A B"):
+    return (
+        '<div class="fsConstituentItem"><h3 class="fsFullName">' + name + '</h3>'
+        '<div class="fsTitles"><strong>Titles:</strong> Head Coach </div>'
+        '<script>FS.util.insertEmail("x", "gro.21kspcg", "' + local + '", false);</script>'
+        '</div>'
+    )
+
+
+def test_looks_like_directory_accepts_an_obfuscated_directory():
+    # A Finalsite page exposes ONE plain address no matter how many people it
+    # lists. Counting only plain addresses discarded 12 Gwinnett schools whose
+    # directories held a hundred coaches each.
+    page = "".join(_fs_person(loc) for loc in ("b.a", "d.c", "f.e"))
+    check("three decodable people is a directory",
+          discover_hs.looks_like_directory(page), True)
+    check("plain count alone would have rejected it",
+          len(set(emails_in(page))) >= config_hs.MIN_EMAILS_FOR_DIRECTORY, False)
+
+
+def test_looks_like_directory_rejects_a_finalsite_shell():
+    # Finalsite chrome with no constituents must NOT pass just because the
+    # adapter claims the page.
+    shell = '<div class="fsElement fsConstituent">Directory</div>'
+    check("no people, not a directory",
+          discover_hs.looks_like_directory(shell), False)
+
+
+def test_looks_like_directory_still_rejects_a_styled_404():
+    page = ("<h1>Page Not Found</h1>"
+            + "".join(_fs_person(loc) for loc in ("b.a", "d.c", "f.e")))
+    check("not-found language wins over any address count",
+          discover_hs.looks_like_directory(page), False)
+
+
+def test_looks_like_directory_still_accepts_a_plain_directory():
+    plain = ('<a href="mailto:a@x.org">a</a><a href="mailto:b@x.org">b</a>'
+             '<a href="mailto:c@x.org">c</a>')
+    check("plain path unchanged", discover_hs.looks_like_directory(plain), True)
 
 
 def main():
