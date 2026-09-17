@@ -14,6 +14,7 @@ statewide would dilute recall by construction.
 from __future__ import annotations
 
 import csv
+import re
 from pathlib import Path
 
 import _shared  # noqa: F401
@@ -28,8 +29,30 @@ def load_known(path: Path | str) -> list[dict]:
         return list(csv.DictReader(fh))
 
 
+_SCHOOL_WORDS = re.compile(r"\b(high\s+school|high|hs|school)\b", re.I)
+
+
 def _norm(s: str) -> str:
-    return " ".join((s or "").lower().split())
+    """Compare schools by identity rather than by spelling.
+
+    The ground truth says "Campbell". A record may carry "ga-campbell" (the
+    registry id, which is what the crawl context seeds) or "CAMPBELL HIGH
+    SCHOOL" (what a directory page prints). All three are one school.
+
+    Comparing the raw strings reported 0.0% agreement across six matches that
+    were, every one of them, the correct school -- a score measuring the
+    comparison instead of the data. An agreement figure that cannot rise above
+    zero is not a strict test, it is a broken one, and it is worse than no
+    figure because it looks like evidence.
+    """
+    s = (s or "").lower().replace("_", " ").replace("-", " ")
+    s = _SCHOOL_WORDS.sub(" ", s)
+    s = re.sub(r"[^a-z0-9 ]+", " ", s)
+    s = " ".join(s.split())
+    # registry ids are state-prefixed; the ground truth is not
+    if s.startswith("ga ") and s[3:].strip():
+        s = s[3:].strip()
+    return s
 
 
 def score(found: list[CoachRecord], known: list[dict]) -> dict:

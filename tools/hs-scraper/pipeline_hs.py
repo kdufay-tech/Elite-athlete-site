@@ -58,6 +58,11 @@ def extract(arch, schools: list, roster: list) -> list:
     """
     units = manifest.build(schools, roster)
     unit_of = {s.school_id: u for u in units for s in u.schools}
+    # The archive keys pages by school_id, but `school` is a HUMAN-READABLE
+    # field that ends up in the export and is compared against ground truth.
+    # Seeding it with the id would put "ga-campbell" in a deliverable column
+    # where the school is called Campbell.
+    name_of = {s.school_id: s.school for s in schools}
 
     raw: list = []
     page_school: dict[int, str] = {}
@@ -67,7 +72,7 @@ def extract(arch, schools: list, roster: list) -> list:
             continue
         school_id = page.get("school_id", "")
         ctx = {
-            "school": school_id,
+            "school": name_of.get(school_id, school_id),
             "school_id": school_id,
             "state": "GA",
             "proof_url": page.get("final_url") or page.get("url", ""),
