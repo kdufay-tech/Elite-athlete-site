@@ -651,6 +651,88 @@ def test_adapter_for_prefers_the_specific_adapter():
           adapters_hs.adapter_for(TABLE_DIR).name, "generic-hs")
 
 
+def test_generic_reads_the_anchor_label_as_the_name():
+    # Campbell and Pope both put the person's name in the link text. The old
+    # parser scanned backwards first and returned the PREVIOUS person: Jeff
+    # Phillips got trenton.pruett@, and every Pope row was off by one.
+    campbell = (
+        '<td><a href="mailto:jeff.phillips@cobbk12.org">Jeff Phillips</a>'
+        ', Head Football Coach</td></tr>'
+        '<tr><td><a href="mailto:trenton.pruett@cobbk12.org" id="isPasted">'
+        'Trenton Pruett</a> &nbsp;</td></tr>'
+    )
+    by = {r.email: r for r in generic.GenericHS().parse(campbell, {})}
+    check("link text is the name",
+          by["trenton.pruett@cobbk12.org"].name, "Trenton Pruett")
+    check("and the title above it belongs to the man above",
+          by["trenton.pruett@cobbk12.org"].title, "")
+    check("who keeps his own name",
+          by["jeff.phillips@cobbk12.org"].name, "Jeff Phillips")
+
+
+def test_generic_reads_surname_first_names():
+    pope = (
+        '<td><a href="mailto:jamie.hamrick@cobbk12.org">Hamrick, Jamie</a></td>'
+        '<td>Counseling</td></tr>'
+        '<tr><td><a href="mailto:thomas.hanson@cobbk12.org">Hanson, Thomas</a></td>'
+        '<td>Special Education<br>Football: Assistant Coach</td></tr>'
+    )
+    by = {r.email: r for r in generic.GenericHS().parse(pope, {})}
+    check("surname-first form", by["thomas.hanson@cobbk12.org"].name,
+          "Hanson, Thomas")
+    check("title skips the department",
+          by["thomas.hanson@cobbk12.org"].title, "Football: Assistant Coach")
+
+
+def test_generic_falls_back_when_the_label_is_not_a_name():
+    # Mt Pisgah labels every address "CONTACT", so the name is the heading
+    # above -- in caps, which the old name pattern could not match at all. It
+    # matched "Head Coach" instead and shipped that as eleven people's names.
+    pisgah = (
+        '<td><p>BRAD WATKINS</p><p>Head Coach - Varsity Football</p>'
+        '<p><a class="site-button-email" '
+        'href="mailto:bwatkins@mountpisgahschool.org">CONTACT</a></p></td>'
+    )
+    recs = generic.GenericHS().parse(pisgah, {})
+    check("all-caps name recovered", recs[0].name, "BRAD WATKINS")
+    check("title kept", recs[0].title, "Head Coach - Varsity Football")
+
+
+def test_generic_drops_an_address_the_page_itself_mangled():
+    # Pope wrote the scheme twice: href="mailto:mailto.denise.danielson@...".
+    # Stripping the "mailto." would CONSTRUCT an address the page does not
+    # contain, so the row goes instead.
+    html = ('<td><a href="mailto:mailto.denise.danielson@cobbk12.org">'
+            'Danielson, Dr. Denise</a></td><td>Assistant Principal</td>')
+    check("a mangled address yields no row",
+          generic.GenericHS().parse(html, {}), [])
+
+
+def test_looks_like_name_separates_people_from_job_titles():
+    for good in ("Trenton Pruett", "ED WILSON", "Hanson, Thomas",
+                 "Danielson, Dr. Denise", "Mary Alvis Johnson"):
+        check("name: %s" % good, generic.looks_like_name(good), True)
+    for bad in ("Head Coach", "Assistant Coach", "Special Education",
+                "Assistant Principal", "Athletic Director", "CONTACT",
+                "Varsity Girls Soccer", "770-555-0101",
+                '<a href="mailto:', "jane@x.org"):
+        check("not a name: %s" % bad, generic.looks_like_name(bad), False)
+
+
+def test_generic_decodes_a_percent_escaped_address():
+    # href="mailto: bryan.rathke@..." -- a stray space the browser encoded.
+    # Decoding it is reading the url as a mail client would. Fourteen Cobb
+    # addresses arrive this way.
+    check("%20 decoded", generic.unescape_address("%20bryan.rathke@cobbk12.org"),
+          "bryan.rathke@cobbk12.org")
+    check("a clean address is untouched",
+          generic.unescape_address("jane.doe@x.org"), "jane.doe@x.org")
+    check("an escape that decodes to nonsense is left alone and dropped",
+          generic.is_mangled(generic.unescape_address("%zz@%zz")), True)
+    check("decoding is not repairing: mailto. is still a guess",
+          generic.is_mangled("mailto.denise.danielson@cobbk12.org"), True)
+
+
 def test_generic_is_last_and_is_the_fallback():
     check("generic is last", adapters_hs.ADAPTERS[-1].name, "generic-hs")
     check("unclaimed page falls back to generic",
