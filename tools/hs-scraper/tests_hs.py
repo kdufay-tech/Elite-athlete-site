@@ -533,6 +533,49 @@ def test_parse_does_not_give_the_last_person_the_page_footers_address():
     check("and it is his", recs[0].email, "liam.buckley@paulding.k12.ga.us")
 
 
+def test_parse_reads_the_title_whatever_the_install_labels_it():
+    # Gwinnett writes "Titles:", Fulton writes "Title:". Matching the plural
+    # alone cost every Fulton title -- 5,671 records, none able to pass a gate
+    # that requires one -- while the singular is the COMMONER form in the
+    # archive, 5,337 to 1,992. The label is typed by whoever set the site up;
+    # the div class is emitted by the CMS.
+    singular = """
+    <div class="fsConstituentItem">
+      <h3 class="fsFullName"> Aristotle Bowles </h3>
+      <div class="fsTitles"><strong>Title:</strong> Teacher-High School </div>
+      <div class="fsEmail"><div id="fsEmail-216953-20779-directory">
+        <script>FS.util.insertEmail("fsEmail-216953-20779-directory", "gro.sloohcsnotluf", "3aselwob", false);</script>
+      </div></div>
+    </div>
+    """
+    recs = finalsite.Finalsite().parse(singular, {})
+    check("singular label read", recs[0].title, "Teacher-High School")
+    check("and the address still decodes", recs[0].email,
+          "bowlesa3@fultonschools.org")
+
+    plural = singular.replace("Title:", "Titles:")
+    check("plural still read", finalsite.Finalsite().parse(plural, {})[0].title,
+          "Teacher-High School")
+
+
+def test_parse_does_not_mistake_a_location_for_a_title():
+    # The same install emits class="fsTitle fsLocationName" holding the campus
+    # someone works at. A pattern loose enough to catch "Title:" and "Titles:"
+    # must still not catch that, or Hart County Central Office becomes a job.
+    located = """
+    <div class="fsConstituentItem">
+      <h3 class="fsFullName"> Labreshia Blackwell </h3>
+      <div class="fsTitle fsLocationName"><strong>Locations:</strong> Hart County Central Office </div>
+      <div class="fsEmail"><div id="fsEmail-12398-139-directory">
+        <script>FS.util.insertEmail("fsEmail-12398-139-directory", "su.ag.21k.trah", "eliocs", false);</script>
+      </div></div>
+    </div>
+    """
+    recs = finalsite.Finalsite().parse(located, {})
+    check("a location is not a title", recs[0].title, "")
+    check("the person is still found", recs[0].name, "Labreshia Blackwell")
+
+
 def test_query_urls():
     check("search by surname",
           finalsite.search_url("https://x.gcpsk12.org/directory", "Fowler"),

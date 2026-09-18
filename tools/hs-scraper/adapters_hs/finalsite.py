@@ -80,7 +80,24 @@ _ITEM = re.compile(
     re.I | re.S,
 )
 
-_TITLES = re.compile(r"Titles:\s*</strong>\s*(.*?)\s*</div>", re.I | re.S)
+# The title, anchored on the CMS's own div class rather than on the label text
+# inside it. The label is configured per install: Gwinnett writes "Titles:" and
+# Fulton writes "Title:", and matching the plural alone cost EVERY Fulton title
+# -- 5,671 records across 193 pages, none of which could then pass a gate that
+# requires one. Across the archive the singular outnumbers the plural 5,337 to
+# 1,992, so the parser was matching the minority spelling.
+#
+# The class is emitted by Finalsite; the label is typed by whoever set the site
+# up. Anchor on the part the vendor controls.
+#
+# The closing quote in class="fsTitles" is load-bearing: the same install also
+# emits class="fsTitle fsLocationName", which holds the campus a person works
+# at, not their job. A looser pattern reports Hart County Central Office as
+# somebody's title.
+_TITLES = re.compile(
+    r'class="fsTitles"\s*>(?:\s*<strong>[^<]*</strong>)?\s*(.*?)\s*</div>',
+    re.I | re.S,
+)
 _TAGS = re.compile(r"<[^>]+>")
 _SPACE = re.compile(r"\s+")
 
