@@ -289,7 +289,9 @@ class GenericHS(Adapter):
             # locate with the address AS PUBLISHED; the block still holds it
             name, title = name_and_title(block, raw)
 
-            phone_m = PHONE.search(block)
+            # Text, not markup -- see the note in finalsite.py. An id or a
+            # version string in an attribute can match a phone pattern.
+            phone_m = PHONE.search(_flat(block).replace("|", " "))
 
             rec = CoachRecord(**Adapter._seed(ctx))
             rec.name = name

@@ -161,7 +161,16 @@ class Finalsite(Adapter):
             rec.name = _clean(m.group("name"))
             rec.title = _clean(t.group(1)) if t else ""
             rec.email = email
-            phone = PHONE.search(mid)
+            # Search the TEXT, not the markup. A Finalsite element id is
+            # fsEmail-267798-30884-directory, and \d{3}\d{3}-\d{4} matches
+            # "267798-3088" inside it, so every phone this adapter reported was
+            # a slice of an id formatted to look like a number: (267) 798-3088
+            # on a Georgia school, area code 267 being Pennsylvania. Nothing had
+            # been imported yet, so none reached the database.
+            #
+            # A phone number is something a reader can see. Attribute values are
+            # not, so strip the tags first and the whole class of match goes.
+            phone = PHONE.search(_clean(mid))
             rec.phone = phone.group(1) if phone else ""
             rec.platform = self.name
             out.append(rec)
