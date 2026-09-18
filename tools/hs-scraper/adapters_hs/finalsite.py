@@ -33,19 +33,50 @@ from urllib.parse import quote
 import _shared  # noqa: F401
 from adapters.base import Adapter, CoachRecord, PHONE
 
-# The obfuscated address. Tolerant of whitespace and of the trailing argument,
-# which varies between "false", "true" and a display string across installs.
-_INSERT = re.compile(
-    r"""FS\.util\.insertEmail\(\s*["'][^"']*["']\s*,\s*["']([^"']*)["']\s*,\s*["']([^"']*)["']""",
-    re.I,
-)
-
 # One constituent: name, optional titles, then the address call. Non-greedy and
 # anchored on the address, so a person with no address simply does not match.
 _ITEM = re.compile(
-    r'fsFullName["\']?\s*>\s*(?P<name>.*?)\s*</h3>'
-    r'(?P<mid>.*?)'
-    r'FS\.util\.insertEmail\(\s*["\'][^"\']*["\']\s*,\s*["\'](?P<dom>[^"\']*)["\']\s*,\s*["\'](?P<loc>[^"\']*)["\']',
+    # A name is the text of ONE heading, so it cannot contain that
+    # heading's own close tag. Without this, bounding the span below merely
+    # MOVES the backtracking: the engine expands the name across </h3>, the
+    # titles div and the next <h3> to reach a legal span, and returns the
+    # name "Ghost Person Titles: Head Football Coach Cory Cason". Bounding
+    # one quantifier in a pattern with two only relocates the problem --
+    # the engine takes whichever path still reaches the anchor.
+    r'fsFullName["\']?\s*>\s*(?P<name>(?:(?!</h3).)*?)\s*</h3>'
+    # The span between a name and its address must NOT cross into another
+    # person. `.*?` is non-greedy but unbounded, so a constituent listed with no
+    # address scanned forward and paired that name with the NEXT person's
+    # address: "Matthew Webb" came back as william.webber@aischool.org, and
+    # "Labreshia Blackwell" as scoile@hart.k12.ga.us. Two real people merged
+    # into one well-formed, entirely wrong row.
+    #
+    # Brookwood never showed this because every constituent there carries an
+    # address, so the non-greedy match always stopped inside the right block. I
+    # validated the pattern on one school and generalised it; the schools where
+    # some staff have no published address are where it breaks.
+    #
+    # Refusing to span a second fsFullName means a person with no address now
+    # matches nothing at all - which is correct. No address, no row.
+    r'(?P<mid>(?:(?!fsFullName).)*?)'
+    # The address must be one the DIRECTORY element published, and Finalsite
+    # names the emitting element in the DOM id: all 1,920 directory addresses
+    # in the archive are fsEmail-<el>-<constituent>-<context>, while page
+    # chrome emits fsEmail_8_2492 -- underscores, no context.
+    #
+    # Without this the LAST constituent on a page has no next fsFullName to
+    # stop at, so the span above runs on through the markup and reaches the
+    # footer's "Get In Touch" address. Three people in Georgia were issued a
+    # district mailbox that way: LIAM BUCKLEY got communications@paulding,
+    # Devin Cannon got jcboe@johnson (the Board of Education), SABRINA
+    # CIVALIER got webster@bullochschools. Each would have mailed a district
+    # office under a coach's name.
+    #
+    # Gating on the id costs exactly those three rows and no real person. It
+    # prefers a false negative to a wrong pair, which is the trade this
+    # project exists to make.
+    r'FS\.util\.insertEmail\(\s*["\']fsEmail-\d+-\d+-[a-z]+["\']'
+    r'\s*,\s*["\'](?P<dom>[^"\']*)["\']\s*,\s*["\'](?P<loc>[^"\']*)["\']',
     re.I | re.S,
 )
 

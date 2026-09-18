@@ -474,6 +474,65 @@ def test_parse_invents_nothing_when_the_address_is_absent():
     check("no address, no row", finalsite.Finalsite().parse(no_addr, {}), [])
 
 
+def test_parse_never_pairs_a_name_with_the_next_persons_address():
+    # The bug the isolated fixture above could not catch. A constituent with no
+    # address, followed by one that HAS an address: the unbounded span between
+    # name and insertEmail scanned forward and handed Ghost Person the next
+    # person's address. Well-formed output, two real people merged into one.
+    # Real examples: Matthew Webb -> william.webber@aischool.org,
+    # Labreshia Blackwell -> scoile@hart.k12.ga.us.
+    crossed = """
+    <div class="fsConstituentItem">
+      <h3 class="fsFullName"> Ghost Person </h3>
+      <div class="fsTitles"><strong>Titles:</strong> Head Football Coach </div>
+    </div>
+    <div class="fsConstituentItem">
+      <h3 class="fsFullName"> Cory Cason </h3>
+      <div class="fsTitles"><strong>Titles:</strong> Tchr Health &amp; PE </div>
+      <div class="fsEmail"><div id="fsEmail-1">
+        <script>setTimeout(function(){ FS.util.insertEmail("fsEmail-12398-141-directory", "gro.21kspcg", "nosac.yroc", false); }, 20);</script>
+      </div></div>
+    </div>
+    """
+    recs = finalsite.Finalsite().parse(crossed, {})
+    check("only the person who has an address", len(recs), 1)
+    check("and it is attributed to them", recs[0].name, "Cory Cason")
+    check("address intact", recs[0].email, "cory.cason@gcpsk12.org")
+    check("title not stolen from the block above", recs[0].title, "Tchr Health & PE")
+
+
+def test_parse_does_not_give_the_last_person_the_page_footers_address():
+    # The other boundary. The last constituent on a page has no next
+    # fsFullName to stop at, so the span ran on into the site footer and
+    # handed them the district's "Get In Touch" mailbox. East Paulding's
+    # LIAM BUCKLEY was issued communications@paulding.k12.ga.us this way.
+    #
+    # Finalsite names the emitting element in the DOM id -- the directory
+    # emits fsEmail-<el>-<constituent>-<context>, the footer emits
+    # fsEmail_8_2492 -- so the id is what tells the two apart.
+    with_footer = """
+    <div class="fsConstituentItem">
+      <h3 class="fsFullName"> Liam Buckley </h3>
+      <div class="fsTitles"><strong>Titles:</strong> Health Occupations </div>
+    </div>
+    <footer>Get In Touch 3320 East Paulding Drive
+      <script>setTimeout(function(){ FS.util.insertEmail('fsEmail_8_2492', 'su.ag.21k.gnidluap', 'snoitacinummoc', false); }, 20);</script>
+    </footer>
+    """
+    check("a footer address belongs to nobody",
+          finalsite.Finalsite().parse(with_footer, {}), [])
+
+    # And the same page with a real directory address still parses.
+    with_real = with_footer.replace(
+        "<footer>", '<div class="fsEmail"><div id="fsEmail-8-11-directory">'
+        "<script>setTimeout(function(){ FS.util.insertEmail("
+        "'fsEmail-8-11-directory', 'su.ag.21k.gnidluap', 'yelkcub.mail', false); }, 20);"
+        "</script></div></div><footer>")
+    recs = finalsite.Finalsite().parse(with_real, {})
+    check("his own address is still found", len(recs), 1)
+    check("and it is his", recs[0].email, "liam.buckley@paulding.k12.ga.us")
+
+
 def test_query_urls():
     check("search by surname",
           finalsite.search_url("https://x.gcpsk12.org/directory", "Fowler"),
@@ -579,7 +638,7 @@ import adapters_hs.finalsite as finalsite_mod
 # that task renames it, and the coupling is invisible until it does.
 FS_MIN = (
     '<div class="fsConstituentItem"><h3 class="fsFullName">A B</h3>'
-    '<script>FS.util.insertEmail("x", "gro.x", "b.a", false);</script></div>'
+    '<script>FS.util.insertEmail("fsEmail-9-1-directory", "gro.x", "b.a", false);</script></div>'
 )
 
 
@@ -601,10 +660,14 @@ def test_generic_is_last_and_is_the_fallback():
 # --- looks_like_directory must see obfuscated addresses too -------------------
 
 def _fs_person(local, name="A B"):
+    # The DOM id is real markup, not a placeholder: the parser now requires
+    # fsEmail-<el>-<constituent>-<context>, because that is how Finalsite
+    # distinguishes an address the DIRECTORY published from one the page
+    # footer did. A fixture with id "x" tests a page that cannot exist.
     return (
         '<div class="fsConstituentItem"><h3 class="fsFullName">' + name + '</h3>'
         '<div class="fsTitles"><strong>Titles:</strong> Head Coach </div>'
-        '<script>FS.util.insertEmail("x", "gro.21kspcg", "' + local + '", false);</script>'
+        '<script>FS.util.insertEmail("fsEmail-9-2-directory", "gro.21kspcg", "' + local + '", false);</script>'
         '</div>'
     )
 
