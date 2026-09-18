@@ -2021,17 +2021,32 @@ function ContactsPanel({ getSession }) {
   // A sport-tagged draft must match the Sport filter exactly, and 'all' counts as
   // a mismatch: one sport's message sent to every sport is the same error larger.
   // An untagged draft (write-your-own) is unconstrained.
-  const draftSport = String((sMeta && sMeta.sport) || '').toLowerCase();
-  const sportMismatch = !!draftSport && draftSport !== String(sendF.sport || '').toLowerCase();
-  // An untagged draft makes sportMismatch false, so the guard PASSES a pairing
-  // it never checked. Most untagged drafts are deliberately sport-neutral
-  // ("One Screen. Complete Roster Visibility."), so blocking them would be
-  // wrong - but reporting nothing reads as "checked and fine" when it means
-  // "could not check". Say which.
-  const sportUnverified = !draftSport
-    && !!sSubject
-    && !!String(sendF.sport || '').trim()
-    && String(sendF.sport).toLowerCase() !== 'all';
+  // Standing rule: every draft carries a sport AND a level, so a message can
+  // never reach the wrong sport or the wrong kind of school. The guard below
+  // enforces both. "all" / "any" mean EXPLICITLY cleared for anything - which
+  // is a different fact from a tag nobody ever set, and only the second one is
+  // unverifiable.
+  const norm = (v) => String(v || '').trim().toLowerCase();
+  const isAny = (v) => v === 'all' || v === 'any';
+
+  const draftSport = norm(sMeta && sMeta.sport);
+  const draftLevel = norm(sMeta && sMeta.level);
+  const wantSport  = norm(sendF.sport);
+  const wantLevel  = norm(sendF.level);
+
+  const sportMismatch = !!draftSport && !isAny(draftSport)
+    && !isAny(wantSport) && !!wantSport && draftSport !== wantSport;
+  // The level half was missing entirely: nothing stopped a high-school draft
+  // going to a college folder, which is half of what the rule exists to prevent.
+  const levelMismatch = !!draftLevel && !isAny(draftLevel)
+    && !isAny(wantLevel) && !!wantLevel && draftLevel !== wantLevel;
+  const draftMismatch = sportMismatch || levelMismatch;
+
+  // A draft with no tag at all cannot be checked. Say so rather than passing
+  // silently, which reads as "checked and fine".
+  const sportUnverified = !!sSubject && !draftSport && !isAny(wantSport) && !!wantSport;
+  const levelUnverified = !!sSubject && !draftLevel && !isAny(wantLevel) && !!wantLevel;
+  const draftUnverified = sportUnverified || levelUnverified;
 
   const narrowActive = sendF.verifiedOnly === true || sendF.skipContactedSchools === true
     || ['source','titleIncludes','titleExcludes','divisionExcludes']
@@ -2107,15 +2122,21 @@ function ContactsPanel({ getSession }) {
   }
   async function sendFolder() {
     if (!sSubject || !sBody) { setSendMsg({ ok:false, text:'Pick or write a subject and body first.' }); return; }
-    if (sportMismatch) { setSendMsg({ ok:false, text:`Blocked: this draft is the ${draftSport} message but the Sport filter is "${sendF.sport}". Set Sport to ${draftSport}, pick the matching draft, or clear the draft to write your own.` }); return; }
+    if (draftMismatch) {
+      const bits = [];
+      if (sportMismatch) bits.push(`it is the ${draftSport} message but Sport is "${sendF.sport}"`);
+      if (levelMismatch) bits.push(`it is written for ${draftLevel} but Level is "${sendF.level}"`);
+      setSendMsg({ ok:false, text:`Blocked: ${bits.join(', and ')}. Match the filters to the draft, pick a different draft, or clear it to write your own.` });
+      return;
+    }
     const narrow = ['source','titleIncludes','titleExcludes','divisionExcludes','verifiedOnly','skipContactedSchools']
       .filter(k => sendF[k] === true || String(sendF[k] || '').trim()).map(k => `${k}:${sendF[k]}`).join(' · ');
     const label = `level:${sendF.level} · state:${sendF.state} · region:${sendF.region} · sport:${sendF.sport}`
       + (narrow ? ' · ' + narrow : '') + (engagedOnly ? ' · ENGAGED ONLY' : '');
     if (!window.confirm(
       `Send "${sSubject}"${draftSport ? ` (${draftSport} draft)` : ''} to the coach folder (${label})?`
-      + (sportUnverified
-          ? `\n\nThis draft has NO sport tag, so nothing checked it against the "${sendF.sport}" folder. Confirm the body does not name a different sport.`
+      + (draftUnverified
+          ? `\n\nNOT CHECKED: this draft carries no ${[sportUnverified && 'sport', levelUnverified && 'level'].filter(Boolean).join(' or ')} tag, so nothing verified it against this folder. Confirm the body suits the audience.`
           : '')
       + `\n\nIt goes to real recipients and cannot be undone.`
     )) return;
@@ -2379,13 +2400,16 @@ function ContactsPanel({ getSession }) {
               }</option>;
             })}
           </select>
-          {sportMismatch &&
+          {draftMismatch &&
             <div style={{ marginTop:8, padding:'10px 12px', borderRadius:8, background:'rgba(231,76,60,0.12)', border:'1px solid #e74c3c55', color:'#e07a6f', fontSize:12, lineHeight:1.5 }}>
-              <b>Draft does not match the folder.</b> This is the <b>{draftSport}</b> message, but Sport is set to <b>{sendF.sport}</b>. Sending is blocked until they agree.
+              <b>Draft does not match the folder.</b>
+              {sportMismatch && <> This is the <b>{draftSport}</b> message, but Sport is <b>{sendF.sport}</b>.</>}
+              {levelMismatch && <> It is written for <b>{draftLevel}</b>, but Level is <b>{sendF.level}</b>.</>}
+              {' '}Sending is blocked until they agree.
             </div>}
-          {sportUnverified &&
+          {draftUnverified &&
             <div style={{ marginTop:8, padding:'10px 12px', borderRadius:8, background:'rgba(201,168,76,0.10)', border:'1px solid #C9A84C44', color:'#C9A84C', fontSize:12, lineHeight:1.5 }}>
-              <b>Sport not checked.</b> This draft carries no sport tag, so nothing verified it against the <b>{sendF.sport}</b> folder. That is fine for a sport-neutral message — read the body and confirm it does not name a different sport. Not blocked.
+              <b>Not checked.</b> This draft carries no {[sportUnverified && 'sport', levelUnverified && 'level'].filter(Boolean).join(' or ')} tag, so nothing verified it against this folder. Every draft is supposed to carry both — read the body and confirm it suits the audience. Not blocked.
             </div>}
         </div>
         <div style={{ marginBottom:10 }}><label style={lbl}>Top up existing blast — optional</label>
@@ -2401,7 +2425,7 @@ function ContactsPanel({ getSession }) {
         {sendMsg && <div style={{ marginTop:10, fontSize:13, color: sendMsg.ok ? '#4BAE71' : '#e74c3c' }}>{sendMsg.text}</div>}
         <div style={{ display:'flex', gap:8, marginTop:12, flexWrap:'wrap' }}>
           <button onClick={testSend} disabled={sendBusy||!sSubject||!sBody} style={{ background:'transparent', border:'1px solid #ffffff20', color:'#888', padding:'8px 16px', borderRadius:8, cursor:(sendBusy||!sSubject||!sBody)?'default':'pointer', fontFamily:'inherit', fontSize:12 }}>Test to me</button>
-          <button onClick={sendFolder} disabled={sendBusy||!sSubject||!sBody||sportMismatch} style={{ background:(sendBusy||!sSubject||!sBody||sportMismatch)?'#333':'#C9A84C', color:(sendBusy||!sSubject||!sBody||sportMismatch)?'#888':'#0D0D0D', border:'none', fontWeight:700, padding:'8px 18px', borderRadius:8, cursor:(sendBusy||!sSubject||!sBody||sportMismatch)?'default':'pointer', fontFamily:'inherit', fontSize:12 }}>{sendBusy?'Working...':(sportMismatch?'Draft / sport mismatch':'Send to folder')}</button>
+          <button onClick={sendFolder} disabled={sendBusy||!sSubject||!sBody||draftMismatch} style={{ background:(sendBusy||!sSubject||!sBody||draftMismatch)?'#333':'#C9A84C', color:(sendBusy||!sSubject||!sBody||draftMismatch)?'#888':'#0D0D0D', border:'none', fontWeight:700, padding:'8px 18px', borderRadius:8, cursor:(sendBusy||!sSubject||!sBody||draftMismatch)?'default':'pointer', fontFamily:'inherit', fontSize:12 }}>{sendBusy?'Working...':(draftMismatch?'Draft does not match folder':'Send to folder')}</button>
         </div>
       </div>
 
