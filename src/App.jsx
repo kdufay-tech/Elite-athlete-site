@@ -5656,7 +5656,6 @@ COACHING GUIDELINES:
           <PricingSection setPayModal={setPayModal} authUser={authUser} setAuthModal={setAuthModal} setPendingPlan={setPendingPlan} />
 
           {/* ── BETA / FREE TRIAL SECTION — expires June 30 2026 ── */}
-          {!IS_IOS && new Date() < new Date("2026-06-30") && <BetaSignupSection onSignup={()=>setBetaModal(true)} />}
 
           {/* LANDING FOOTER */}
           <div id="landing-about" style={{borderTop:"1px solid rgba(191,161,106,0.1)",marginTop:"4rem",paddingTop:"2rem",paddingBottom:"3rem",textAlign:"center"}}>
@@ -12379,109 +12378,6 @@ function SuccessScreen() {
         <div className="succ-h">Welcome to Elite</div>
         <div className="succ-sub">Preparing your dashboard…</div>
       </div>
-    </div>
-  );
-}
-
-function BetaSignupSection({ onSignup }) {
-  const [stats, setStats] = useState({ total:0, max:500, remaining:500, beta_full:false });
-  const [waitEmail, setWaitEmail] = useState('');
-  const [waitMsg, setWaitMsg] = useState(null);
-  const [waitBusy, setWaitBusy] = useState(false);
-
-  useEffect(() => {
-    fetch(`${API_BASE}/.netlify/functions/beta-stats`)
-      .then(r => r.json())
-      .then(d => setStats(d))
-      .catch(() => {});
-  }, []);
-
-  async function joinWaitlist(e) {
-    e.preventDefault();
-    if (!waitEmail) return;
-    setWaitBusy(true);
-    try {
-      // lead-capture writes the capture ledger and returns 500 if it cannot -
-      // success is only ever reported when the row exists (council 2026-09-10).
-      const res = await fetch(`${API_BASE}/.netlify/functions/lead-capture`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: waitEmail, source: 'coach_waitlist', intent: 'raised_hand', meta: { form: 'beta_full_waitlist' } }),
-      });
-      setWaitMsg(res.ok ? 'success' : 'error');
-    } catch { setWaitMsg('error'); }
-    finally { setWaitBusy(false); }
-  }
-
-  const DISPLAY_MAX = 500;
-  const pct = Math.min(100, Math.round((stats.total / DISPLAY_MAX) * 100));
-
-  return (
-    <div id="landing-beta" style={{padding:"4rem 1.5rem",textAlign:"center",borderTop:"1px solid rgba(201,168,76,0.1)",background:"rgba(201,168,76,0.02)"}}>
-      <div style={{display:"inline-block",fontSize:"0.58rem",letterSpacing:"4px",color:"var(--gold)",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:"20px",padding:"4px 14px",marginBottom:"1.25rem"}}>
-        {stats.beta_full ? 'BETA FULL' : 'FREE BETA ACCESS — LIMITED SPOTS'}
-      </div>
-      <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:"clamp(1.8rem,4vw,2.8rem)",fontWeight:700,letterSpacing:"2px",color:"var(--ivory)",marginBottom:"1rem",lineHeight:1.2}}>
-        {stats.beta_full ? 'Beta is Full.' : <>30 Days Free for Athletes.<br/>45 Days for Coaches.</>}
-      </div>
-
-      {/* Live counter */}
-      <div style={{maxWidth:400,margin:"0 auto 2rem"}}>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.7rem",color:"var(--muted)",marginBottom:"6px",letterSpacing:"1px"}}>
-          <span style={{color:"var(--gold)",fontWeight:700}}>{Math.max(0, DISPLAY_MAX - stats.total)} spots remaining</span>
-          <span>{stats.total} of {DISPLAY_MAX} claimed</span>
-        </div>
-        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:4,height:6,overflow:"hidden"}}>
-          <div style={{background:"linear-gradient(90deg,#C9A227,#e6b830)",height:"100%",width:`${pct}%`,transition:"width 1s ease",borderRadius:4}}/>
-        </div>
-      </div>
-
-      {!stats.beta_full ? (
-        <>
-          <div style={{fontSize:"0.85rem",color:"var(--muted)",maxWidth:"540px",margin:"0 auto 2.5rem",lineHeight:1.75}}>
-            Limited beta — {Math.max(0, DISPLAY_MAX - stats.total)} spots left. Get full access to every feature free — AI Coach, nutrition, workout programming, performance tracking, injury recovery.
-          </div>
-          <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"1.5rem",marginBottom:"2.5rem"}}>
-            {[["🏈","Athletes","Full position-specific programming, AI coaching, supplement stacks — built for your sport. 30 days free.","ATHLETE2026"],
-              ["📋","Coaches","Get early access to Coach Pro. Manage your roster from one dashboard. 45 days free.","COACH2026"]].map(([icon,title,desc,code])=>(
-              <div key={code} style={{background:"#111",border:"1px solid rgba(201,168,76,0.2)",borderRadius:12,padding:"24px",maxWidth:280,textAlign:"left"}}>
-                <div style={{fontSize:"1.8rem",marginBottom:"0.75rem"}}>{icon}</div>
-                <div style={{fontSize:"0.7rem",letterSpacing:"2px",color:"var(--gold)",marginBottom:"6px",textTransform:"uppercase"}}>{title}</div>
-                <div style={{fontSize:"0.8rem",color:"var(--muted)",lineHeight:1.6,marginBottom:"1rem"}}>{desc}</div>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{background:"rgba(0,0,0,0.4)",border:"1px solid rgba(201,168,76,0.3)",borderRadius:6,padding:"6px 12px",fontFamily:"monospace",fontSize:"0.85rem",letterSpacing:"3px",color:"var(--gold)"}}>{code}</div>
-                  <button onClick={()=>navigator.clipboard?.writeText(code)} style={{background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:"0.7rem",letterSpacing:"1px"}}>copy</button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button onClick={onSignup} style={{background:"var(--gold)",color:"#0a0908",border:"none",borderRadius:8,padding:"14px 36px",fontSize:"0.75rem",fontWeight:800,letterSpacing:"2.5px",cursor:"pointer",display:"block",margin:"0 auto 12px"}}>
-            CLAIM FREE BETA ACCESS →
-          </button>
-          <div style={{fontSize:"0.65rem",color:"var(--muted)",marginTop:"12px",letterSpacing:"1px"}}>
-            Sign up → enter your code → get instant access · No payment required
-          </div>
-        </>
-      ) : (
-        /* Beta full — waitlist */
-        <div style={{maxWidth:440,margin:"0 auto"}}>
-          <div style={{fontSize:"0.9rem",color:"var(--muted)",marginBottom:"2rem",lineHeight:1.75}}>
-            All 500 beta spots have been claimed. Join the waitlist and we'll notify you when a spot opens or when we launch publicly.
-          </div>
-          {waitMsg === 'success' ? (
-            <div style={{color:"#4BAE71",fontSize:"0.9rem",letterSpacing:"1px"}}>✓ You're on the list — we'll be in touch.</div>
-          ) : (
-            <form onSubmit={joinWaitlist} style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
-              <input value={waitEmail} onChange={e=>setWaitEmail(e.target.value)} type="email" placeholder="your@email.com" required
-                style={{background:"#111",border:"1px solid rgba(201,168,76,0.3)",borderRadius:6,color:"#fff",padding:"12px 16px",fontSize:"0.85rem",minWidth:240,fontFamily:"inherit"}} />
-              <button type="submit" disabled={waitBusy} style={{background:"var(--gold)",color:"#0a0908",border:"none",borderRadius:6,padding:"12px 24px",fontSize:"0.75rem",fontWeight:800,letterSpacing:"2px",cursor:"pointer"}}>
-                {waitBusy ? '…' : 'JOIN WAITLIST'}
-              </button>
-            </form>
-          )}
-          {waitMsg === 'error' && <div style={{color:"#e74c3c",fontSize:"0.8rem",marginTop:8}}>Something went wrong — email support@elite-athlete.app directly.</div>}
-        </div>
-      )}
     </div>
   );
 }

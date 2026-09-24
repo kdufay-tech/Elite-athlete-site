@@ -1,5 +1,6 @@
 ﻿import { wantsSkipContacted, contactedSchoolEmails } from './_skip-contacted.js';
 import { applyNarrowFilters } from './_narrow-filters.js';
+import { REPLY_TO } from './_mail.js';
 const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Authorization, Content-Type','Content-Type':'application/json'};
 const ADMIN_EMAIL='kiszo@taratechent.com';
 // CAN-SPAM requires a valid physical postal address in every marketing email.
@@ -70,7 +71,7 @@ export default async(req)=>{
         if(rows[0]){ const nm=String(rows[0].coach_name||'').trim(); const p=nm.split(/\s+/).filter(Boolean); mv={name:nm,first:p[0]||'',last:p.length>1?p[p.length-1]:'',school:String(rows[0].school||'').trim()}; }
       }catch(_){}
     }
-    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:'Elite Athlete <support@elite-athlete.app>',to:testEmail,subject:personalize(subject,mv),html:personalize(html,mv).replace('{{EMAIL}}',encodeURIComponent(testEmail))})});
+    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:'Elite Athlete <support@elite-athlete.app>',reply_to:REPLY_TO,to:testEmail,subject:personalize(subject,mv),html:personalize(html,mv).replace('{{EMAIL}}',encodeURIComponent(testEmail))})});
     const d=await r.json().catch(()=>({}));
     return new Response(JSON.stringify(r.ok?{ok:true,message:`Test sent to ${testEmail}${mv.first?` — previewed as ${mv.first}${mv.school?' / '+mv.school:''}`:''}`}:{ok:false,error:d.message}),{status:200,headers:CORS});
   }
@@ -193,7 +194,7 @@ export default async(req)=>{
   const BATCH=100; let sent=0,failed=0; const bid=blastId||`blast_${Date.now()}`;
   for(let i=0;i<recipients.length;i+=BATCH){
     const batch=recipients.slice(i,i+BATCH);
-    const payload=batch.map(({email,mv})=>({from:'Elite Athlete <support@elite-athlete.app>',to:email,subject:personalize(subject,mv),html:personalize(html,mv).replace('{{EMAIL}}',encodeURIComponent(email)),headers:{'List-Unsubscribe':`<https://elite-athlete.app/.netlify/functions/unsubscribe?email=${encodeURIComponent(email)}>, <mailto:support@elite-athlete.app?subject=unsubscribe>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}}));
+    const payload=batch.map(({email,mv})=>({from:'Elite Athlete <support@elite-athlete.app>',reply_to:REPLY_TO,to:email,subject:personalize(subject,mv),html:personalize(html,mv).replace('{{EMAIL}}',encodeURIComponent(email)),headers:{'List-Unsubscribe':`<https://elite-athlete.app/.netlify/functions/unsubscribe?email=${encodeURIComponent(email)}>, <mailto:support@elite-athlete.app?subject=unsubscribe>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}}));
     try{
       const r=await fetch('https://api.resend.com/emails/batch',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const d=await r.json().catch(()=>({}));

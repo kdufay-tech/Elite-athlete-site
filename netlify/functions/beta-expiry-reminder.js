@@ -1,5 +1,6 @@
 // netlify/functions/beta-expiry-reminder.js
 import { requireOpsSecret } from './_ops-guard.js';
+import { REPLY_TO } from './_mail.js';
 // NOT SCHEDULED - the daily schedule was removed by adf0a2d. Requires
 // OPS_TRIGGER_SECRET: removing the schedule left this deployed as a public,
 // unauthenticated send endpoint. See _ops-guard.js.
@@ -87,7 +88,7 @@ async function sendEmail(to, subject, html) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: `${FROM_NAME} <${FROM_EMAIL}>`, to, subject, html }),
+    body: JSON.stringify({ from: `${FROM_NAME} <${FROM_EMAIL}>`, reply_to: REPLY_TO, to, subject, html }),
   });
   return res.ok;
 }

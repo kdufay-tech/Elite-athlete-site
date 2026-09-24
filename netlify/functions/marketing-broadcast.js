@@ -1,3 +1,5 @@
+
+import { REPLY_TO } from './_mail.js';
 ﻿const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Authorization, Content-Type','Content-Type':'application/json'};
 const ADMIN_EMAIL='kiszo@taratechent.com';
 const AUDIENCE_NAME='Elite Athlete Beta List';
@@ -46,7 +48,7 @@ export default async(req)=>{
   if(!subject||!headline||!bodyText||!ctaUrl)return new Response(JSON.stringify({error:'subject, headline, bodyText, ctaUrl required'}),{status:400,headers:CORS});
   if(testEmail){
     const html=buildHtml({headline,subheadline,bodyText,videoUrl,thumbnailUrl,ctaText,ctaUrl,footerNote});
-    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:'Elite Athlete <support@elite-athlete.app>',to:testEmail,subject,html})});
+    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:'Elite Athlete <support@elite-athlete.app>',reply_to:REPLY_TO,to:testEmail,subject,html})});
     const d=await r.json();
     return new Response(JSON.stringify(r.ok?{ok:true,message:`Test sent to ${testEmail}`}:{ok:false,error:d.message}),{status:200,headers:CORS});
   }
@@ -78,7 +80,7 @@ export default async(req)=>{
   if(!audienceId)return new Response(JSON.stringify({error:'Failed to create audience'}),{status:500,headers:CORS});
   const{added,failed:cFailed}=await addContacts(resendKey,audienceId,emails);
   const html=buildHtml({headline,subheadline,bodyText,videoUrl,thumbnailUrl,ctaText,ctaUrl,footerNote});
-  const bRes=await fetch('https://api.resend.com/broadcasts',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({audience_id:audienceId,from:'Elite Athlete <support@elite-athlete.app>',reply_to:'support@elite-athlete.app',subject,html,name:`EA Blast - ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`})});
+  const bRes=await fetch('https://api.resend.com/broadcasts',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({audience_id:audienceId,from:'Elite Athlete <support@elite-athlete.app>',reply_to:REPLY_TO,subject,html,name:`EA Blast - ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`})});
   const bData=await bRes.json();
   if(!bRes.ok)return new Response(JSON.stringify({error:`Broadcast creation failed: ${bData.message}`}),{status:500,headers:CORS});
   const sRes=await fetch(`https://api.resend.com/broadcasts/${bData.id}/send`,{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({})});

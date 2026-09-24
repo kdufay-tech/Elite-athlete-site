@@ -16,6 +16,7 @@
 //               paid/reply/call intents are written by trusted functions).
 
 import { logLead, contactIdFor, normEmail } from './_lead.js';
+import { REPLY_TO } from './_mail.js';
 
 const PUBLIC_INTENTS = new Set(['raised_hand', 'club', 'spring', 'note']);
 const POSTAL_ADDRESS = process.env.POSTAL_ADDRESS || 'Taradome Entertainment Group LLC · Georgia, USA';
@@ -76,6 +77,7 @@ export default async (req) => {
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'Elite Athlete <support@elite-athlete.app>',
+          reply_to: REPLY_TO,
           to: email,
           subject: 'Got it - we have your request',
           text: `We received your request and a person will reply within 48 hours.\n\nIf you did not submit this, reply STOP and we will remove you.\n\nElite Athlete · support@elite-athlete.app\n${POSTAL_ADDRESS}`,

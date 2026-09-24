@@ -4,6 +4,7 @@
 // Also persists account_type onto the user's profile.
 // Auth: the new user's own bearer token (verified against Supabase auth).
 
+import { REPLY_TO } from './_mail.js';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Content-Type': 'application/json' };
 const FROM = 'Elite Athlete <support@elite-athlete.app>';
 const IOS = 'https://apps.apple.com/us/app/elite-athlete-sportperformance/id6770788680';
@@ -128,7 +129,7 @@ export default async (req) => {
     method: 'POST',
     headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: FROM, to: email, subject: tmpl.subject, html,
+      from: FROM, reply_to: REPLY_TO, to: email, subject: tmpl.subject, html,
       headers: { 'List-Unsubscribe': '<mailto:support@elite-athlete.app?subject=unsubscribe>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
     }),
   });

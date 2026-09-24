@@ -16,9 +16,10 @@
 // unrelated to the paused outreach schedules removed in adf0a2d.
 
 import { logLead } from './_lead.js';
+import { ALERT_TO, REPLY_TO } from './_mail.js';
 
 const SITE   = process.env.URL || 'https://elite-athlete.app';
-const ALERT  = process.env.CANARY_ALERT_TO || 'eku@taradome.com';
+const ALERT  = process.env.CANARY_ALERT_TO ? process.env.CANARY_ALERT_TO.split(',').map(x=>x.trim()) : ALERT_TO;
 const CANARY = 'canary@elite-athlete.app';
 
 async function alert(subject, text) {
@@ -27,7 +28,7 @@ async function alert(subject, text) {
   await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: 'Elite Athlete <support@elite-athlete.app>', to: ALERT, subject, text }),
+    body: JSON.stringify({ from: 'Elite Athlete <support@elite-athlete.app>', reply_to: REPLY_TO, to: ALERT, subject, text }),
   }).catch(e => console.error('[canary] alert failed', e));
 }
 

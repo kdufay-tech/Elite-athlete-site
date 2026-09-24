@@ -39,6 +39,7 @@
 
 import { CORS, json, env, rpc } from './_coach-auth.js';
 import { logLead } from './_lead.js';
+import { REPLY_TO } from './_mail.js';
 
 const FROM         = 'Elite Athlete <support@elite-athlete.app>';
 const CODE_TTL_MS  = 10 * 60 * 1000;       // 10 minutes
@@ -134,7 +135,7 @@ export default async (req) => {
           method: 'POST',
           headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            from: FROM, to: email,
+            from: FROM, reply_to: REPLY_TO, to: email,
             subject: 'Your Elite Athlete access code',
             html,
           }),

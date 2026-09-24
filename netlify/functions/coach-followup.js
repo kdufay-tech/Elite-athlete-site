@@ -28,6 +28,7 @@
 // counts per step without sending.
 
 import { requireOpsSecret, outreachAllowed } from './_ops-guard.js';
+import { REPLY_TO } from './_mail.js';
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Ops-Secret', 'Content-Type': 'application/json' };
 
@@ -232,6 +233,7 @@ export default async (req) => {
       const batch = recipients.slice(i, i + 100);
       const payload = batch.map((rcpt) => ({
         from: 'Elite Athlete <support@elite-athlete.app>',
+        reply_to: REPLY_TO,
         to: rcpt.email,
         subject: rcpt.subject,
         html: rcpt.html,

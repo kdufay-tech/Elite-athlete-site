@@ -135,7 +135,7 @@ async function sendInviteEmail({ toEmail, betaType, token, daysLeft, appUrl, tem
         from_name: 'Elite Athlete',
         subject,
         message,
-        reply_to:  'support@elite-athlete.app',
+        reply_to:  'eku@taradome.com',   // the read inbox (EmailJS takes one address); support@ keeps the archive via Workspace routing
       },
     }),
   });

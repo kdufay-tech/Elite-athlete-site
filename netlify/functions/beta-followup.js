@@ -1,5 +1,6 @@
 ﻿// netlify/functions/beta-followup.js
 import { requireOpsSecret } from './_ops-guard.js';
+import { REPLY_TO } from './_mail.js';
 // NOT SCHEDULED - the daily 9am UTC schedule was removed by adf0a2d. Finds
 // invites sent N days ago with no signup and mails a follow-up via Resend.
 // Requires OPS_TRIGGER_SECRET: removing the schedule left this deployed as a
@@ -78,6 +79,7 @@ export default async(req)=>{
       const html=buildHtml(subject,body,inviteUrl,cta);
       return {
         from:'Elite Athlete <support@elite-athlete.app>',
+        reply_to: REPLY_TO,
         to:invite.email,
         subject,
         html,

@@ -9,6 +9,7 @@
 // Hardened: the ENTIRE handler is wrapped so it always returns JSON (never an
 // empty body), DB reads run in parallel, and the Claude call has a hard timeout.
 
+import { REPLY_TO } from './_mail.js';
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
@@ -168,6 +169,7 @@ async function runCycle() {
         headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'Elite Athlete Coach Ops <support@elite-athlete.app>',
+          reply_to: REPLY_TO,
           to: ADMIN_EMAIL,
           subject: `Coach Ops - Weekly Growth Digest (${weekStart})`,
           html: digestEmailHtml(weekStart, metrics, digest),

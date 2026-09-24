@@ -460,6 +460,10 @@ otherwise the endpoint is an oracle for who an athlete is talking to.
 
 ---
 
+## Reply-To on every outbound email  (2026-09-24)
+support@elite-athlete.app is a Workspace mailbox nobody reads; 6,091 coaches were emailed from it on Sep 15-16 and any reply landed there unseen. `netlify/functions/_mail.js` now defines `REPLY_TO = ['eku@taradome.com','support@elite-athlete.app']` and every Resend send (blast, blast-background, broadcast, coach-followup, beta-followup, beta-expiry-reminder, coach-ops-weekly, welcome-email, share-view, lead-capture, lead-canary) carries it; `coach-nudge` keeps Reply-To = the coach's own address by design. EmailJS `send-beta-invite` uses eku@ (single address). Canary alerts go to both (`ALERT_TO`; override with env `CANARY_ALERT_TO`, comma-separated). This is code-level only - the support@ mailbox itself also needs Workspace routing/forwarding to eku@ for mail that arrives without a Reply-To (see Admin console).
+**There is no waitlist:** `BetaSignupSection` (date-gated off since 2026-06-30) and `netlify/functions/coach-waitlist.js` removed 2026-09-24. The admin Waitlist tab still reads the historical `coach_waitlist` table (0 rows).
+
 ## Capture ledger + age gate  (built 2026-09-15)
 Why: `coach_waitlist` had 0 rows after 602 engagements — the front end reported success on a swallowed catch. Council 2026-09-10 made a ledger + canary the first pre-send gate.
 - `public.lead_events` (migration `20260915_lead_events_and_minor_consent.sql`): append-only, RLS on with no policies (service-role only). Intents: raised_hand, reply, reply_yes, reply_not_now, reply_stop, call, demo, checkout_started, paid, objection, coach_opened_share, share_created, invite_redeemed, spring, club, canary, note. View `share_open_domains` = the passively-built sub-D1 college list.
